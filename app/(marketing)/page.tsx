@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CalculatorCard } from "@/components/calculator-card";
 import { calculatorDefinitions, categories } from "@/lib/calculator-definitions";
 
-export const metadata: Metadata = { title: "CalcForge — Practical calculators. Straight answers.", description: "Fast, free calculators for food planning, home improvement, construction, events, and business decisions." };
+export const metadata: Metadata = { title: "CalcForged — Practical calculators. Straight answers.", description: "Fast, free calculators for food planning, home improvement, construction, events, and business decisions." };
 
 export default function Home() {
   return <>
