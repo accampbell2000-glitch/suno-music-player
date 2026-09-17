@@ -38,6 +38,7 @@ const isDev = process.env.NODE_ENV !== "production";
 const PREVIEW_USER: CrevioUser = {
 	userId: "usr_preview",
 	accountId: "acct_preview",
+	kind: "platform",
 };
 
 let warnedPreview = false;
@@ -52,7 +53,7 @@ let warnedPreview = false;
 function devSession(): CrevioUser | null {
 	const userId = process.env.CREVIO_DEV_USER;
 	const accountId = process.env.CREVIO_DEV_ACCOUNT;
-	if (userId && accountId) return { userId, accountId };
+	if (userId && accountId) return { userId, accountId, kind: "platform" };
 	if (!isDev) return null;
 
 	if (!warnedPreview) {
