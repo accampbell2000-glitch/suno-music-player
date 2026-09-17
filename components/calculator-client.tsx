@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { calculatorsBySlug } from "@/lib/calculator-definitions";
 import type { CalculatorDefinition, CalculatorValues, IngredientRow } from "@/lib/calculator-definitions";
 
 function initialValues(definition: CalculatorDefinition): CalculatorValues {
@@ -14,7 +15,8 @@ function formatValue(value: string | number, format?: string) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
 }
 
-export function CalculatorClient({ definition }: { definition: CalculatorDefinition }) {
+export function CalculatorClient({ slug }: { slug: string }) {
+  const definition = calculatorsBySlug[slug];
   const [values, setValues] = useState<CalculatorValues>(() => initialValues(definition));
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState("");
