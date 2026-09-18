@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { calculatorsBySlug } from "@/lib/calculator-definitions";
-import type { CalculatorDefinition, CalculatorValues, IngredientRow } from "@/lib/calculator-definitions";
+import type { CalculatorDefinition, CalculatorValues, IngredientRow, ResultDefinition } from "@/lib/calculator-definitions";
 
 function initialValues(definition: CalculatorDefinition): CalculatorValues {
   return Object.fromEntries(definition.fields.map((field) => [field.key, field.type === "ingredient-list" ? [{ ingredient: "", amount: "", unit: "" }] : field.defaultValue ?? field.options?.[0]?.value ?? ""]));
@@ -46,9 +46,44 @@ export function CalculatorClient({ slug }: { slug: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [definition.slug]);
 
+  useEffect(() => {
+    const todayFields = definition.fields.filter((field) => field.defaultToday);
+    if (todayFields.length) {
+      const today = new Date().toLocaleDateString("en-CA");
+      setValues((current) => {
+        const next = { ...current };
+        todayFields.forEach((field) => { if (!current[field.key]) next[field.key] = today; });
+        return next;
+      });
+    }
+    if (definition.liveRates) {
+      let cancelled = false;
+      fetch("https://api.frankfurter.app/latest?base=USD")
+        .then((res) => res.json() as Promise<{ rates?: Record<string, number>; date?: string }>)
+        .then((data) => {
+          if (!cancelled && data?.rates) {
+            const rates = { USD: 1, ...data.rates } as Record<string, number>;
+            setValues((current) => ({ ...current, __rates: JSON.stringify({ rates, date: data.date as string }) }));
+          }
+        })
+        .catch(() => undefined);
+      return () => { cancelled = true; };
+    }
+  }, [definition]);
+
   const update = (key: string, value: string | number | IngredientRow[]) => {
     setValues((current) => ({ ...current, [key]: value }));
     setNotice("");
+  };
+
+  const applyScan = (scan: { originalServings?: number; ingredients: IngredientRow[] }) => {
+    setValues((current) => {
+      const next = { ...current };
+      if (typeof scan.originalServings === "number" && definition.fields.some((field) => field.key === "originalServings")) next.originalServings = scan.originalServings;
+      definition.fields.forEach((field) => { if (field.type === "ingredient-list") next[field.key] = scan.ingredients; });
+      return next;
+    });
+    setNotice("Photo scanned — check the rows, then set the new servings");
   };
 
   const shareUrl = () => {
@@ -76,11 +111,12 @@ export function CalculatorClient({ slug }: { slug: string }) {
       <div className="cf-calculator-head"><div><p className="cf-kicker">Live calculator</p><h2>Enter your details</h2></div><span className="cf-live-dot">Updates instantly</span></div>
       <div className="cf-calc-grid">
         <div className="cf-inputs">
+          {definition.photoScan && <RecipePhotoScan onScan={applyScan} />}
           {definition.fields.map((field) => field.type === "ingredient-list" ? <IngredientEditor key={field.key} value={(values[field.key] as IngredientRow[]) ?? []} onChange={(rows) => update(field.key, rows)} /> : <label className="cf-field" key={field.key}><span>{field.label}</span><div className="cf-input-wrap">{field.type === "select" ? <select value={String(values[field.key])} onChange={(event) => update(field.key, event.target.value)}>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input type={field.type} min={field.min} max={field.max} step={field.step} value={String(values[field.key])} onChange={(event) => update(field.key, field.type === "number" ? Number(event.target.value) : event.target.value)} />}{field.unit && <em>{field.unit}</em>}</div>{field.help && <small>{field.help}</small>}</label>)}
         </div>
         <div className="cf-results-wrap">
           <div className="cf-results-head"><div><p className="cf-kicker">Your estimate</p><h3>Results</h3></div><span className="cf-estimate-note">Planning estimate</span></div>
-          <div className="cf-results">{definition.results.map((result) => <div className="cf-result" key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><strong>{formatValue(results[result.key] ?? "—", result.format)}{result.unit && result.format !== "currency" && <small> {result.unit}</small>}</strong>{result.interpretation && <p>{result.interpretation}</p>}</div>)}</div>
+          <div className="cf-results">{definition.results.map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
           <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
           <div className="cf-ad-slot" aria-label="Reserved advertising space"><span>Reserved space</span><small>Ads and partner recommendations may appear here later.</small></div>
         </div>
@@ -89,6 +125,65 @@ export function CalculatorClient({ slug }: { slug: string }) {
   );
 }
 
+function ResultBody({ result, value }: { result: ResultDefinition; value: string | number | undefined }) {
+  if (result.format === "text" && typeof value === "string" && value.includes("\n")) {
+    return <ul className="cf-result-lines">{value.split("\n").filter((line) => line.trim().length > 0).map((line) => <li key={line}>{line}</li>)}</ul>;
+  }
+  return <strong className={result.format === "text" ? "cf-result-text" : undefined}>{formatValue(value ?? "—", result.format)}{result.unit && result.format !== "currency" && <small> {result.unit}</small>}</strong>;
+}
+
 function IngredientEditor({ value, onChange }: { value: IngredientRow[]; onChange: (value: IngredientRow[]) => void }) {
   return <fieldset className="cf-ingredients"><legend>Ingredients</legend>{value.map((row, index) => <div className="cf-ingredient-row" key={`${index}-${row.ingredient}`}><input aria-label="Ingredient amount" placeholder="1/2" value={row.amount} onChange={(event) => onChange(value.map((item, i) => i === index ? { ...item, amount: event.target.value } : item))} /><input aria-label="Ingredient unit" placeholder="cup" value={row.unit} onChange={(event) => onChange(value.map((item, i) => i === index ? { ...item, unit: event.target.value } : item))} /><input aria-label="Ingredient name" placeholder="Ingredient" value={row.ingredient} onChange={(event) => onChange(value.map((item, i) => i === index ? { ...item, ingredient: event.target.value } : item))} /></div>)}<button className="cf-add-row" type="button" onClick={() => onChange([...value, { ingredient: "", amount: "", unit: "" }])}>+ Add ingredient</button></fieldset>;
+}
+
+async function shrinkImage(file: File, maxEdge = 1600, quality = 0.82): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+function RecipePhotoScan({ onScan }: { onScan: (scan: { originalServings?: number; ingredients: IngredientRow[] }) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<"idle" | "scanning" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState("");
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setStatus("scanning");
+    setMessage("Reading your recipe…");
+    try {
+      const image = await shrinkImage(file);
+      setPreview(image);
+      const response = await fetch("/api/scan-recipe", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image }) });
+      const data = await response.json().catch(() => null) as { error?: string; originalServings?: number; ingredients?: IngredientRow[] } | null;
+      if (!response.ok || !data?.ingredients?.length) {
+        setStatus("error");
+        setMessage(data?.error ?? "The scan failed — try again in a moment.");
+        return;
+      }
+      onScan({ originalServings: data.originalServings, ingredients: data.ingredients });
+      setStatus("idle");
+      setMessage("");
+    } catch {
+      setStatus("error");
+      setMessage("That photo couldn't be read — try another one.");
+    }
+  };
+
+  return (
+    <fieldset className="cf-scan" disabled={status === "scanning"}>
+      <legend>Scan a recipe photo</legend>
+      {preview && <img className="cf-scan-preview" src={preview} alt="Recipe photo preview" width={64} height={64} />}
+      <p>Snap the recipe — cookbook page, handwritten card, or screenshot — and AI reads the ingredients into the list below.</p>
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(event) => { handleFile(event.target.files?.[0]); event.target.value = ""; }} />
+      <button className="cf-add-row" type="button" onClick={() => inputRef.current?.click()} disabled={status === "scanning"}>{status === "scanning" ? "Scanning…" : "📷 Choose recipe photo"}</button>
+      {status === "error" && <p className="cf-scan-error" role="alert">{message}</p>}
+    </fieldset>
+  );
 }
