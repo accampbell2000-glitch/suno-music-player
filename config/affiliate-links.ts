@@ -111,6 +111,7 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	"catering-food-quantity": { name: "Insulated food carriers", blurb: "Quantities locked — haul and hold it hot until service.", query: "insulated food carrier catering" },
 	"taco-bar": { name: "Tortilla warmer", blurb: "Taco count done — keep the stack soft through the whole line.", query: "tortilla warmer 12 inch" },
 	"restaurant-food-cost": { name: "Digital portion scale", blurb: "The percentage is only as good as the weighing behind it.", query: "digital portion scale kitchen 0.1 oz" },
+	"catering-price-per-person": { name: "Digital portion scale", blurb: "Price per person starts with knowing exactly what a portion weighs.", query: "digital portion scale kitchen 0.1 oz" },
 	"recipe-scaling": { name: "Digital kitchen scale", blurb: "Scaled amounts read cleanest when you measure in grams.", query: "digital kitchen scale grams" },
 	"wedding-dessert-table": { name: "Cupcake carrier & stands", blurb: "Pieces counted — get them there intact and displayed.", query: "cupcake carrier dessert stand" },
 	"appetizers-per-person": { name: "Serving platters & trays", blurb: "Pieces planned — more platters out means fewer refills.", query: "serving platters trays party set" },
