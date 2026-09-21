@@ -25,6 +25,8 @@ interface FormFieldsProps {
 	description?: string;
 	submitLabel: string;
 	className?: string;
+	/** Optional content (e.g. a download link) shown under the success message. */
+	successSlot?: React.ReactNode;
 }
 
 const initialState: SubmitFormState = { status: "idle" };
@@ -51,6 +53,7 @@ export function FormFields({
 	description,
 	submitLabel,
 	className,
+	successSlot,
 }: FormFieldsProps) {
 	const action = submitForm.bind(null, form.id);
 	const [state, formAction] = useActionState(action, initialState);
@@ -66,6 +69,7 @@ export function FormFields({
 					<p className="max-w-md text-sm text-muted-foreground">
 						{state.message}
 					</p>
+					{successSlot}
 				</div>
 			</div>
 		);

@@ -381,3 +381,28 @@
 .cf-result-lines li:last-child { border-bottom: 0; padding-bottom: 0; }
 .cf-result-wide { grid-column: 1 / -1; border-right: 0 !important; }
 .cf-result-text { font-size: 1.02rem; letter-spacing: 0; line-height: 1.5; }
+
+/* Affiliate gear band (buying-intent calculators) */
+.cf-affiliate { padding-top: 95px; }
+.cf-affiliate .cf-section-heading { margin-bottom: 25px; }
+.cf-affiliate h2 { font-size: 2.2rem; }
+.cf-affiliate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.cf-affiliate-card { display: grid; grid-template-columns: 1fr auto; align-items: start; column-gap: 18px; padding: 24px 0; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.cf-affiliate-card:nth-child(even) { border-left: 1px solid var(--line); padding-left: 24px; }
+.cf-affiliate-card h3 { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
+.cf-affiliate-card p { color: var(--muted-ink); font-size: .8rem; line-height: 1.5; margin-top: 7px; max-width: 330px; }
+.cf-affiliate-card .cf-card-arrow { color: var(--ember); font-size: 1.1rem; transition: transform .18s ease; }
+.cf-affiliate-card:hover h3 { color: var(--ember); }
+.cf-affiliate-card:hover .cf-card-arrow { transform: translate(2px, -2px); }
+.cf-affiliate-disclosure { margin-top: 16px; font-family: 'DM Mono', monospace; font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted-ink); max-width: 520px; }
+
+/* Lead magnet band (food & event calculators) */
+.cf-leadmagnet { padding-top: 95px; }
+.cf-leadmagnet-card { border: 1px solid var(--ink); background: var(--paper-2, #ebeae3); padding: 42px 46px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 44px; align-items: center; }
+.cf-leadmagnet-pitch h2 { font-size: 2rem; letter-spacing: -.03em; line-height: 1.12; margin: 10px 0 14px; }
+.cf-leadmagnet-pitch h2 em { font-family: 'Newsreader', Georgia, serif; font-weight: 400; letter-spacing: -.02em; }
+.cf-leadmagnet-pitch p { color: var(--muted-ink); font-size: .88rem; line-height: 1.6; max-width: 380px; }
+.cf-leadmagnet .cf-kicker { margin-bottom: 0; }
+.cf-leadmagnet-download { display: inline-block; padding: 12px 22px; font-size: .78rem; font-weight: 700; text-decoration: none; }
+@media (max-width: 760px) { .cf-affiliate { padding-top: 65px; } .cf-affiliate-grid { grid-template-columns: 1fr; } .cf-affiliate-card, .cf-affiliate-card:nth-child(even) { border-left: 0; padding-left: 0; } .cf-affiliate h2 { font-size: 1.8rem; } .cf-leadmagnet { padding-top: 65px; } .cf-leadmagnet-card { grid-template-columns: 1fr; padding: 28px 22px; gap: 26px; } .cf-leadmagnet-pitch h2 { font-size: 1.65rem; } }
+@media print { .cf-affiliate, .cf-leadmagnet { display: none !important; } }

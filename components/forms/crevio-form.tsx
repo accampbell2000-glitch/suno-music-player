@@ -7,6 +7,8 @@ interface CrevioFormProps {
 	description?: string;
 	submitLabel?: string;
 	className?: string;
+	/** Optional content (e.g. a download link) shown under the success message. */
+	successSlot?: React.ReactNode;
 }
 
 /**
@@ -28,6 +30,7 @@ export async function CrevioForm({
 	description,
 	submitLabel = "Submit",
 	className,
+	successSlot,
 }: CrevioFormProps) {
 	const form = formId
 		? await createCrevioClient()
@@ -58,6 +61,7 @@ export async function CrevioForm({
 			description={description}
 			submitLabel={submitLabel}
 			className={className}
+			successSlot={successSlot}
 		/>
 	);
 }
