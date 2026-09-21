@@ -258,6 +258,42 @@ const definitions: CalculatorDefinition[] = [
     related: ["paint", "flooring", "concrete"],
   },
   {
+    slug: "ac-size", name: "AC Size Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "❄", description: "Work out the cooling load in BTU and the air conditioner size a room actually needs.",
+    fields: [
+      { key: "area", label: "Room area", type: "number", unit: "sq ft", min: 50, max: 5000, defaultValue: 300 },
+      { key: "ceilingHeight", label: "Ceiling height", type: "number", unit: "ft", min: 7, max: 12, step: 0.5, defaultValue: 8 },
+      { key: "sun", label: "Sun exposure", type: "select", defaultValue: "average", options: [{ label: "Heavily shaded", value: "shaded" }, { label: "Average", value: "average" }, { label: "Very sunny", value: "sunny" }] },
+      { key: "insulation", label: "Insulation", type: "select", defaultValue: "average", options: [{ label: "Good", value: "good" }, { label: "Average", value: "average" }, { label: "Poor", value: "poor" }] },
+      { key: "occupants", label: "People usually in the room", type: "number", unit: "people", min: 1, max: 50, defaultValue: 2 },
+      { key: "isKitchen", label: "Is it a kitchen?", type: "select", defaultValue: "no", options: [{ label: "No", value: "no" }, { label: "Yes", value: "yes" }] },
+      { key: "climate", label: "Climate", type: "select", defaultValue: "temperate", options: [{ label: "Temperate", value: "temperate" }, { label: "Hot", value: "hot" }, { label: "Very hot & humid", value: "extreme" }] },
+    ],
+    results: [
+      { key: "coolingLoad", label: "Cooling load", unit: "BTU/hr", format: "number", estimate: true, interpretation: "The heat the room adds on a hot day." },
+      { key: "tons", label: "Cooling load", unit: "tons", format: "number", estimate: true },
+      { key: "recommendedUnit", label: "Unit to buy", format: "text" },
+      { key: "guidanceNote", label: "Scope note", format: "text" },
+    ],
+    calculate: (v) => {
+      const area = n(v, "area", 300);
+      const ceilingFactor = n(v, "ceilingHeight", 8) / 8;
+      const sunFactor = option(v, "sun", "average") === "sunny" ? 1.1 : option(v, "sun", "average") === "shaded" ? 0.9 : 1;
+      const insulationFactor = option(v, "insulation", "average") === "poor" ? 1.15 : option(v, "insulation", "average") === "good" ? 0.9 : 1;
+      const climateFactor = option(v, "climate", "temperate") === "extreme" ? 1.2 : option(v, "climate", "temperate") === "hot" ? 1.1 : 1;
+      const occupants = n(v, "occupants", 2);
+      const base = area * 20 * ceilingFactor * sunFactor * insulationFactor;
+      const load = (base + Math.max(0, occupants - 2) * 600 + (option(v, "isKitchen", "no") === "yes" ? 4000 : 0)) * climateFactor;
+      const sizes = [5000, 6000, 8000, 9000, 10000, 12000, 15000, 18000, 21000, 24000, 30000, 36000, 48000, 60000];
+      const unit = sizes.find((size) => size >= load) ?? 60000;
+      return { coolingLoad: Math.round(load / 100) * 100, tons: round(load / 12000, 1), recommendedUnit: `Buy a ${unit.toLocaleString("en-US")} BTU (${round(unit / 12000, 1)}-ton) unit`, guidanceNote: "Simplified heat load for one room. Whole-house systems and professional installs need a full Manual J calculation." };
+    },
+    howItWorks: ["Start from 20 BTU per square foot of floor space — the standard room-cooling baseline.", "Scale for ceiling height, sun, and insulation, then add 600 BTU per person beyond two and 4,000 BTU for a kitchen.", "The load converts to tons (12,000 BTU per ton) and rounds up to the next unit size you can actually buy."],
+    example: { title: "Sunny kitchen, 3 people", inputs: "300 sq ft, 8 ft ceilings, very sunny, kitchen, 3 people", result: "About 11,200 BTU (0.9 tons) — buy a 12,000 BTU (1-ton) unit." },
+    faqs: [{ question: "How many BTU do I need per square foot?", answer: "A common baseline is 20 BTU per square foot of floor space, adjusted for sun, ceiling height, occupants, and kitchen heat. This calculator applies those standard adjustments for you." }, { question: "What is a ton of cooling?", answer: "One ton equals 12,000 BTU per hour of cooling. Window and portable units are rated in BTU; central systems are usually rated in tons." }, { question: "Is this a Manual J load calculation?", answer: "No. It is a simplified room heat load built on standard rules of thumb — right for picking a room unit or a mini-split. A professional whole-house installation should size from a full Manual J that models every window, wall, and duct." }, { question: "Is it bad to oversize an air conditioner?", answer: "Usually yes. An oversized unit cools fast, shuts off early, and never runs long enough to pull humidity out — the room ends up cold and clammy. Size to the load, and step up one size only for unusual conditions." }],
+    seo: { title: "AC Size Calculator – BTU & Heat Load | CalcForged", description: "Calculate the heat load in BTU and the right air conditioner size for any room — sun, ceiling height, occupants, insulation, and kitchen heat included.", h1: "AC size calculator", intro: "Air conditioners are sized by heat load: the number of BTU per hour the room adds on a hot day. Enter the room's area, ceiling height, sun exposure, insulation, and how many people use it, and the calculator applies the standard adjustments to the 20 BTU per square foot baseline. The result converts to tons and points at the next unit size you can actually buy — so you neither undersize a room into misery nor oversize it into a clammy, short-cycling machine." },
+    related: ["paint", "flooring", "concrete"],
+  },
+  {
     slug: "mortgage", name: "Mortgage Calculator", category: "Finance", categorySlug: "finance", icon: "🏠", description: "Estimate your monthly mortgage payment, including taxes and insurance.",
     fields: [{ key: "homePrice", label: "Home price", type: "number", unit: "$", min: 10000, step: 1000, defaultValue: 400000 }, { key: "downPayment", label: "Down payment", type: "number", unit: "$", min: 0, step: 1000, defaultValue: 80000 }, { key: "rate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 25, step: 0.05, defaultValue: 6.5 }, { key: "term", label: "Loan term", type: "select", defaultValue: "30", options: [{ label: "30 years", value: "30" }, { label: "20 years", value: "20" }, { label: "15 years", value: "15" }, { label: "10 years", value: "10" }] }, { key: "tax", label: "Property tax per year", type: "number", unit: "$", min: 0, step: 100, defaultValue: 3600 }, { key: "insurance", label: "Home insurance per year", type: "number", unit: "$", min: 0, step: 100, defaultValue: 1500 }],
     results: [{ key: "loan", label: "Loan amount", unit: "$", format: "currency" }, { key: "monthlyPI", label: "Principal & interest", unit: "$/mo", format: "currency" }, { key: "monthlyTotal", label: "Estimated total monthly", unit: "$/mo", format: "currency", estimate: true, interpretation: "Principal, interest, property tax, and insurance." }, { key: "totalInterest", label: "Total interest over the loan", unit: "$", format: "currency", estimate: true }],

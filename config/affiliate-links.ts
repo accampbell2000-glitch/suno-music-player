@@ -97,6 +97,12 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Yarn winder & swift", blurb: "Winds skeins into pull-cakes; the only yarn upgrade worth making early.", query: "yarn ball winder swift set" },
 		{ name: "Stitch markers & gauge tool", blurb: "Checking gauge before the cast-on is what makes the yardage math land.", query: "stitch markers gauge tool knitting set" },
 	],
+	"ac-size": [
+		{ name: "Window air conditioner", blurb: "The standard fix for one room — match the BTU rating to your load.", query: "window air conditioner 12000 btu" },
+		{ name: "Mini-split system", blurb: "Quieter and more efficient than a window unit for rooms you cool daily.", query: "mini split air conditioner heat pump" },
+		{ name: "Smart thermostat", blurb: "Schedules and setbacks that shave the bill without sacrificing comfort.", query: "smart thermostat alexa" },
+		{ name: "Caulk & weatherstripping", blurb: "Sealing leaks cuts the load itself — the cheapest BTU you will ever buy.", query: "weatherstripping door seal caulk kit" },
+	],
 };
 
 // The single strongest click for each calculator, shown as a compact strip
@@ -116,4 +122,5 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	"wedding-dessert-table": { name: "Cupcake carrier & stands", blurb: "Pieces counted — get them there intact and displayed.", query: "cupcake carrier dessert stand" },
 	"appetizers-per-person": { name: "Serving platters & trays", blurb: "Pieces planned — more platters out means fewer refills.", query: "serving platters trays party set" },
 	"yarn-yardage": { name: "Worsted weight yarn", blurb: "Yardage known — buy the whole project from one dye lot.", query: "worsted weight yarn 100g skein" },
+	"ac-size": { name: "Window air conditioner", blurb: "Your BTU is set — pick the unit that matches it.", query: "window air conditioner 12000 btu" },
 };
