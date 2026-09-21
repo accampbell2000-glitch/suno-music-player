@@ -18,7 +18,7 @@ export async function CalcForgedHeader() {
         <Link className="cf-header-cta hide-sm" href="/calculators">Find a calculator <span aria-hidden="true">↗</span></Link>
         {session ? (
           <span className="cf-header-auth">
-            <Link href="/dashboard" className="cf-auth-strong">My area</Link>
+            <Link href="/dashboard/toolkit" className="cf-auth-strong">My toolkit</Link>
             <a href={signOutUrl("/")} className="cf-auth-quiet">Sign out</a>
           </span>
         ) : (

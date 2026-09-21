@@ -45,6 +45,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
   const [values, setValues] = useState<CalculatorValues>(() => initialValues(definition));
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState("");
+  const [saved, setSaved] = useState<boolean | null>(null);
   const results = useMemo(() => definition.calculate(values), [definition, values]);
 
   useEffect(() => {
@@ -52,7 +53,19 @@ export function CalculatorClient({ slug }: { slug: string }) {
     const prior = window.localStorage.getItem(key);
     window.localStorage.setItem(key, "1");
     fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "page_view", calculatorSlug: definition.slug, sessionHash: key, isRepeat: Boolean(prior) }) }).catch(() => undefined);
+    fetch("/api/toolkit").then((res) => res.ok ? (res.json() as Promise<{ ok?: boolean; slugs?: string[] }>) : null).then((data) => { if (data?.ok) setSaved(Array.isArray(data.slugs) && data.slugs.includes(definition.slug)); }).catch(() => undefined);
   }, [definition.slug]);
+
+  async function toggleSaved() {
+    const next = !saved;
+    setSaved(next);
+    const res = await fetch("/api/toolkit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug: definition.slug, action: next ? "add" : "remove" }) });
+    if (res.status === 401) {
+      window.location.href = `/login?return_to=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    if (!res.ok) setSaved(!next);
+  }
 
   useEffect(() => {
     const summary = definition.fields.filter((field) => field.type !== "ingredient-list").map((field) => `${field.key}:${typeof values[field.key] === "number" ? Math.round(Number(values[field.key]) / 5) * 5 : String(values[field.key])}`).join("|");
@@ -133,7 +146,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
 
   return (
     <div className="cf-calculator" id="calculator">
-      <div className="cf-calculator-head"><div><p className="cf-kicker">Live calculator</p><h2>Enter your details</h2></div><span className="cf-live-dot">Updates instantly</span></div>
+      <div className="cf-calculator-head"><div><p className="cf-kicker">Live calculator</p><h2>Enter your details</h2></div><div className="cf-head-actions"><button type="button" className={`cf-save-star${saved ? " is-saved" : ""}`} onClick={toggleSaved} disabled={saved === null} aria-label={saved ? "Remove from my toolkit" : "Save to my toolkit"}><span aria-hidden="true">{saved ? "★" : "☆"}</span>{saved ? "Saved" : "Save"}</button><span className="cf-live-dot">Updates instantly</span></div></div>
       <div className="cf-calc-grid">
         <div className="cf-inputs">
           {definition.photoScan && <RecipePhotoScan onScan={applyScan} />}

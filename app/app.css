@@ -445,3 +445,18 @@
 .cf-header-auth .cf-auth-strong { color: var(--ember); }
 .cf-header-auth a:hover { color: var(--ink); }
 @media (max-width: 760px) { .cf-header-cta.hide-sm { display: none; } .cf-header-auth { border-left: 0; padding-left: 0; } }
+
+/* Calculator head: save-star next to the live dot */
+.cf-head-actions { display: flex; align-items: center; gap: 12px; }
+.cf-save-star { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--paper); padding: 7px 12px; font-size: .68rem; font-weight: 700; letter-spacing: .01em; cursor: pointer; color: var(--ink); }
+.cf-save-star span[aria-hidden] { font-size: .9rem; line-height: 1; color: var(--muted-ink); }
+.cf-save-star:hover { border-color: var(--ember); color: var(--ember); }
+.cf-save-star.is-saved { border-color: var(--ember); color: var(--ember); background: var(--ember-soft); }
+.cf-save-star.is-saved span[aria-hidden] { color: var(--ember); }
+.cf-save-star:disabled { opacity: .55; cursor: default; }
+
+/* Homepage account band (reuses the lead-magnet band layout) */
+.cf-account-band .cf-leadmagnet-card { grid-template-columns: 1.2fr .8fr; }
+.cf-account-band-actions { display: grid; gap: 12px; justify-items: start; }
+.cf-account-band-actions .cf-button { text-decoration: none; padding: 13px 22px; font-size: .82rem; }
+@media (max-width: 760px) { .cf-account-band .cf-leadmagnet-card { grid-template-columns: 1fr; } .cf-account-band-actions { justify-items: stretch; text-align: center; } .cf-account-band-actions .cf-button { display: inline-block; } }
