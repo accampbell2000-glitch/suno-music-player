@@ -12,6 +12,7 @@ export function CalcForgedHeader() {
           <Link href="/calculators">All calculators</Link>
           <Link href="/#why">Why CalcForged</Link>
         </nav>
+        <Link className="cf-header-cta" href="/calculator-requests">Request a calculator <span aria-hidden="true">↗</span></Link>
         <Link className="cf-header-cta" href="/calculators">Find a calculator <span aria-hidden="true">↗</span></Link>
       </div>
     </header>
