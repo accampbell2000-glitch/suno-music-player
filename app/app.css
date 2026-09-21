@@ -437,3 +437,11 @@
 .cf-featured-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
 .cf-featured-footer p { color: var(--muted-ink); font-size: .8rem; }
 @media (max-width: 760px) { .cf-featured-grid { grid-template-columns: 1fr; } .cf-featured-footer { flex-direction: column; align-items: start; gap: 8px; } }
+
+/* Header auth cluster (log in / create account / my area) */
+.cf-header-auth { display: inline-flex; align-items: center; gap: 14px; margin-left: auto; border-left: 1px solid var(--line); padding-left: 22px; min-width: max-content; }
+.cf-header-auth a { font-size: .73rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.cf-header-auth .cf-auth-quiet { color: var(--muted-ink); }
+.cf-header-auth .cf-auth-strong { color: var(--ember); }
+.cf-header-auth a:hover { color: var(--ink); }
+@media (max-width: 760px) { .cf-header-cta.hide-sm { display: none; } .cf-header-auth { border-left: 0; padding-left: 0; } }
