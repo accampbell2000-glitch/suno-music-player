@@ -10,7 +10,7 @@
 // disclosure under the grid switches to the Amazon Associates wording once
 // the tag is configured.
 
-export const AMAZON_TAG = "";
+export const AMAZON_TAG = "calcforged-20";
 
 type AffiliateProduct = { name: string; blurb: string; query: string };
 
