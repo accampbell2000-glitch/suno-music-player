@@ -72,3 +72,8 @@ Skills live in `.claude/skills/` — load the relevant `SKILL.md` before working
 - `frontend-design` — building UI components and pages
 - `vercel-react-best-practices` — React 19 + Next.js performance
 - `cloudflare` / `wrangler` / `workers-best-practices` — Workers, D1/KV/R2, deploys
+
+## Monetization (phase 1)
+
+- Affiliate picks + the Amazon Associates tag live in `config/affiliate-links.ts` (one place, comment explains setup). Tag empty = links work but earn nothing; set it and redeploy to go live. The FTC disclosure switches wording automatically.
+- The lead magnet ("Catering Cheat Sheet") is a Crevio Form `form_oq3dgpL5ym8qiEO3nbzKDaAE`, rendered by `components/lead-magnet-section.tsx` on the food/event calculators; the PDF is `public/downloads/catering-cheat-sheet.pdf`. FormFields accepts a `successSlot` for post-submit content.
