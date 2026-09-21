@@ -53,7 +53,10 @@ export function CalculatorClient({ slug }: { slug: string }) {
     const prior = window.localStorage.getItem(key);
     window.localStorage.setItem(key, "1");
     fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "page_view", calculatorSlug: definition.slug, sessionHash: key, isRepeat: Boolean(prior) }) }).catch(() => undefined);
-    fetch("/api/toolkit").then((res) => res.ok ? (res.json() as Promise<{ ok?: boolean; slugs?: string[] }>) : null).then((data) => { if (data?.ok) setSaved(Array.isArray(data.slugs) && data.slugs.includes(definition.slug)); }).catch(() => undefined);
+    fetch("/api/toolkit").then((res) => {
+      if (res.status === 401) { setSaved(false); return null; }
+      return res.ok ? (res.json() as Promise<{ ok?: boolean; slugs?: string[] }>) : null;
+    }).then((data) => { if (data?.ok) setSaved(Array.isArray(data.slugs) && data.slugs.includes(definition.slug)); }).catch(() => undefined);
   }, [definition.slug]);
 
   async function toggleSaved() {
