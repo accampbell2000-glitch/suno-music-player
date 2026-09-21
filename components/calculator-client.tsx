@@ -3,6 +3,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calculatorsBySlug } from "@/lib/calculator-definitions";
 import type { CalculatorDefinition, CalculatorValues, IngredientRow, ResultDefinition } from "@/lib/calculator-definitions";
+import { affiliateTopPicks, affiliateUrl } from "@/config/affiliate-links";
+
+/**
+ * PartnerPick
+ *
+ * Compact commission strip shown inside the calculator directly under the
+ * results — the highest-intent moment. One product, one link, tagged in
+ * config/affiliate-links.ts. Renders nothing where no pick exists; the
+ * disclosure travels with the strip because it's a paid-link context.
+ */
+function PartnerPick({ slug }: { slug: string }) {
+  const pick = affiliateTopPicks[slug];
+  if (!pick) return null;
+  return (
+    <div className="cf-partner-strip">
+      <p className="cf-kicker">Partner pick</p>
+      <a href={affiliateUrl(pick.query)} target="_blank" rel="sponsored nofollow noopener">
+        <strong>{pick.name}</strong>
+        <span>{pick.blurb}</span>
+        <em aria-hidden="true">Check current price ↗</em>
+      </a>
+      <small>As an Amazon Associate, CalcForged earns from qualifying purchases.</small>
+    </div>
+  );
+}
 
 function initialValues(definition: CalculatorDefinition): CalculatorValues {
   return Object.fromEntries(definition.fields.map((field) => [field.key, field.type === "ingredient-list" ? [{ ingredient: "", amount: "", unit: "" }] : field.defaultValue ?? field.options?.[0]?.value ?? ""]));
@@ -118,7 +143,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
           <div className="cf-results-head"><div><p className="cf-kicker">Your estimate</p><h3>Results</h3></div><span className="cf-estimate-note">Planning estimate</span></div>
           <div className="cf-results">{definition.results.map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
           <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
-          <div className="cf-ad-slot" aria-label="Reserved advertising space"><span>Reserved space</span><small>Ads and partner recommendations may appear here later.</small></div>
+          <PartnerPick slug={definition.slug} />
         </div>
       </div>
     </div>

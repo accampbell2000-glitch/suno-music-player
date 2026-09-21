@@ -418,3 +418,15 @@
 .cf-request-aside > p:not(.cf-kicker):not(.cf-request-count) { color: var(--muted-ink); font-size: .84rem; line-height: 1.6; }
 .cf-request-promise { border-top: 1px solid var(--line); padding-top: 14px; }
 @media (max-width: 760px) { .cf-request-grid { grid-template-columns: 1fr; gap: 45px; } .cf-request-aside { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 24px; } }
+
+/* Partner pick strip (inside the calculator, under results) */
+.cf-partner-strip { border: 1px solid var(--line); background: var(--paper-2, #ebeae3); margin: 14px 20px 0; padding: 13px 16px; }
+.cf-partner-strip .cf-kicker { margin-bottom: 7px; }
+.cf-partner-strip a { display: grid; grid-template-columns: 1fr; gap: 4px; color: var(--ink); text-decoration: none; }
+.cf-partner-strip a strong { font-size: .92rem; font-weight: 700; letter-spacing: -.01em; }
+.cf-partner-strip a span { color: var(--muted-ink); font-size: .74rem; line-height: 1.45; }
+.cf-partner-strip a em { font-style: normal; font-family: 'DM Mono', monospace; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ember); margin-top: 3px; }
+.cf-partner-strip a:hover em { text-decoration: underline; }
+.cf-partner-strip > small { display: block; margin-top: 9px; font-size: .58rem; color: #989b92; }
+
+@media print { .cf-partner-strip { display: none !important; } }
