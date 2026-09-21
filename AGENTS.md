@@ -87,3 +87,7 @@ house convention (e.g. `lib/calculator-definitions.ts`). Instead:
 
 - `bun run build` (runs typecheck + build) — the real gate.
 - For lint only, run `bunx biome check --formatter-enabled=false --assist-enabled=false <file>`.
+
+## Domain
+
+- The site's canonical domain is **https://calcforged.com** (registered Sep 21 via Crevio's registrar, DNS managed). Never hardcode calcforged.crevio.app anywhere — print URLs, emails, OG tags use calcforged.com (canonical/sitemap come from CREVIO_APP_URL automatically).
