@@ -77,3 +77,13 @@ Skills live in `.claude/skills/` — load the relevant `SKILL.md` before working
 
 - Affiliate picks + the Amazon Associates tag live in `config/affiliate-links.ts` (one place, comment explains setup). Tag empty = links work but earn nothing; set it and redeploy to go live. The FTC disclosure switches wording automatically.
 - The lead magnet ("Catering Cheat Sheet") is a Crevio Form `form_oq3dgpL5ym8qiEO3nbzKDaAE`, rendered by `components/lead-magnet-section.tsx` on the food/event calculators; the PDF is `public/downloads/catering-cheat-sheet.pdf`. FormFields accepts a `successSlot` for post-submit content.
+
+## Do NOT run `bun run check` (--write) on this repo
+
+The committed codebase uses a compact one-line style (long lines, definitions inline) that
+biome's formatter (indentStyle tab, default 80 width) rewrites wholesale — running
+`bun run check` reformats ~20 files / ~5k lines of unrelated churn. The compact style is the
+house convention (e.g. `lib/calculator-definitions.ts`). Instead:
+
+- `bun run build` (runs typecheck + build) — the real gate.
+- For lint only, run `bunx biome check --formatter-enabled=false --assist-enabled=false <file>`.
