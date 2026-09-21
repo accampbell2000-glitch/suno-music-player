@@ -71,8 +71,13 @@ export function CalculatorClient({ slug }: { slug: string }) {
   }
 
   useEffect(() => {
-    const summary = definition.fields.filter((field) => field.type !== "ingredient-list").map((field) => `${field.key}:${typeof values[field.key] === "number" ? Math.round(Number(values[field.key]) / 5) * 5 : String(values[field.key])}`).join("|");
-    fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "calculation_performed", calculatorSlug: definition.slug, inputSummary: summary, sessionHash: `calcforge-session-${definition.slug}` }) }).catch(() => undefined);
+    const timer = setTimeout(() => {
+      const plain: Record<string, string | number> = {};
+      definition.fields.forEach((field) => { if (field.type !== "ingredient-list") plain[field.key] = values[field.key] as string | number; });
+      const summary = Object.entries(plain).map(([key, value]) => `${key}:${typeof value === "number" ? Math.round(Number(value) / 5) * 5 : String(value)}`).join("|");
+      fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "calculation_performed", calculatorSlug: definition.slug, inputSummary: summary, inputs: plain, sessionHash: `calcforge-session-${definition.slug}` }) }).catch(() => undefined);
+    }, 2500);
+    return () => clearTimeout(timer);
   }, [definition, values]);
 
   useEffect(() => {

@@ -30,8 +30,8 @@ async function Overview() {
 					Welcome back{viewer?.name ? `, ${viewer.name}` : ""}
 				</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Your saved calculators and results will live here — the shelf is
-					being built.
+					Your toolkit, your last 20 calculations, and your profile all live
+					here.
 				</p>
 			</div>
 
