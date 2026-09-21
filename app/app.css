@@ -430,3 +430,10 @@
 .cf-partner-strip > small { display: block; margin-top: 9px; font-size: .58rem; color: #989b92; }
 
 @media print { .cf-partner-strip { display: none !important; } }
+
+/* Homepage: curated six + library pointer */
+.cf-featured-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cf-featured-grid .cf-tool-card p:not(.cf-card-category) { max-width: none; }
+.cf-featured-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+.cf-featured-footer p { color: var(--muted-ink); font-size: .8rem; }
+@media (max-width: 760px) { .cf-featured-grid { grid-template-columns: 1fr; } .cf-featured-footer { flex-direction: column; align-items: start; gap: 8px; } }
