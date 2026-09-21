@@ -1,6 +1,6 @@
 "use client";
 
-import { HomeIcon, LifeBuoyIcon, StoreIcon } from "lucide-react";
+import { CalculatorIcon, HomeIcon, LifeBuoyIcon, StoreIcon } from "lucide-react";
 import Link from "next/link";
 import { NavUser } from "@/components/dashboard/nav-user";
 import {
@@ -54,10 +54,19 @@ export function AppSidebar({
 							<SidebarMenuItem>
 								<SidebarMenuButton
 									tooltip="Home"
-									render={<Link href="/dashboard" />}
+									render={<Link href="/" />}
 								>
 									<HomeIcon />
 									<span>Home</span>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton
+									tooltip="Calculators"
+									render={<Link href="/calculators" />}
+								>
+									<CalculatorIcon />
+									<span>Calculators</span>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
 						</SidebarMenu>
