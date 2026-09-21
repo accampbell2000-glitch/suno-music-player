@@ -103,6 +103,42 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Smart thermostat", blurb: "Schedules and setbacks that shave the bill without sacrificing comfort.", query: "smart thermostat alexa" },
 		{ name: "Caulk & weatherstripping", blurb: "Sealing leaks cuts the load itself — the cheapest BTU you will ever buy.", query: "weatherstripping door seal caulk kit" },
 	],
+	"deck-boards": [
+		{ name: "Deck screw kit", blurb: "Two fasteners per joist crossing adds up fast — buy the bucket, not the box.", query: "deck screws exterior kit" },
+		{ name: "Circular saw", blurb: "Crosscutting 39 boards by hand is nobody's weekend. A sharp blade pays for itself in an afternoon.", query: "circular saw 7 1/4 inch" },
+		{ name: "Joist tape", blurb: "One roll over the joists stops rot where the screws go through — the cheapest years a deck gains.", query: "butyl joist tape flashing" },
+		{ name: "Speed square", blurb: "Straight gap lines, square ends, and a saw guide in one flat piece of metal.", query: "speed square carpenter" },
+	],
+	"deck-stain": [
+		{ name: "Stain & pad applicator kit", blurb: "Pads lay stain flat and fast — no drips, no lap marks, no roller fuzz stuck in the finish.", query: "deck stain applicator pad kit" },
+		{ name: "Pressure washer", blurb: "Stain over gray, dead wood is money on the ground. Wash it, let it dry two days, then stain.", query: "electric pressure washer 2000 psi" },
+		{ name: "Paint sprayer", blurb: "Rails and balusters are where sprayers earn their keep — brushing forty balusters is a lost day.", query: "paint sprayer home use" },
+		{ name: "Deck cleaner & brightener", blurb: "Cleans and neutralizes the wood so the first coat soaks in evenly instead of patchily.", query: "deck cleaner brightener kit" },
+	],
+	sod: [
+		{ name: "Lawn soil & topdressing", blurb: "A screened layer under the seams is what makes new sod knit in instead of ridge up.", query: "lawn topdressing soil screened" },
+		{ name: "Sod roller", blurb: "One pass with a water-filled roller presses roots into soil — the step everyone skips.", query: "sod roller water filled" },
+		{ name: "Sprinkler timer", blurb: "New sod wants water three times a day on a schedule, and nobody remembers that by hand.", query: "sprinkler timer hose faucet digital" },
+		{ name: "Starter fertilizer", blurb: "High-phosphorus starter feed gets roots growing down before the top grows up.", query: "starter fertilizer new sod" },
+	],
+	rebar: [
+		{ name: "Tie wire & pliers", blurb: "A twisting tool and a spool of wire are what hold the grid square while you pour.", query: "rebar tie wire pliers set" },
+		{ name: "Bar chairs & spacers", blurb: "Steel only works in the middle of the slab — chairs hold it off the ground at the right height.", query: "rebar chairs spacers concrete" },
+		{ name: "Angle finder", blurb: "Sets the pitch on ramps and aprons so the grid follows the pour instead of fighting it.", query: "digital angle finder" },
+		{ name: "Rebar cutter / bender", blurb: "Cuts and hooks #4 bar without the spark-show of an angle grinder.", query: "manual rebar cutter bender tool" },
+	],
+	"gravel-driveway": [
+		{ name: "Landscape rake", blurb: "Spreads and levels gravel in passes — the one tool that turns a pile into a driveway.", query: "landscape rake 36 inch aluminum" },
+		{ name: "Geotextile fabric", blurb: "Lay it before the stone goes down and soft ground stops eating your gravel every spring.", query: "geotextile fabric driveway" },
+		{ name: "Hand tamper", blurb: "Compacts the edges and touch-ups where the plate compactor can't reach.", query: "hand tamper earth" },
+		{ name: "Wheelbarrow", blurb: "Fourteen tons doesn't move itself — a flat-free 6-cu-ft barrow survives the job.", query: "wheelbarrow 6 cubic foot flat free" },
+	],
+	wallpaper: [
+		{ name: "Smoothing & hanging kit", blurb: "Smooths out bubbles and air pockets as you hang — the difference between flat and foamy.", query: "wallpaper smoothing kit" },
+		{ name: "Wallpaper paste", blurb: "The right paste for your paper weight, mixed fresh — old buckets fail at the seams.", query: "wallpaper paste heavy duty clay" },
+		{ name: "Seam roller", blurb: "One light pass on each seam presses the edge down before the paste sets.", query: "wallpaper seam roller" },
+		{ name: "Snap-off knife", blurb: "A fresh blade every couple of panels tears nothing and drags nothing.", query: "snap off utility knife blades" },
+	],
 };
 
 // The single strongest click for each calculator, shown as a compact strip
@@ -123,4 +159,10 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	"appetizers-per-person": { name: "Serving platters & trays", blurb: "Pieces planned — more platters out means fewer refills.", query: "serving platters trays party set" },
 	"yarn-yardage": { name: "Worsted weight yarn", blurb: "Yardage known — buy the whole project from one dye lot.", query: "worsted weight yarn 100g skein" },
 	"ac-size": { name: "Window air conditioner", blurb: "Your BTU is set — pick the unit that matches it.", query: "window air conditioner 12000 btu" },
+	"deck-boards": { name: "Deck screw kit", blurb: "Boards counted — two fasteners per joist crossing adds up fast.", query: "deck screws exterior kit" },
+	"deck-stain": { name: "Stain & pad applicator kit", blurb: "Gallons sorted — pads lay it flat and fast without lap marks.", query: "deck stain applicator pad kit" },
+	sod: { name: "Lawn soil & topdressing", blurb: "Rolls ordered — screened soil under the seams makes the sod knit in.", query: "lawn topdressing soil screened" },
+	rebar: { name: "Tie wire & pliers", blurb: "Bar count done — tie wire and a twisting tool hold the grid while you pour.", query: "rebar tie wire pliers set" },
+	"gravel-driveway": { name: "Landscape rake", blurb: "Yards and tons known — a landscape rake turns the pile into a driveway.", query: "landscape rake 36 inch aluminum" },
+	wallpaper: { name: "Smoothing & hanging kit", blurb: "Rolls counted — smooth out the bubbles as each sheet goes up.", query: "wallpaper smoothing kit" },
 };
