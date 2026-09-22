@@ -145,7 +145,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
   };
 
   const copyResults = () => {
-    const text = `${definition.name}\n${definition.results.map((r) => `${r.label}: ${formatValue(results[r.key] ?? "—", r.format)}${r.unit && r.format !== "currency" ? ` ${r.unit}` : ""}`).join("\n")}`;
+    const text = `${definition.name}\n${definition.results.filter((r) => results[r.key] !== "").map((r) => `${r.label}: ${formatValue(results[r.key] ?? "—", r.format)}${r.unit && r.format !== "currency" ? ` ${r.unit}` : ""}`).join("\n")}`;
     navigator.clipboard?.writeText(text);
     fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "copy_results", calculatorSlug: definition.slug }) }).catch(() => undefined);
     setCopied(true);
@@ -162,7 +162,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
         </div>
         <div className="cf-results-wrap">
           <div className="cf-results-head"><div><p className="cf-kicker">Your estimate</p><h3>Results</h3></div><span className="cf-estimate-note">Planning estimate</span></div>
-          <div className="cf-results">{definition.results.map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
+          <div className="cf-results">{definition.results.filter((result) => results[result.key] !== "").map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
           <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
           <PartnerPick slug={definition.slug} />
         </div>
