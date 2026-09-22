@@ -125,6 +125,17 @@ const zoneDiffLabel = (fromZone: string, toZone: string, at: Date) => {
 
 const GPA_POINTS: Record<string, number> = { "A+": 4, A: 4, "A-": 3.7, "B+": 3.3, B: 3, "B-": 2.7, "C+": 2.3, C: 2, "C-": 1.7, "D+": 1.3, D: 1, "D-": 0.7, F: 0 };
 
+// Standard LT flotation tire sizes (height × width × rim, inches) offered by
+// the major truck-tire makers. Nominal width — actual measured width runs
+// ~0.1–0.3 in narrower depending on the wheel.
+const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
+  { d: 30, w: 9.50, rim: 15 }, { d: 31, w: 10.50, rim: 15 }, { d: 32, w: 11.50, rim: 15 },
+  { d: 33, w: 12.50, rim: 15 }, { d: 33, w: 12.50, rim: 17 }, { d: 33, w: 12.50, rim: 18 }, { d: 33, w: 12.50, rim: 20 },
+  { d: 34, w: 10.50, rim: 17 }, { d: 34, w: 11.50, rim: 17 },
+  { d: 35, w: 12.50, rim: 15 }, { d: 35, w: 12.50, rim: 17 }, { d: 35, w: 12.50, rim: 18 }, { d: 35, w: 12.50, rim: 20 },
+  { d: 37, w: 12.50, rim: 17 }, { d: 37, w: 12.50, rim: 20 }, { d: 37, w: 13.50, rim: 20 },
+];
+
 // Towing-capacity table — SAFETY DATA. Every number below was verified on
 // 2026-09-22 against the manufacturer's own towing guide or specification
 // pages (manufacturer and manufacturer-quoting dealer sources). The stored
@@ -971,6 +982,10 @@ const definitions: CalculatorDefinition[] = [
           const pct = round((d - diameter) / diameter * 100, 1);
           if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(d, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * d)) });
         }
+        for (const f of FLOTATION_SIZES) if (f.rim === rim) {
+          const pct = round((f.d - diameter) / diameter * 100, 1);
+          if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)) });
+        }
         combos.sort((x, y) => (Math.abs(x.pct) + 2 * Math.abs(x.width - widthIn)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - widthIn)));
         const tag = (c: { pct: number }) => Math.abs(c.pct) <= 2 ? "Match" : "Close option";
         const lines = [
@@ -988,6 +1003,10 @@ const definitions: CalculatorDefinition[] = [
         const pct = round((diameter - target) / target * 100, 1);
         if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(diameter, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * diameter)) });
       }
+      for (const f of FLOTATION_SIZES) if (f.rim === rim) {
+        const pct = round((f.d - target) / target * 100, 1);
+        if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)) });
+      }
       combos.sort((x, y) => (Math.abs(x.pct) + 2 * Math.abs(x.width - targetWidth)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - targetWidth)));
       const tag = (c: { pct: number }) => Math.abs(c.pct) <= 2 ? "Match" : "Close option";
       const best = combos[0];
@@ -1000,7 +1019,7 @@ const definitions: CalculatorDefinition[] = [
       return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: lines.join("\n") };
     },
     howItWorks: ["Metric sizes decode directly: sidewall = width × aspect ÷ 100 in millimeters, overall diameter = rim + 2 × sidewall, and revolutions per mile = 63,360 ÷ (π × diameter) — then the calculator lists every size on the same rim within 3% of that diameter.", "The inches direction holds your rim fixed and sweeps the width and aspect combinations on it, keeping every match within 3% of your target diameter — you already own the wheels, so the rim never changes.", "Anything within 2% is a straight fit; 2–3% is the outer guideline, where the speedometer drifts by the same amount and wheel-well clearance needs a check."],
-    example: { title: "225/65R17 in inches", inputs: "Metric → inches: 225 mm, 65%, 17 in rim", result: "28.52 in overall — 5.76 in sidewall, 8.86 in wide, 707 revs/mile. Same-rim fits: 245/60R17, 215/70R17, 235/60R17." },
+    example: { title: "35 in tall, 12.5 in wide, 20 in rim", inputs: "Inches → matching sizes: 35 in diameter, 12.5 in width, 20 in rim", result: "35×12.50R20 (the flotation size itself) plus 315/60R20 — 34.9 in overall, 12.4 in wide. Close: 325/60R20 and 295/65R20." },
     faqs: [{ question: "What do the numbers in 225/65R17 mean?", answer: "225 is the section width in millimeters, 65 is the sidewall height as a percentage of that width, R is radial construction, and 17 is the wheel diameter in inches. Overall height is the rim plus twice the sidewall — 28.5 inches here." }, { question: "Do I have to keep the same rim?", answer: "If you're keeping your wheels, yes — the rim is fixed, and that's how this calculator works: every match it returns is on the rim size you enter. Changing rim sizes means buying new wheels, and then overall diameter and width are the constraints that transfer." }, { question: "What is the 3% rule for tires?", answer: "A widely used fitment guideline (not law): keep a replacement tire's overall diameter within 3% of the stock size so the speedometer, ABS, and transmission stay within tolerance. Within 2% is the comfortable zone; bigger jumps belong on trucks with a recalibration." }, { question: "How does tire size change my speedometer?", answer: "The speedometer counts wheel revolutions. A taller tire covers more ground per revolution, so it reads low — 3% taller means 60 indicated is really about 62 mph. A shorter tire makes it read high by the same logic." }],
     seo: { title: "Tire Size Calculator – Metric to Inches & Matching Sizes | CalcForged", description: "Convert metric tire sizes to inches — diameter, sidewall, width, revs per mile — or find matching sizes on your rim within the 3% fitment rule.", h1: "Tire size calculator", intro: "A tire size like 225/65R17 packs four numbers into one code, and every one of them changes how the tire fits, rolls, and reports your speed. This tire size calculator works both ways: enter the metric size and it converts to inches — overall diameter, sidewall height, section width, and revolutions per mile — or enter your current diameter, width, and rim size, and it sweeps the width and aspect combinations on that rim for sizes within the 3% fitment guideline, flagging the straight matches inside ±2% separately from the 2–3% outer options. The rim stays fixed because you already own the wheels; the speedometer shifts by about the same percentage as the diameter changes, and clearance on the actual vehicle is the final check before you buy." },
     related: ["weight-converter", "percentage"],
