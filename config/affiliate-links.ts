@@ -157,6 +157,49 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Beverage dispenser", blurb: "Self-serve drinks cut cooler traffic — and cooler traffic melts ice.", query: "beverage dispenser 2 gallon" },
 		{ name: "Ice scoop & tongs", blurb: "Scoops keep hands out of the ice and the drinks food-safe.", query: "ice scoop metal tongs set" },
 	],
+	// Picks for calculators shipping in the current build wave — the strips go
+	// live with those pages.
+	"balloon-quantity": [
+		{ name: "Balloon pump", blurb: "A hand or electric pump fills arches and garlands in minutes — air-filled ones never float anyway.", query: "balloon pump electric handheld" },
+		{ name: "Arch strip kit", blurb: "The plastic strip and glue dots that turn loose balloons into a professional arch or garland.", query: "balloon arch strip kit glue dots" },
+		{ name: "Helium regulator", blurb: "A good regulator and nozzle save helium and fingers on every fill.", query: "helium tank regulator valve balloon filler" },
+	],
+	"tire-size": [
+		{ name: "Tread depth gauge", blurb: "Before sizing up, check what you have — 4/32 in is the wear line that matters.", query: "tire tread depth gauge" },
+		{ name: "Tire pressure gauge", blurb: "Diameter math only lands right at the pressure the tire was sized for.", query: "tire pressure gauge digital" },
+		{ name: "Wheel chocks", blurb: "Cheap insurance for every jack and tire-swap session in the driveway.", query: "wheel chocks rubber pair" },
+	],
+	"towing-capacity": [
+		{ name: "Tongue weight scale", blurb: "You know the 10–15% range — this is the tool that tells you where you actually sit.", query: "trailer tongue weight scale" },
+		{ name: "Weight-distribution hitch", blurb: "Moves tongue weight to the front axle and levels the ride on heavier trailers.", query: "weight distributing hitch kit" },
+		{ name: "Brake controller", blurb: "Required on most trailers over 3,000 lb — proportional units stop smoothest.", query: "trailer brake controller" },
+		{ name: "Ball mount kit", blurb: "The right drop and ball size keep the trailer level before anything else matters.", query: "trailer ball mount kit sizes" },
+	],
+	"train-scale-converter": [
+		{ name: "Scale rule", blurb: "A dedicated scale rule reads dimensions directly in HO, N, and O — no math mid-project.", query: "model railroad scale rule" },
+		{ name: "Starter track pack", blurb: "Nickel-silver track in the gauge your scale runs — match rail size to era.", query: "model train track pack nickel silver" },
+		{ name: "Knuckle couplers", blurb: "Mates rolling stock across brands — the hobby default for a reason.", query: "model train knuckle couplers" },
+	],
+	"miniature-scale-converter": [
+		{ name: "Digital caliper", blurb: "The fastest way to check a printed or purchased figure's actual height in millimeters.", query: "digital caliper 6 inch" },
+		{ name: "Miniature paint set", blurb: "Contrast and speed paints flatter heroic proportions and finish a small army fast.", query: "miniature paint set starter" },
+		{ name: "Basing kit", blurb: "Flock, tufts, and texture paste that make a converted figure look finished.", query: "miniature basing kit flock tufts" },
+	],
+	"filament-cost": [
+		{ name: "Filament dry box", blurb: "Dry filament is the cheapest failure-rate reduction you can buy.", query: "filament dry box storage" },
+		{ name: "Digital caliper", blurb: "Measure filament diameter to calibrate flow — 1.75 mm varies by brand.", query: "digital caliper 6 inch" },
+		{ name: "PLA filament spool", blurb: "The workhorse material — dimensionally stable and forgiving on open printers.", query: "PLA filament 1.75mm 1kg" },
+	],
+	"resin-cost": [
+		{ name: "Wash & cure station", blurb: "Consistent wash and cure turn a sticky print into a finished one, every batch.", query: "resin wash and cure station" },
+		{ name: "Nitrile gloves & IPA", blurb: "The bare minimum for safe resin handling — gloves, 90%+ IPA, and ventilation.", query: "nitrile gloves isopropyl alcohol 99%" },
+		{ name: "FEP film", blurb: "A spare vat film keeps one failed print from turning into a failed weekend.", query: "FEP film resin vat" },
+	],
+	"charcuterie-board": [
+		{ name: "Wood serving board", blurb: "A big walnut or acacia board is the difference between a snack tray and a spread.", query: "large wood charcuterie serving board" },
+		{ name: "Cheese knife set", blurb: "Soft-cheese knives, fork-tipped spears, and labels keep the board moving.", query: "cheese knife set with markers" },
+		{ name: "Serving bowls", blurb: "Small bowls for olives, honey, and nuts hold the loose items in place.", query: "small serving bowls set condiment" },
+	],
 };
 
 // The single strongest click for each calculator, shown as a compact strip
@@ -186,4 +229,12 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	"pizza-party": { name: "Pizza cutter", blurb: "Pizzas counted — a sharp wheel keeps every slice tidy.", query: "pizza cutter wheel sharp" },
 	"chicken-wings": { name: "Air fryer", blurb: "Pounds to buy sorted — an air fryer crisps them without the deep fryer.", query: "air fryer large capacity" },
 	"party-ice": { name: "Insulated cooler", blurb: "Bags counted — a good cooler is what keeps them frozen through the party.", query: "insulated cooler wheeled large" },
+	"balloon-quantity": { name: "Balloon pump", blurb: "Counts done — a pump fills garlands and arches fast, no helium needed.", query: "balloon pump electric handheld" },
+	"tire-size": { name: "Tread depth gauge", blurb: "Size picked — check the tread before you commit to a set.", query: "tire tread depth gauge" },
+	"towing-capacity": { name: "Tongue weight scale", blurb: "Capacity known — verify the tongue weight actually sits at 10–15%.", query: "trailer tongue weight scale" },
+	"train-scale-converter": { name: "Scale rule", blurb: "Dimensions converted — a scale rule reads them straight off the layout.", query: "model railroad scale rule" },
+	"miniature-scale-converter": { name: "Digital caliper", blurb: "Scale math done — check real figure heights in millimeters.", query: "digital caliper 6 inch" },
+	"filament-cost": { name: "Filament dry box", blurb: "Cost per print known — dry filament is the cheapest way to protect it.", query: "filament dry box storage" },
+	"resin-cost": { name: "Wash & cure station", blurb: "Resin cost known — a consistent cure is what makes a print finished.", query: "resin wash and cure station" },
+	"charcuterie-board": { name: "Wood serving board", blurb: "Amounts planned — a big board is what makes the spread read as one.", query: "large wood charcuterie serving board" },
 };

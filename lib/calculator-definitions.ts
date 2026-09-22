@@ -125,6 +125,60 @@ const zoneDiffLabel = (fromZone: string, toZone: string, at: Date) => {
 
 const GPA_POINTS: Record<string, number> = { "A+": 4, A: 4, "A-": 3.7, "B+": 3.3, B: 3, "B-": 2.7, "C+": 2.3, C: 2, "C-": 1.7, "D+": 1.3, D: 1, "D-": 0.7, F: 0 };
 
+// Towing-capacity table — SAFETY DATA. Every number below was verified on
+// 2026-09-22 against the manufacturer's own towing guide or specification
+// pages (manufacturer and manufacturer-quoting dealer sources). The stored
+// value is the common configuration's maximum conventional towing (lb); where
+// trims vary wildly the typical mid configuration is stored and the verified
+// range is spelled out in the row note. Models that could not be verified from
+// a manufacturer source were left out entirely — never estimated.
+const TOWING_TABLE: { make: string; model: string; lb: number; note?: string }[] = [
+  { make: "Ford", model: "F-150", lb: 12800, note: "5.0L V8 typical; the lineup spans 8,400 (2.7L EcoBoost) to 13,500 (3.5L EcoBoost with the Max Tow axle)." },
+  { make: "Ford", model: "Ranger", lb: 7500, note: "With the Trailer Tow Package; without it, 3,500." },
+  { make: "Ford", model: "Maverick", lb: 4000, note: "2.0L EcoBoost with the 4K Tow Package; hybrid models are rated 2,000." },
+  { make: "Ford", model: "Bronco", lb: 3500, note: "Bronco Raptor is rated 4,500." },
+  { make: "Ford", model: "Expedition", lb: 9600, note: "4x2 with the Heavy-Duty Trailer Tow Package." },
+  { make: "Ford", model: "Explorer", lb: 5000 },
+  { make: "Ford", model: "Transit", lb: 6900, note: "3.5L EcoBoost builds; the base 3.5L V6 runs about 4,500." },
+  { make: "Chevrolet", model: "Silverado 1500", lb: 11300, note: "5.3L V8 typical; spans 9,500 (2.7L TurboMax) to 13,300 (3.0L Duramax or 6.2L with Max Trailering)." },
+  { make: "Chevrolet", model: "Colorado", lb: 7700 },
+  { make: "Chevrolet", model: "Tahoe", lb: 8400, note: "5.3L V8 with the Max Trailering Package." },
+  { make: "Chevrolet", model: "Suburban", lb: 8200, note: "5.3L V8 2WD with the Max Trailering Package." },
+  { make: "Chevrolet", model: "Traverse", lb: 5000, note: "V92 trailering equipment is standard on all trims." },
+  { make: "Chevrolet", model: "Express", lb: 9600, note: "2500/3500 passenger van; a 3500 cargo V8 reaches 10,000." },
+  { make: "GMC", model: "Sierra 1500", lb: 11300, note: "5.3L typical; spans 8,800 to 13,300 (3.0L Duramax with Max Trailering)." },
+  { make: "GMC", model: "Canyon", lb: 7700 },
+  { make: "GMC", model: "Yukon", lb: 8400, note: "5.3L V8; the 6.2L is rated 8,000 and the Duramax 8,200." },
+  { make: "RAM", model: "1500", lb: 11550, note: "2025–2026 properly equipped max; 2019–2024 models with the 5.7L HEMI and Max Tow reached 12,750." },
+  { make: "RAM", model: "ProMaster", lb: 6910 },
+  { make: "Toyota", model: "Tacoma", lb: 6500, note: "SR5/TRD PreRunner i-FORCE; hybrid trims are rated 6,000." },
+  { make: "Toyota", model: "Tundra", lb: 12000 },
+  { make: "Toyota", model: "Sequoia", lb: 9520 },
+  { make: "Toyota", model: "4Runner", lb: 6000, note: "i-FORCE MAX hybrid; gas trims run 5,000–5,800." },
+  { make: "Toyota", model: "Highlander", lb: 5000, note: "2.4L turbo gas; hybrid models are rated 3,500." },
+  { make: "Toyota", model: "Sienna", lb: 3500, note: "Hybrid, all trims." },
+  { make: "Honda", model: "Ridgeline", lb: 5000, note: "All trims." },
+  { make: "Honda", model: "Passport", lb: 5000 },
+  { make: "Honda", model: "Pilot", lb: 5000, note: "With the tow package; base trims are rated 3,500." },
+  { make: "Honda", model: "Odyssey", lb: 3500 },
+  { make: "Jeep", model: "Grand Cherokee", lb: 6200 },
+  { make: "Jeep", model: "Wrangler", lb: 5000, note: "2-door with Max Tow; the 4xe is rated 3,500." },
+  { make: "Jeep", model: "Gladiator", lb: 7700, note: "Max Tow Package with the 4.10 axle." },
+  { make: "Dodge", model: "Durango", lb: 6200, note: "3.6L V6; the V8 Tow 'n Go package reaches 8,700." },
+  { make: "Nissan", model: "Frontier", lb: 6960, note: "Crew Cab 4x4; the lineup spans 6,760–7,150." },
+  { make: "Nissan", model: "Pathfinder", lb: 6000, note: "Rock Creek/Platinum, or SV/SL with the Premium Package; base is 3,500." },
+  { make: "Nissan", model: "Armada", lb: 8500, note: "All trims." },
+  { make: "Hyundai", model: "Santa Cruz", lb: 5000, note: "2.5T with HTRAC AWD; the base 2.5L is rated 3,500." },
+  { make: "Hyundai", model: "Palisade", lb: 5000 },
+  { make: "Hyundai", model: "Santa Fe", lb: 4500 },
+  { make: "Kia", model: "Telluride", lb: 5500, note: "Tow package on higher trims; base is 5,000." },
+  { make: "Kia", model: "Sorento", lb: 4500 },
+  { make: "Kia", model: "Carnival", lb: 3500, note: "Top trims; base is 2,500." },
+  { make: "Volkswagen", model: "Atlas", lb: 5000, note: "2.0T with the tow package." },
+  { make: "Subaru", model: "Ascent", lb: 5000, note: "All trims." },
+  { make: "Mazda", model: "CX-90", lb: 5000, note: "3.3L Turbo S; the standard turbo and PHEV are rated 3,500." },
+];
+
 const definitions: CalculatorDefinition[] = [
   {
     slug: "catering-food-quantity",
@@ -849,6 +903,302 @@ const definitions: CalculatorDefinition[] = [
     faqs: [{ question: "How much ice per person for a party?", answer: "The common range is 1–2 pounds per guest: about 1 lb for a short indoor drinks-only event, 1.5 lb for a typical 3-hour party, and 2 lb or more for hot outdoor events or when ice also chills bottles and displays." }, { question: "How do I keep ice from melting too fast?", answer: "Pre-chill the coolers, keep bags closed and out of the sun, and layer ice under and over the drinks. Keep the lid shut, and hold a spare bag back for top-ups late in the event." }, { question: "Should I buy bags or have ice delivered?", answer: "Grocery and warehouse bags are cheapest per pound for most parties. For long outdoor events, block ice melts far slower; for 100+ guests, delivered bulk ice saves the store runs." }, { question: "Is bagged ice safe for drinks?", answer: "Buy ice packaged and labeled for consumption. Never use ice that has touched a cooler floor or raw food, and serve with a scoop rather than hands." }],
     seo: { title: "Party Ice Calculator – How Much Ice for a Party | CalcForged", description: "Calculate how many pounds of ice and how many bags to buy for your party — drinks, bottles, and displays included.", h1: "Party ice calculator", intro: "How much ice for a party is one of the most under-planned numbers on the shopping list. The baseline is about a pound of ice per guest for the first two hours of drinks, half a pound more per extra hour, and more again for outdoor heat, chilling bottles, and food displays. Enter your guests, hours, setting, and what the ice has to do, and get total pounds, bags to buy at your bag size, and the cost at your local bag price. Most 10-pound bags run about $3.50 at the grocery store, so a typical 20-guest afternoon lands near five bags." },
     related: ["wedding-food", "appetizers-per-person", "bbq-meat"],
+  },
+  {
+    slug: "balloon-quantity", name: "Balloon Quantity Calculator", category: "Events", categorySlug: "events", icon: "🎈", description: "Turn a room or car interior into a balloon count, helium volume, and tank count.",
+    fields: [
+      { key: "whatToFill", label: "What are you filling", type: "select", defaultValue: "room", options: [{ label: "A room", value: "room" }, { label: "A car interior", value: "car" }] },
+      { key: "lengthFt", label: "Length", type: "number", unit: "ft", min: 1, max: 120, defaultValue: 12, help: "A typical sedan's usable interior is about a 4 × 5 × 3 ft box — the full cabin measures 110–120 cu ft before seats and console eat most of it. A living room is often 12 × 10 × 8 ft." },
+      { key: "widthFt", label: "Width", type: "number", unit: "ft", min: 1, max: 120, defaultValue: 10 },
+      { key: "heightFt", label: "Height", type: "number", unit: "ft", min: 1, max: 30, defaultValue: 8 },
+      { key: "balloonSize", label: "Balloon size", type: "select", defaultValue: "11", options: [{ label: "9 in latex", value: "9" }, { label: "11 in latex", value: "11" }, { label: "12 in latex", value: "12" }, { label: "16 in latex", value: "16" }, { label: "36 in latex (giant)", value: "36" }] },
+      { key: "tankSize", label: "Tank size", type: "select", defaultValue: "14.9", options: [{ label: "8.9 cu ft — small disposable", value: "8.9" }, { label: "14.9 cu ft — standard disposable", value: "14.9" }, { label: "55 cu ft — rental cylinder", value: "55" }, { label: "110 cu ft — rental cylinder", value: "110" }, { label: "150 cu ft — rental cylinder", value: "150" }, { label: "219 cu ft — rental cylinder", value: "219" }] },
+    ],
+    results: [
+      { key: "balloons", label: "Balloons to fill it", unit: "balloons", format: "number", estimate: true, interpretation: "Usable box × 0.9 fill factor; packing gaps can swing the real count ±15%." },
+      { key: "helium", label: "Helium needed", unit: "cu ft", format: "number", estimate: true },
+      { key: "tanks", label: "Tanks to buy or rent", unit: "tanks", format: "number", estimate: true },
+      { key: "note", label: "Float time & timing", format: "text", estimate: true },
+    ],
+    calculate: (v) => {
+      const usable = Math.max(1, n(v, "lengthFt", 12)) * Math.max(1, n(v, "widthFt", 10)) * Math.max(1, n(v, "heightFt", 8)) * 0.9;
+      const perBalloon: Record<string, number> = { "9": 0.3, "11": 0.5, "12": 0.65, "16": 1.1, "36": 7.5 };
+      const size = option(v, "balloonSize", "11");
+      const per = perBalloon[size] ?? 0.5;
+      const balloons = Math.floor(usable / per);
+      const helium = balloons * per;
+      const tanks = ceil(helium / Math.max(0.5, n(v, "tankSize", 14.9)));
+      const floatTimes: Record<string, string> = { "9": "6–8 hours", "11": "10–12 hours", "12": "10–14 hours", "16": "18–24 hours", "36": "2–3 days" };
+      const carHint = option(v, "whatToFill", "room") === "car" ? " Working from the car's usable box keeps the count realistic — a typical sedan is about 4 × 5 × 3 ft." : "";
+      return { balloons, helium: round(helium), tanks, note: `Latex this size floats about ${floatTimes[size] ?? "10–12 hours"} indoors — inflate close to event time, or add Hi-Float to roughly double it. Plan 10–15% fewer balloons per tank above 4,000 ft altitude.${carHint}` };
+    },
+    howItWorks: ["The usable space is your length × width × height, times a 0.9 fill factor for the corners and odd volumes the tidy box leaves out.", "Each balloon size has a known helium appetite — about 0.5 cu ft for an 11-inch latex — and the count is usable volume divided by that number.", "Helium volume divides by your tank size and rounds up, because a tank that dies two balloons short ruins the reveal; float times come from standard latex charts."],
+    example: { title: "Fill a sedan with 11-inch balloons", inputs: "Car interior 4 × 5 × 3 ft, 11 in balloons, 14.9 cu ft disposable tank", result: "About 108 balloons — 54 cu ft of helium, or 4 disposable tanks (one 55 cu ft rental covers it)." },
+    faqs: [{ question: "How many balloons does it take to fill a car?", answer: "A typical sedan's usable interior is roughly a 4 × 5 × 3 ft box — about 60 cu ft, or 100–120 eleven-inch balloons at 0.5 cu ft each. Published cabin volumes run 110–120 cu ft, but seats, console, and sloped glass eat most of that. An SUV's cargo area alone can take 200+." }, { question: "How long will the balloons stay up?", answer: "An 11-inch latex balloon floats 10–12 hours indoors; 16-inch runs 18–24 hours and 36-inch giants 2–3 days. Hi-Float roughly doubles latex time. Inflate close to the event — balloons blown up the night before droop by the party." }, { question: "Which helium tank do I need?", answer: "The standard 14.9 cu ft disposable fills about 30 eleven-inch balloons; the smaller 8.9 cu ft fills about 18. Past roughly 50 balloons, rent: 55 and 110 cu ft cylinders cost a fraction per cubic foot and one tank covers the room." }, { question: "How many balloons for an arch or garland?", answer: "A standard garland packs 4–6 balloons per foot and lush wedding-style builds run 7–10+, so a 10-foot arch takes 40–60 balloons. Most arches are air-filled, which needs no helium and holds its shape for days." }],
+    seo: { title: "Balloon Quantity Calculator – Balloons & Helium per Room or Car | CalcForged", description: "Calculate how many balloons and how much helium fill a room or car interior — by balloon size, with tanks to buy and float time built in.", h1: "Balloon quantity calculator", intro: "How many balloons it takes to fill a room — or a car — comes down to volume: your space times a 0.9 fill factor, divided by the helium each balloon holds. An 11-inch latex balloon takes about 0.5 cubic feet of helium, a 9-inch about 0.3, and a 36-inch giant about 7.5. Pick the space, set the three dimensions, choose the balloon size and your tank, and the calculator returns a balloon count, the helium it consumes, and how many tanks that takes — disposable tanks fill roughly 30 eleven-inch balloons each, so anything past a few dozen points you at a rental cylinder. Float time is built into the note: latex runs 10–12 hours indoors untreated, so inflation timing matters as much as the count." },
+    related: ["party-ice", "appetizers-per-person", "wedding-dessert-table"],
+  },
+  {
+    slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "🛞", description: "Read a metric tire size in inches, or find the standard sizes that match your current diameter.",
+    fields: [
+      { key: "direction", label: "Direction", type: "select", defaultValue: "metric", options: [{ label: "Metric size → inches", value: "metric" }, { label: "Inches → matching sizes", value: "inches" }] },
+      { key: "metricWidth", label: "Section width", type: "number", unit: "mm", min: 100, max: 400, defaultValue: 225, help: "First number in 225/65R17." },
+      { key: "aspect", label: "Aspect ratio", type: "number", unit: "%", min: 20, max: 95, defaultValue: 65, help: "Sidewall height as a percentage of width — the second number." },
+      { key: "rim", label: "Rim diameter", type: "number", unit: "in", min: 8, max: 26, defaultValue: 17, help: "The R-number." },
+      { key: "targetDiameter", label: "Target overall diameter", type: "number", unit: "in", min: 15, max: 45, step: 0.05, defaultValue: 28.5, help: "For the inches direction — your current tire's overall diameter (the metric direction computes it)." },
+      { key: "targetWidth", label: "Target section width", type: "number", unit: "in", min: 4, max: 16, step: 0.05, defaultValue: 8.9 },
+    ],
+    results: [
+      { key: "tireDiameter", label: "Overall diameter", unit: "in", format: "number", interpretation: "Rim diameter plus twice the sidewall height." },
+      { key: "sidewall", label: "Sidewall height", unit: "in", format: "number" },
+      { key: "sectionWidth", label: "Section width", unit: "in", format: "number" },
+      { key: "revsPerMile", label: "Revolutions per mile", unit: "revs", format: "number", interpretation: "Speedometer and odometer shift with this number." },
+      { key: "matches", label: "Matching sizes", format: "text" },
+    ],
+    calculate: (v) => {
+      const mm = Math.max(100, n(v, "metricWidth", 225));
+      const aspect = Math.max(20, n(v, "aspect", 65));
+      const rim = Math.max(8, n(v, "rim", 17));
+      if (option(v, "direction", "metric") === "metric") {
+        const sidewall = round(mm * aspect / 100 / 25.4, 2);
+        const diameter = round(rim + 2 * sidewall, 2);
+        return { tireDiameter: diameter, sidewall, sectionWidth: round(mm / 25.4, 2), revsPerMile: Math.round(63360 / (Math.PI * diameter)), matches: "" };
+      }
+      const target = Math.max(10, n(v, "targetDiameter", 28.5));
+      const targetWidth = Math.max(3, n(v, "targetWidth", 8.9));
+      const combos: { size: string; diameter: number; width: number; pct: number; revs: number }[] = [];
+      for (const w of [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335]) for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) for (const r of [13, 14, 15, 16, 17, 18, 19, 20, 21, 22]) {
+        const diameter = r + 2 * (w * a / 100 / 25.4);
+        const pct = round((diameter - target) / target * 100, 1);
+        if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${r}`, diameter: round(diameter, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * diameter)) });
+      }
+      combos.sort((x, y) => Math.abs(x.pct) - Math.abs(y.pct) || Math.abs(x.width - targetWidth) - Math.abs(y.width - targetWidth));
+      const tag = (c: { pct: number }) => Math.abs(c.pct) <= 2 ? "Match" : "Close option";
+      const best = combos[0];
+      if (!best) return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: `No standard size lands within 3% of ${target} in — that diameter needs a recalibrated speedometer or a different rim.` };
+      const lines = [
+        `${tag(best)}: ${best.size} — ${best.diameter} in overall (${best.pct > 0 ? "+" : ""}${best.pct}% vs target), ${best.width} in wide, ${best.revs} revs/mile.`,
+        ...combos.slice(1, 4).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide, ${c.revs} revs/mile.`),
+        "Within ±2% keeps the speedometer, ABS, and transmission in factory tolerance; ±3% is the outer fitment guideline. The speedometer shifts by about the same percentage as the diameter — verify clearance before buying.",
+      ];
+      return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: lines.join("\n") };
+    },
+    howItWorks: ["Metric sizes decode directly: sidewall = width × aspect ÷ 100 in millimeters, overall diameter = rim + 2 × sidewall, and revolutions per mile = 63,360 ÷ (π × diameter).", "The inches direction sweeps the common width, aspect, and rim combinations and keeps every standard size within 3% of your target diameter.", "Anything within 2% is a straight fit; 2–3% is the outer guideline, where the speedometer drifts by the same amount and wheel-well clearance needs a check."],
+    example: { title: "225/65R17 in inches", inputs: "Metric → inches: 225 mm, 65%, 17 in rim", result: "28.52 in overall — 5.76 in sidewall, 8.86 in wide, about 707 revs/mile." },
+    faqs: [{ question: "What do the numbers in 225/65R17 mean?", answer: "225 is the section width in millimeters, 65 is the sidewall height as a percentage of that width, R is radial construction, and 17 is the wheel diameter in inches. Overall height is the rim plus twice the sidewall — 28.5 inches here." }, { question: "What is the 3% rule for tires?", answer: "A widely used fitment guideline (not law): keep a replacement tire's overall diameter within 3% of the stock size so the speedometer, ABS, and transmission stay within tolerance. Within 2% is the comfortable zone; bigger jumps belong on trucks with a recalibration." }, { question: "How does tire size change my speedometer?", answer: "The speedometer counts wheel revolutions. A taller tire covers more ground per revolution, so it reads low — 3% taller means 60 indicated is really about 62 mph. A shorter tire makes it read high by the same logic." }, { question: "How do I measure a mounted tire?", answer: "Measure from the ground to the wheel center and double it for overall diameter, or measure straight across the inflated tire. For width, measure sidewall to sidewall at the widest point — the tread alone is narrower than the section width." }],
+    seo: { title: "Tire Size Calculator – Metric to Inches & Matching Sizes | CalcForged", description: "Convert metric tire sizes to inches — diameter, sidewall, width, revs per mile — or find matching sizes within the 3% fitment rule.", h1: "Tire size calculator", intro: "A tire size like 225/65R17 packs four numbers into one code, and every one of them changes how the tire fits, rolls, and reports your speed. This tire size calculator works both ways: enter the metric size and it converts to inches — overall diameter, sidewall height, section width, and revolutions per mile — or enter your current diameter in inches and it sweeps the standard width, aspect, and rim combinations for sizes within the 3% fitment guideline, flagging the straight matches inside ±2% separately from the 2–3% outer options. The speedometer shifts by about the same percentage as the diameter changes, which is why the rule exists; clearance on the actual vehicle is the final check before you buy." },
+    related: ["weight-converter", "percentage"],
+  },
+  {
+    slug: "towing-capacity", name: "Towing Capacity & Tongue Weight Calculator", category: "Automotive", categorySlug: "automotive", icon: "🚚", description: "Look up a verified towing capacity and bracket the safe tongue-weight range for your trailer.",
+    fields: [
+      { key: "make", label: "Make", type: "text", defaultValue: "Ford", help: "e.g. Ford, Chevrolet, RAM, Toyota." },
+      { key: "model", label: "Model", type: "text", defaultValue: "F-150", help: "e.g. F-150, Silverado 1500, Tacoma." },
+      { key: "year", label: "Year", type: "number", min: 1990, max: 2030, defaultValue: 2024 },
+      { key: "trailerWeight", label: "Trailer weight (loaded)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 7000, help: "Trailer plus everything in it — the gross weight, not the dry weight." },
+      { key: "myTowingCapacity", label: "Your towing capacity (if known)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 0, help: "Not listed? Enter the capacity from your door jamb or owner's manual." },
+    ],
+    results: [
+      { key: "maxTowing", label: "Max conventional towing", unit: "lb", format: "number", estimate: true, interpretation: "From the verified table or your own rating — the door jamb always wins." },
+      { key: "tongueWeightMin", label: "Tongue weight minimum (10%)", unit: "lb", format: "number", estimate: true },
+      { key: "tongueWeightMax", label: "Tongue weight maximum (15%)", unit: "lb", format: "number", estimate: true },
+      { key: "warning", label: "Before you hook up", format: "text" },
+    ],
+    calculate: (v) => {
+      const makeIn = option(v, "make", "").trim();
+      const modelIn = option(v, "model", "").trim();
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const makeOk = (rowMake: string) => !norm(makeIn) || norm(rowMake).includes(norm(makeIn)) || norm(makeIn).includes(norm(rowMake)) || (norm(makeIn) === "chevy" && norm(rowMake) === "chevrolet") || (norm(makeIn) === "vw" && norm(rowMake) === "volkswagen");
+      const q = norm(modelIn);
+      const row = q ? TOWING_TABLE.find((r) => norm(r.model) === q && makeOk(r.make)) ?? TOWING_TABLE.find((r) => (norm(r.model).includes(q) || q.includes(norm(r.model))) && makeOk(r.make)) : undefined;
+      const manual = Math.max(0, n(v, "myTowingCapacity", 0));
+      const trailer = Math.max(0, n(v, "trailerWeight", 0));
+      const maxTowing = row ? row.lb : manual;
+      const tongueMin = round(trailer * 0.1);
+      const tongueMax = round(trailer * 0.15);
+      const vehicle = [makeIn, modelIn].filter(Boolean).join(" ");
+      const warning = [
+        maxTowing > 0 && trailer > maxTowing ? `Stop: a ${trailer.toLocaleString("en-US")} lb trailer exceeds the ${maxTowing.toLocaleString("en-US")} lb rating — do not tow it.` : "",
+        row ? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the common-configuration table value. ${row.note ?? ""} Verified from the manufacturer's towing guide, September 2026.` : manual > 0 ? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.` : `No verified table match for ${vehicle || "that vehicle"} — enter the capacity from your door jamb or owner's manual above.`,
+        "Capacities vary by engine, axle, and package — your VIN's towing guide and door-jamb labels always win, and payload has to carry the tongue weight. Never exceed your hitch or receiver rating.",
+      ].filter(Boolean).join(" ");
+      return { maxTowing, tongueWeightMin: tongueMin, tongueWeightMax: tongueMax, warning };
+    },
+    howItWorks: ["A curated table of the most-towed U.S. vehicles returns the common configuration's verified maximum; anything else uses the rating you enter from the door jamb or owner's manual.", "Conventional towing puts 10–15% of the loaded trailer weight on the hitch — the calculator brackets your trailer's tongue weight at exactly those bounds.", "The warning carries the fine print: ratings swing by engine, axle, and package, fifth-wheel pin weight runs 15–25% and rides on payload, and the manufacturer's labels always beat any table."],
+    example: { title: "2019 F-150, 7,000 lb trailer", inputs: "Ford F-150, 7,000 lb loaded trailer", result: "About 12,800 lb from the table — tongue weight should land between 700 and 1,050 lb." },
+    faqs: [{ question: "How much tongue weight is safe?", answer: "For a conventional ball hitch, 10–15% of the loaded trailer weight — a 7,000 lb trailer wants 700–1,050 lb on the ball. Too little invites sway; too much overloads the rear axle. Measure with a tongue-weight scale, or at a truck scale weighing the truck with and without the trailer tongue down." }, { question: "Where do I find my exact towing capacity?", answer: "The door-jamb sticker, the owner's manual, and the manufacturer's towing guide for your VIN. The table here gives the common configuration's verified maximum — engines, axle ratios, and tow packages move the real number by thousands of pounds, especially on full-size trucks." }, { question: "What's the difference between towing capacity and GCWR?", answer: "Towing capacity is what the hitch can pull; GCWR is the combined limit for the loaded truck plus trailer, passengers, and cargo. Payload is often the real-world limiter — the tongue weight rides in the bed, and it counts against payload before anything else goes in." }, { question: "When do I need a weight-distributing hitch?", answer: "When the manufacturer requires one for your trailer weight (often around 5,000 lb and up) or whenever the rear of the vehicle squats. Spring bars shift tongue weight to the front axle, restoring steering and headlight aim — sized and adjusted per the manufacturer's instructions." }],
+    seo: { title: "Towing Capacity & Tongue Weight Calculator | CalcForged", description: "Look up verified towing capacities for the most-towed vehicles and compute the safe 10–15% tongue-weight range for your trailer.", h1: "Towing capacity & tongue weight calculator", intro: "Towing numbers are safety data, so this calculator keeps them honest. Enter your make, model, and year — the most-towed vehicles in America, from the F-150 and Silverado 1500 to the Tacoma, Explorer, and Grand Cherokee, return a towing capacity verified against the manufacturer's own towing guide, stated for the common configuration with the real range spelled out. Unlisted vehicles take your capacity from the door jamb or owner's manual. Add your loaded trailer weight and the calculator brackets the tongue weight at the safe 10–15% band for a conventional ball hitch — 700 to 1,050 lb on a 7,000 lb trailer — and flags it plainly if the trailer exceeds the rating. Fifth-wheel owners: pin weight runs 15–25% of trailer weight and counts against payload, and the door-jamb labels always win over any table." },
+    related: ["tire-size"],
+  },
+  {
+    slug: "train-scale-converter", name: "Model Train Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🚂", description: "Convert real dimensions to model size — or back — across Z, N, HO, O, G, and more.",
+    fields: [
+      { key: "dimension", label: "Dimension", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 40 },
+      { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Meters", value: "m" }] },
+      { key: "scale", label: "Scale", type: "select", defaultValue: "87.1", options: [{ label: "Z — 1:220", value: "220" }, { label: "N — 1:160", value: "160" }, { label: "TT — 1:120", value: "120" }, { label: "HO — 1:87.1", value: "87.1" }, { label: "OO — 1:76 (UK)", value: "76" }, { label: "S — 1:64", value: "64" }, { label: "O — 1:48", value: "48" }, { label: "G — 1:22.5 (garden)", value: "22.5" }] },
+      { key: "direction", label: "Direction", type: "select", defaultValue: "toModel", options: [{ label: "Real → model", value: "toModel" }, { label: "Model → real", value: "toReal" }] },
+    ],
+    results: [
+      { key: "realSize", label: "Real-world size", unit: "in", format: "number", estimate: true },
+      { key: "modelSize", label: "Model size", unit: "in", format: "number", estimate: true },
+      { key: "modelMm", label: "Model size", unit: "mm", format: "number", estimate: true },
+      { key: "comparison", label: "Same object in other scales", format: "text", estimate: true },
+    ],
+    calculate: (v) => {
+      const ratio = Math.max(1, n(v, "scale", 87.1));
+      const raw = Math.max(0.01, n(v, "dimension", 40));
+      const unit = option(v, "unit", "ft");
+      const toInches = unit === "ft" ? raw * 12 : unit === "in" ? raw : unit === "cm" ? raw / 2.54 : raw * 39.3701;
+      const toReal = option(v, "direction", "toModel") === "toReal";
+      const realIn = toReal ? raw * ratio : toInches;
+      const modelIn = toReal ? raw : toInches / ratio;
+      const comparison = `Same real object: Z ≈ ${round(realIn / 220, 2)} in · N ≈ ${round(realIn / 160, 2)} in · O ≈ ${round(realIn / 48, 2)} in · G ≈ ${round(realIn / 22.5, 2)} in.`;
+      return { realSize: round(realIn, 2), modelSize: round(modelIn, 2), modelMm: round(modelIn * 25.4, 1), comparison };
+    },
+    howItWorks: ["Each scale is a ratio — HO runs 1:87.1 (3.5 mm to the foot), N 1:160, O 1:48, OO 1:76, G 1:22.5.", "Real → model divides your dimension by the ratio after converting to inches; model → real multiplies back out.", "The comparison line sizes the same real object in Z, N, O, and G so you can see at a glance which scale fits the shelf you actually have."],
+    example: { title: "40 ft boxcar in HO", inputs: "40 ft, HO (1:87.1)", result: "About 5.5 in long (140 mm) — the same boxcar is 3.0 in in N and 10.0 in in O." },
+    faqs: [{ question: "What's the difference between HO and OO?", answer: "Both run on the same 16.5 mm track. OO is 1:76 (4 mm to the foot — the UK standard), so its bodies are about 15% larger than HO's 1:87.1 — which is why British stock looks chunky next to continental equipment on a shared layout." }, { question: "Which scales are the biggest?", answer: "G at 1:22.5 is the common garden scale, running outdoors on 45 mm track; #1 gauge and 1:20.3 live nearby. At the other end, Z at 1:220 fits a complete layout on a door or coffee table." }, { question: "How much space does N save over HO?", answer: "N is about half the linear size of HO (1:160 vs 1:87.1), so the same real-world scene covers roughly 30% of the footprint — about four times the railroad in the same room, or the same railroad in a quarter of it." }, { question: "Why is G listed at 1:22.5?", answer: "G is really a track gauge, not one ratio: LGB's 1:22.5 is the most common, but 1:20.3, 1:24, and 1:29 all share the same 45 mm rails. Narrow-gauge prototypes account for most of the mixing, and modelers choose knowingly." }],
+    seo: { title: "Model Train Scale Converter – Z, N, HO, O & G Ratios | CalcForged", description: "Convert real dimensions to model train size in Z, N, TT, HO, OO, S, O, and G scales — or model size back to the real world.", h1: "Model train scale converter", intro: "Every model railroad question starts with the same arithmetic: a 40-foot boxcar is 5.5 inches long in HO, and everything else follows from the ratio. This train scale converter handles Z (1:220), N (1:160), TT (1:120), HO (1:87.1), OO (1:76), S (1:64), O (1:48), and G (1:22.5) in both directions — type a real dimension in feet, inches, centimeters, or meters and get the model size in inches and millimeters, or measure a model and recover the real-world size. The comparison line sizes the same object in Z, N, O, and G at once, so deciding whether a helper yard fits on the shelf takes one glance instead of six divisions." },
+    related: ["yarn-yardage", "filament-cost"],
+  },
+  {
+    slug: "miniature-scale-converter", name: "Miniature Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🎲", description: "Convert between real-world heights and tabletop figure scales like 28 mm heroic and 32 mm.",
+    fields: [
+      { key: "height", label: "Height", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 6 },
+      { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Millimeters", value: "mm" }] },
+      { key: "figureScale", label: "Figure scale", type: "select", defaultValue: "56", options: [{ label: "15 mm — ~1:100 (big historical battles)", value: "100" }, { label: "25 mm — ~1:64 (classic lines)", value: "64" }, { label: "28 mm heroic — ~1:56 (D&D, fantasy standard)", value: "56" }, { label: "32 mm — ~1:50 (newer Warhammer)", value: "50" }] },
+      { key: "direction", label: "Direction", type: "select", defaultValue: "toModel", options: [{ label: "Real → figure", value: "toModel" }, { label: "Figure → real", value: "toReal" }] },
+    ],
+    results: [
+      { key: "realSize", label: "Real-world height", unit: "in", format: "number", estimate: true },
+      { key: "modelMm", label: "Figure height", unit: "mm", format: "number", estimate: true },
+      { key: "modelIn", label: "Figure height", unit: "in", format: "number", estimate: true },
+      { key: "note", label: "Proportions note", format: "text", estimate: true },
+    ],
+    calculate: (v) => {
+      const ratio = Math.max(1, n(v, "figureScale", 56));
+      const raw = Math.max(0.1, n(v, "height", 6));
+      const unit = option(v, "unit", "ft");
+      const toReal = option(v, "direction", "toModel") === "toReal";
+      const realMm = toReal ? raw * ratio : unit === "ft" ? raw * 304.8 : unit === "in" ? raw * 25.4 : unit === "cm" ? raw * 10 : raw;
+      const modelMm = toReal ? raw : realMm / ratio;
+      const scaleNames: Record<string, string> = { "100": "15 mm", "64": "25 mm", "56": "28 mm heroic", "50": "32 mm" };
+      const ranges: Record<string, string> = { "100": "about 1:100", "64": "about 1:64 (some lines run 1:72)", "56": "about 1:56 (some lines run 1:60–61)", "50": "about 1:50 (some lines run 1:48–54)" };
+      const name = scaleNames[String(ratio)] ?? "figure scale";
+      return { realSize: round(realMm / 25.4, 2), modelMm: round(modelMm, 1), modelIn: round(modelMm / 25.4, 2), note: `${name} corresponds to ${ranges[String(ratio)] ?? "its nominal ratio"}. "Heroic" lines run chunkier than true scale — oversized heads, hands, and weapons so the figure reads at arm's length — which is why a 6-ft human lands near 32 mm in 28 mm heroic.` };
+    },
+    howItWorks: ["Figure scales are ratios: 15 mm runs about 1:100, 25 mm about 1:64, 28 mm heroic about 1:56, and 32 mm about 1:50.", "Real → figure divides your height by the ratio after converting to millimeters; figure → real multiplies back out.", "The proportions note flags the heroic caveat — oversized heads and hands mean a printed true-scale figure looks lanky next to heroic metal or plastic."],
+    example: { title: "6 ft human in 28 mm heroic", inputs: "6 ft, 28 mm heroic (~1:56)", result: "About 33 mm tall (1.3 in) — chunkier proportions than a true 1:56 figure." },
+    faqs: [{ question: "What scale are D&D miniatures?", answer: "Most official and third-party D&D minis are 28–32 mm heroic: a Medium human stands roughly 30–33 mm tall on a 25 mm (1 inch) base. The base is a game convention, not a scale measurement." }, { question: "28 mm or 32 mm — which do I buy?", answer: "They mix fine on the table. 32 mm runs a slightly larger ratio (about 1:50) with beefier proportions; modern Warhammer moved to 32 mm while D&D and most fantasy lines sit at 28 mm heroic. Pick one for a rank-and-file army, mix freely for an adventuring party." }, { question: "Can I 3D print true-scale miniatures?", answer: "Yes — rescale a 32 mm sculpt to 1:56 for true proportions, but heads and weapons will look small next to heroic metal or plastic. Many printers compromise around 1:50–52 for 'heroic-plus' that matches a mixed collection." }, { question: "Do bases tell me the scale?", answer: "No — bases follow game rules (25 mm rounds for Medium D&D creatures, 32 mm under newer editions), not figure height. Judge scale by the figure's overall height, and remember manufacturers often measure foot-to-eye, which is one more reason ratios are approximate." }],
+    seo: { title: "Miniature Scale Converter – 15mm, 25mm, 28mm & 32mm Ratios | CalcForged", description: "Convert real heights to tabletop miniature scale — 15 mm, 25 mm, 28 mm heroic, and 32 mm — or a figure back to real-world size.", h1: "Miniature scale converter", intro: "How tall is a 6-foot human at 28 mm heroic scale? About 33 millimeters — and the answer changes with every line of miniatures you buy. This miniature scale converter works both directions across the hobby's common scales: 15 mm (about 1:100, the big-battle historical standard), 25 mm (about 1:64, the classic), 28 mm heroic (about 1:56, the D&D and fantasy standard), and 32 mm (about 1:50, the newer Warhammer size). Enter a real-world height in feet, inches, centimeters, or millimeters and get the figure height in millimeters and inches — or measure a miniature and recover what it represents. The proportions note carries the caveat that matters in practice: heroic lines upsize heads and hands deliberately, so a true-scale print beside heroic metal looks lanky, not broken." },
+    related: ["train-scale-converter", "filament-cost", "resin-cost"],
+  },
+  {
+    slug: "filament-cost", name: "Filament Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "🖨", description: "Price a 3D print from slicer weight, spool price, and your failure rate.",
+    fields: [
+      { key: "modelWeight", label: "Model weight", type: "number", unit: "g", min: 1, max: 5000, defaultValue: 50, help: "Read it from your slicer after slicing — it includes supports and multi-color purge." },
+      { key: "spoolPrice", label: "Spool price", type: "number", unit: "$", min: 0, step: 0.5, defaultValue: 20 },
+      { key: "spoolWeight", label: "Spool weight", type: "number", unit: "g", min: 50, max: 10000, defaultValue: 1000 },
+      { key: "failPct", label: "Failure allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 10, help: "Covers spaghetti prints and aborted starts; drop toward 0% once your first layer is dialed in." },
+    ],
+    results: [
+      { key: "costPerPrint", label: "Filament cost per print", unit: "$", format: "currency", estimate: true },
+      { key: "costPerGram", label: "Cost per gram", unit: "$", format: "currency", estimate: true },
+      { key: "printsPerSpool", label: "Prints per spool", unit: "prints", format: "number", estimate: true },
+      { key: "note", label: "Electricity & reality check", format: "text", estimate: true },
+    ],
+    calculate: (v) => {
+      const weight = Math.max(1, n(v, "modelWeight", 50));
+      const price = Math.max(0, n(v, "spoolPrice", 20));
+      const spool = Math.max(1, n(v, "spoolWeight", 1000));
+      const fail = Math.min(100, Math.max(0, n(v, "failPct", 10))) / 100;
+      const costPerGram = price / spool;
+      const costPerPrint = weight * costPerGram * (1 + fail);
+      const printsPerSpool = Math.floor(spool / (weight * (1 + fail)));
+      return { costPerPrint: round(costPerPrint, 2), costPerGram: round(costPerGram, 3), printsPerSpool, note: `The ${Math.round(fail * 100)}% allowance covers spaghetti and aborted first layers — drop it toward 0% once the machine is dialed in. Electricity is typically pennies: a desktop FDM printer draws 50–150 W and a typical print uses about 0.4 kWh, roughly 6¢ at common U.S. rates.` };
+    },
+    howItWorks: ["Cost per gram is spool price divided by spool weight; a print's share is that number times the slicer's weight estimate.", "The failure allowance inflates each print's cost and deflates prints-per-spool by the same factor, so the math absorbs the spaghetti you know is coming.", "Electricity barely registers — desktop printers draw 50–150 W, and a typical print consumes around 0.4 kWh, a few cents at most."],
+    example: { title: "50 g mini on a $20 spool", inputs: "50 g model, $20 per 1,000 g spool, 10% failure allowance", result: "$1.10 per print at $0.02 per gram — about 18 prints from one spool." },
+    faqs: [{ question: "PLA vs PETG — does the price differ?", answer: "Both run about $15–25 per kilogram in standard colors, with PETG typically a dollar or two higher. Specialty filaments — carbon-fiber blends, silk, wood-fill — run $30–50, which is why the calculator takes your actual spool price." }, { question: "Where do I read the print weight?", answer: "From your slicer after slicing — it reports filament grams used, already including supports and multi-color purge. Use that number rather than the model file's own weight." }, { question: "What failure rate should I use?", answer: "New setups see 10–20% failed prints; a well-tuned machine sits at 2–5%. The 10% default splits the difference and self-corrects as your first layers improve — set it honestly and the per-print cost stays real." }, { question: "Does wet filament change the math?", answer: "It changes the failure rate, not the price per gram: moist PLA strings, pops, and snaps mid-print. Dry it (PLA at 45–50 °C for 4–6 hours, PETG hotter at 55–65 °C) and your allowance can drop." }],
+    seo: { title: "Filament Cost Calculator – 3D Print Cost per Print | CalcForged", description: "Calculate what a 3D print costs in filament — cost per gram, cost per print, and prints per spool, with a failure allowance built in.", h1: "Filament cost calculator", intro: "What does a 3D print actually cost? Take the slicer's weight estimate — it already includes supports and purge — multiply by your spool's price per gram, and add a failure allowance so the prints that end as spaghetti still get paid for. This filament cost calculator does that arithmetic and tells you the other number everyone forgets: prints per spool, so a 50-gram mini on a $20 spool runs about $1.10 with a 10% allowance and one kilogram covers roughly 18 of them. Electricity is in the note too, because it barely matters — desktop printers draw 50–150 W and a typical print consumes around 0.4 kWh, a few cents at U.S. rates." },
+    related: ["resin-cost", "miniature-scale-converter"],
+  },
+  {
+    slug: "resin-cost", name: "Resin Print Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "🧪", description: "Price a resin print from slicer volume, supports, and bottle cost.",
+    fields: [
+      { key: "volumeMl", label: "Model volume", type: "number", unit: "ml", min: 0.1, max: 5000, step: "any", defaultValue: 40, help: "From your slicer's resin-usage estimate." },
+      { key: "density", label: "Resin density", type: "number", unit: "g/ml", min: 0.8, max: 1.5, step: 0.01, defaultValue: 1.1, help: "Standard resins run about 1.05–1.12 g/ml — check your resin's data sheet." },
+      { key: "bottleSize", label: "Bottle size", type: "number", unit: "g", min: 100, max: 10000, defaultValue: 1000 },
+      { key: "bottlePrice", label: "Bottle price", type: "number", unit: "$", min: 0, step: 0.5, defaultValue: 35 },
+      { key: "supportPct", label: "Support allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 15, help: "Supports typically add 10–30% resin; tree supports sit at the low end." },
+      { key: "failPct", label: "Failure allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 10 },
+    ],
+    results: [
+      { key: "resinGrams", label: "Resin per print", unit: "g", format: "number", estimate: true },
+      { key: "costPerPrint", label: "Resin cost per print", unit: "$", format: "currency", estimate: true },
+      { key: "printsPerBottle", label: "Prints per bottle", unit: "prints", format: "number", estimate: true },
+      { key: "note", label: "Safety & extras", format: "text" },
+    ],
+    calculate: (v) => {
+      const volume = Math.max(0.1, n(v, "volumeMl", 40));
+      const density = Math.max(0.5, n(v, "density", 1.1));
+      const bottle = Math.max(1, n(v, "bottleSize", 1000));
+      const price = Math.max(0, n(v, "bottlePrice", 35));
+      const support = Math.min(100, Math.max(0, n(v, "supportPct", 15))) / 100;
+      const fail = Math.min(100, Math.max(0, n(v, "failPct", 10))) / 100;
+      const grams = volume * density * (1 + support);
+      const costPerPrint = grams * (price / bottle) * (1 + fail);
+      const printsPerBottle = Math.floor(bottle / grams);
+      return { resinGrams: round(grams, 1), costPerPrint: round(costPerPrint, 2), printsPerBottle, note: "Wash-and-cure consumables (IPA, filters, FEP film) add a little per print. Uncured resin is safe for nobody's skin: nitrile gloves, ventilation, and no bare-hand handling until it's cured." };
+    },
+    howItWorks: ["Slicer volume converts to grams through the resin's density — standard resins run about 1.05–1.12 g/ml — then the support allowance adds its share.", "Cost per print is grams times price per gram, inflated by the failure allowance the way failed exposures eat resin and time.", "Prints per bottle divides bottle size by per-print grams and rounds down — the bottom of the bottle always stays dirty."],
+    example: { title: "40 ml mini on a $35 bottle", inputs: "40 ml model, 1.1 g/ml density, 15% supports, 10% failures", result: "About 51 g of resin per print — $1.95 each, roughly 19 minis per 1 kg bottle." },
+    faqs: [{ question: "Is resin printing cheaper than filament?", answer: "Per gram, no — resin runs roughly double filament's price. But minis and detailed parts are small: a 1 kg bottle covers about 19 typical 40 ml prints at $1–2 of resin each. Big functional parts stay filament territory." }, { question: "How much resin do supports add?", answer: "Typically 10–30% on top of the model, depending on overhangs and support style — tree supports sit at the low end, heavy full-contact supports at the top. Hollowing a model cuts it further, but always add drain holes." }, { question: "What's resin density, and why does it matter?", answer: "Slicers report volume while resin is sold by weight, so density is the bridge. Standard resins run about 1.05–1.12 g/ml in the bottle (cured parts end up denser still); the exact number is on the technical data sheet." }, { question: "How long does resin keep?", answer: "Sealed bottles last 1–2 years in a cool, dark place; an opened bottle is best within 6–12 months. Stir well before every pour — settled pigment throws your exposure settings off." }],
+    seo: { title: "Resin Print Cost Calculator – Cost per Mini & Bottle | CalcForged", description: "Calculate resin cost per print from slicer volume, density, supports, and bottle price — plus prints per bottle and safe-handling notes.", h1: "Resin print cost calculator", intro: "Resin math has one extra step filament doesn't: slicers report volume, but resin is sold by weight, and density is the bridge. This resin cost calculator takes your model's volume, applies a density of about 1.05–1.12 g/ml for standard resins, adds the 10–30% that supports typically consume, and prices the print against your bottle — a 40 ml mini lands near 51 grams and about $1.95 on a $35 bottle, with roughly 19 prints to the kilogram. The failure allowance is there because failed exposures waste resin and time the same way spaghetti prints waste filament. The note carries the part that isn't optional: uncured resin needs nitrile gloves and ventilation, every time." },
+    related: ["filament-cost", "miniature-scale-converter"],
+  },
+  {
+    slug: "charcuterie-board", name: "Charcuterie Board Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🧀", description: "Turn a guest count into cheese, meat, cracker, and filler amounts for a board that holds.",
+    fields: [
+      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 500, defaultValue: 12 },
+      { key: "boardStyle", label: "Role of the board", type: "select", defaultValue: "appetizer", options: [{ label: "Appetizer alongside dinner — 2 oz each of cheese and meat", value: "appetizer" }, { label: "The board IS the meal — 3.5 oz each", value: "meal" }] },
+      { key: "cheeseVarieties", label: "Cheese varieties", type: "number", unit: "kinds", min: 1, max: 10, defaultValue: 3 },
+      { key: "meatVarieties", label: "Meat varieties", type: "number", unit: "kinds", min: 0, max: 10, defaultValue: 2 },
+    ],
+    results: [
+      { key: "cheeseLb", label: "Cheese total", unit: "lb", format: "number", estimate: true },
+      { key: "meatLb", label: "Meat total", unit: "lb", format: "number", estimate: true },
+      { key: "crackers", label: "Crackers", format: "text", estimate: true },
+      { key: "shoppingList", label: "Shopping list", format: "text", estimate: true },
+    ],
+    calculate: (v) => {
+      const guests = Math.max(1, n(v, "guests", 12));
+      const meal = option(v, "boardStyle", "appetizer") === "meal";
+      const ozCheese = meal ? 3.5 : 2;
+      const ozMeat = meal ? 3.5 : 2;
+      const cheeseLb = round(guests * ozCheese / 16, 1);
+      const meatLb = round(guests * ozMeat / 16, 1);
+      const crackerOz = meal ? 2 : 1.5;
+      const crackerLb = round(guests * crackerOz / 16, 1);
+      const crackerBoxes = ceil(guests * crackerOz / 8);
+      const cheeseVarieties = Math.max(1, n(v, "cheeseVarieties", 3));
+      const meatVarieties = Math.max(0, n(v, "meatVarieties", 2));
+      const cheesePer = Math.ceil(guests * ozCheese / cheeseVarieties / 4) * 4;
+      const meatPer = Math.ceil(guests * ozMeat / Math.max(1, meatVarieties) / 2) * 2;
+      const fillLb = round(guests * 3 / 16, 1);
+      const lines = [
+        `Cheese — ${cheeseLb} lb total: ${cheeseVarieties} varieties × ~${cheesePer} oz each (round up to whole blocks at the counter).`,
+        meatVarieties > 0 ? `Meat — ${meatLb} lb total: ${meatVarieties} varieties × ~${meatPer} oz each (an 8 oz pack covers about ${Math.max(1, Math.round(8 * meatVarieties / ozMeat))} guests per variety).` : "Meat — none planned; a spread or pâté makes a good savory anchor instead.",
+        `Crackers — ${crackerLb} lb total: about ${crackerBoxes} standard 8 oz boxes.`,
+        `Fillers — about ${fillLb} lb combined of fruit, nuts, and olives or pickles (2–3 oz per person) to plug the gaps.`,
+      ];
+      return { cheeseLb, meatLb, crackers: `${crackerLb} lb — about ${crackerBoxes} standard boxes (${crackerOz} oz per guest).`, shoppingList: lines.join("\n") };
+    },
+    howItWorks: ["Appetizer boards plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each — 7 oz of board per person.", "Crackers run 1.5–2 oz per guest, and fruit, nuts, and olives add another 2–3 oz per person to fill the visual gaps.", "The shopping list divides totals across your variety counts and rounds up to store-friendly packages — whole blocks and 8 oz meat packs, never 4.7 oz."],
+    example: { title: "12 guests, board is dinner", inputs: "12 guests, the board IS the meal, 3 cheeses, 2 meats", result: "About 2.6 lb each of cheese and meat — 16 oz wedges ×3, ~22 oz meat packs ×2, plus 3 cracker boxes and 2.3 lb of fillers." },
+    faqs: [{ question: "How much charcuterie per person?", answer: "For an appetizer board alongside dinner, 2 oz of cheese and 2 oz of meat per guest. When the board is the meal, 3–4 oz each — the calculator plans 3.5 — plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the board." }, { question: "How far ahead can I buy?", answer: "Hard cheeses keep 1–2 weeks (rewrap in parchment, not plastic) and unopened cured meats keep for weeks. Buy soft cheeses and cut fruit 1–2 days out, and slice cured meats the day of for the best look." }, { question: "How long can a board sit out?", answer: "Follow the 2-hour rule: perishable food is safe at room temperature about two hours (one hour above 90 °F). Set out half the meat and refill from the fridge, and keep soft cheeses chilled until the last minute." }, { question: "How many cheeses and meats for a good board?", answer: "Three cheeses and two meats cover most parties: one soft, one firm, one blue or aged; one salami-style, one prosciutto-style. Bigger crowds scale quantities before varieties — more of what worked beats a crowded board." }],
+    seo: { title: "Charcuterie Board Calculator – Amounts Per Person | CalcForged", description: "Calculate cheese, meat, crackers, and fillers per person for a charcuterie board — appetizer or board-as-meal — rounded to store-friendly packages.", h1: "Charcuterie board calculator", intro: "How much charcuterie per person is the difference between a board that holds and a board that gets picked clean in ten minutes. For an appetizer spread alongside dinner, plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each, plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the gaps. Enter your guest count, the board's role, and how many cheeses and meats you want, and the calculator returns totals in pounds plus a shopping list divided by variety and rounded up to store-friendly packages — whole cheese blocks, 8 oz meat packs, full cracker boxes. The buying-ahead and 2-hour-room rules are in the FAQs, because a board is only as good as when it was built." },
+    related: ["appetizers-per-person", "wedding-dessert-table", "pizza-party"],
   },
 ];
 
