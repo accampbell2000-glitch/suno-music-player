@@ -755,6 +755,101 @@ const definitions: CalculatorDefinition[] = [
     seo: { title: "Yarn Yardage Calculator – How Much Yarn for a Blanket | CalcForged", description: "Estimate yarn yardage and skeins for a blanket by size and yarn weight, with a waste allowance for swatching and finishing.", h1: "Yarn yardage calculator", intro: "How much yarn a blanket needs is one of those questions with a famously long answer — gauge, stitch density, and yarn weight all move the number. This blanket yarn calculator gives you a grounded starting point: enter the finished length and width, pick your yarn weight from the standard 0-to-7 categories, and set your yards per skein and waste allowance. The math is calibrated so a 50×60 throw in worsted weight lands near the 1,800 yards most yarn guides cite, then scales across the other weights. The skein count rounds up so one dye lot covers the whole project. Treat the result as a planning estimate and let a swatch refine it." },
     related: ["recipe-scaling", "weight-converter", "percentage"],
   },
+  {
+    slug: "pizza-party", name: "Pizza Party Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🍕", description: "Order the right number of pizzas for any crowd, by size and appetite.",
+    fields: [
+      { key: "adults", label: "Adults", type: "number", unit: "people", min: 0, max: 1000, defaultValue: 20 },
+      { key: "children", label: "Children", type: "number", unit: "people", min: 0, max: 1000, defaultValue: 0 },
+      { key: "slicesPerAdult", label: "Slices per adult", type: "number", unit: "slices", min: 1, max: 6, defaultValue: 3, help: "Most adults eat 2–3 slices; 3–4 when pizza is the only main." },
+      { key: "slicesPerChild", label: "Slices per child", type: "number", unit: "slices", min: 0, max: 4, defaultValue: 2, help: "Kids usually manage 1–2 slices." },
+      { key: "pizzaSize", label: "Pizza size", type: "select", defaultValue: "large", options: [{ label: "10\" small — 6 slices", value: "small" }, { label: "12\" medium — 8 slices", value: "medium" }, { label: "14\" large — 8 slices", value: "large" }, { label: "16\" extra large — 12 slices", value: "xl" }] },
+    ],
+    results: [
+      { key: "slices", label: "Total slices", unit: "slices", format: "number" },
+      { key: "pizzas", label: "Pizzas to order", unit: "pizzas", format: "number", estimate: true, interpretation: "Rounded up to whole pizzas." },
+      { key: "note", label: "Ordering note", format: "text" },
+    ],
+    calculate: (v) => {
+      const adults = n(v, "adults", 20);
+      const children = n(v, "children", 0);
+      const slices = ceil(adults * n(v, "slicesPerAdult", 3) + children * n(v, "slicesPerChild", 2));
+      const sizes: Record<string, { perPizza: number; label: string }> = { small: { perPizza: 6, label: "10\" small" }, medium: { perPizza: 8, label: "12\" medium" }, large: { perPizza: 8, label: "14\" large" }, xl: { perPizza: 12, label: "16\" extra large" } };
+      const size = sizes[option(v, "pizzaSize", "large")] ?? sizes.large;
+      const pizzas = ceil(slices / size.perPizza);
+      const lo = Math.floor(size.perPizza / 3);
+      const hi = Math.ceil(size.perPizza / 3);
+      const per = lo === hi ? `${lo} adults` : `${lo}–${hi} adults`;
+      const spare = pizzas * size.perPizza - slices;
+      return { slices, pizzas, note: `Each ${size.label} pizza has ${size.perPizza} slices — about ${per} per pizza at 3 slices each.${spare > 0 ? ` Ordering whole pizzas leaves ${spare} spare slices; odd leftovers feed the morning after.` : ""}` };
+    },
+    howItWorks: ["Count slices first: most adults eat 2–3 and kids 1–2, so the default plans 3 slices per adult and 2 per child.", "Divide total slices by the slice count for your pizza size — 6 for a 10\" small, 8 for a 12\" medium or 14\" large, 12 for a 16\" extra large — and round up to whole pizzas.", "Most U.S. chains cut a large into 8 slices; square-cut or 10-slice pizzerias yield a couple more per pie, so the estimate errs on the safe side."],
+    example: { title: "20 adults, large pizzas", inputs: "20 adults, 3 slices each, 14\" large", result: "60 slices — 8 large pizzas, with 4 slices to spare." },
+    faqs: [{ question: "How many slices of pizza per person?", answer: "Plan 2–3 slices per adult and 1–2 per child. When pizza is the only main dish, move adults up to 3–4 slices." }, { question: "How many pizzas for 20 adults?", answer: "At 3 slices each, 20 adults need 60 slices — 8 large pizzas cut into 8 slices, or 5 extra larges cut into 12. Order one more if guests are hearty or the party runs late." }, { question: "How many pizza varieties should I order?", answer: "Under 20 people, 2–3 types is plenty: cheese and pepperoni cover most guests, plus one specialty. Bigger crowds stay happy with 3–4 repeats of the bestsellers." }, { question: "What do I do with leftover pizza?", answer: "Refrigerate slices within two hours; they keep 3–4 days and freeze for about a month. Reheat in a skillet or hot oven so the crust crisps back up." }],
+    seo: { title: "Pizza Party Calculator – How Many Pizzas to Order | CalcForged", description: "Calculate how many pizzas to order for any group — adults, kids, and pizza size, from 10-inch smalls to 16-inch extra larges.", h1: "Pizza party calculator", intro: "How many pizzas for 20 adults — or any crowd — comes down to slices: adults eat 2–3, kids eat 1–2, and every pizza size cuts into a known slice count. Enter your adults and children, set the appetite, and pick the size you are ordering, from a 10\" small at 6 slices to a 16\" extra large at 12. The calculator divides total slices by slices per pizza and rounds up to whole pies, so you order a real number instead of a guess. It assumes the 8-slice large most U.S. chains ship, which errs on the safe side when a pizzeria cuts 10." },
+    related: ["taco-bar", "appetizers-per-person", "catering-food-quantity"],
+  },
+  {
+    slug: "chicken-wings", name: "Chicken Wings Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🍗", description: "Turn guests into wing pieces, pounds to buy, and sauce to toss.",
+    fields: [
+      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 10 },
+      { key: "serving", label: "Serving style", type: "select", defaultValue: "main", options: [{ label: "Appetizer — 6 pieces per guest", value: "appetizer" }, { label: "Main dish — 12 pieces per guest", value: "main" }] },
+      { key: "pieceType", label: "Wing type", type: "select", defaultValue: "party", options: [{ label: "Flats & drumettes — each piece counts as 1", value: "party" }, { label: "Whole wings — each wing is 2 pieces", value: "whole" }] },
+      { key: "cupsPerLb", label: "Sauce per cooked lb", type: "number", unit: "cups", min: 0, max: 2, step: 0.125, defaultValue: 0.5, help: "Standard recipes work out to about ½ cup per cooked pound." },
+    ],
+    results: [
+      { key: "pieces", label: "Wing pieces", unit: "pieces", format: "number" },
+      { key: "cooked", label: "Cooked wings", unit: "lb", format: "number", estimate: true },
+      { key: "raw", label: "Raw wings to buy", unit: "lb", format: "number", estimate: true, interpretation: "Assumes standard-size party wings; jumbo wings run heavier." },
+      { key: "sauce", label: "Buffalo sauce", unit: "cups", format: "number", estimate: true },
+    ],
+    calculate: (v) => {
+      const guests = n(v, "guests", 10);
+      const piecesPerPerson = option(v, "serving", "main") === "appetizer" ? 6 : 12;
+      const pieces = Math.round(guests * piecesPerPerson);
+      const rawPerPiece = option(v, "pieceType", "party") === "whole" ? 1.9 : 1.6;
+      const rawBase = pieces * rawPerPiece / 16;
+      const cookedBase = rawBase * 0.68;
+      return { pieces, cooked: round(cookedBase), raw: round(rawBase), sauce: round(cookedBase * n(v, "cupsPerLb", 0.5), 1) };
+    },
+    howItWorks: ["Guests eat about 6 wing pieces when wings are an appetizer and 10–12 when they are the main dish; this calculator plans 6 and 12.", "Pieces convert to raw pounds at roughly 1.6 ounces per pre-cut piece — about 9 pieces per pound; whole wings run heavier because the tip rides along in the purchase weight.", "Bone-in wings lose about a third of their weight cooking (a 65–70% yield), so the raw figure is the buying number, and sauce is planned at about half a cup per cooked pound."],
+    example: { title: "10 guests, main-dish wings", inputs: "Main dish, flats & drumettes, ½ cup sauce per cooked lb", result: "120 pieces — about 12 lb raw to buy, 8.2 lb cooked, and 4.1 cups of sauce." },
+    faqs: [{ question: "How many wings per person as an appetizer vs a main?", answer: "About 6 pieces per person as an appetizer and 10–12 as the main dish. With hearty sides or a second main on the table, lean to the low end." }, { question: "Whole wings or pre-cut flats and drumettes?", answer: "A whole wing cuts into two pieces (flat and drumette), with the tip usually discarded. Pre-cut party wings count one piece each; this estimate assumes those unless you pick whole wings." }, { question: "Fresh or frozen wings?", answer: "Both work. Individually quick-frozen wings are often cheaper and keep until party day — thaw them in the fridge a day ahead and pat dry before cooking." }, { question: "How much sauce do wings need?", answer: "Standard recipes work out to 2–3 fluid ounces per raw pound, or about half a cup per cooked pound. Toss just before serving so the skin stays crisp, and keep extra warm for dipping." }],
+    seo: { title: "Chicken Wings Calculator – How Many Wings Per Person | CalcForged", description: "Calculate chicken wing pieces, raw pounds to buy, and buffalo sauce for any guest count — appetizer or main dish.", h1: "Chicken wings calculator", intro: "How many wings per person depends on what else is on the table: about 6 pieces when wings are an appetizer and 10–12 when they are the main dish. Enter your guest count and serving style, say whether you are buying pre-cut flats and drumettes or whole wings, and get pieces, raw pounds to buy, and the buffalo sauce to toss. The weight math uses standard party-wing averages — roughly 9 pieces per raw pound — and a 65–70% raw-to-cooked yield, so the buying number errs on the generous side." },
+    related: ["bbq-meat", "taco-bar", "pizza-party"],
+  },
+  {
+    slug: "party-ice", name: "Party Ice Calculator", category: "Events", categorySlug: "events", icon: "🧊", description: "Estimate pounds of ice, bags to buy, and cost for drinks and coolers.",
+    fields: [
+      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 20 },
+      { key: "hours", label: "Event length", type: "number", unit: "hours", min: 1, max: 12, step: 0.5, defaultValue: 3 },
+      { key: "setting", label: "Setting", type: "select", defaultValue: "indoor", options: [{ label: "Indoor or cool", value: "indoor" }, { label: "Outdoor or warm", value: "outdoor" }] },
+      { key: "uses", label: "What the ice has to do", type: "select", defaultValue: "drinks", options: [{ label: "Drinks only", value: "drinks" }, { label: "Drinks + chilling bottles", value: "bottles" }, { label: "Everything, including displays", value: "everything" }] },
+      { key: "bagSize", label: "Bag size", type: "number", unit: "lb", min: 5, max: 40, step: 5, defaultValue: 10 },
+      { key: "bagPrice", label: "Price per bag", type: "number", unit: "$", min: 0, step: 0.25, defaultValue: 3.5, help: "Grocery-store 10 lb bags run about $3.50; gas stations are cheaper per stop, dearer per pound." },
+    ],
+    results: [
+      { key: "totalLb", label: "Ice needed", unit: "lb", format: "number", estimate: true, interpretation: "1 lb per guest for the first two hours, then 0.5 lb per extra hour." },
+      { key: "bags", label: "Bags to buy", unit: "bags", format: "number", estimate: true },
+      { key: "cost", label: "Ice cost", unit: "$", format: "currency", estimate: true },
+      { key: "note", label: "Keep it frozen", format: "text" },
+    ],
+    calculate: (v) => {
+      const guests = n(v, "guests", 20);
+      const hours = Math.max(1, n(v, "hours", 3));
+      let totalLb = guests * (Math.min(2, hours) + Math.max(0, hours - 2) * 0.5);
+      if (option(v, "setting", "indoor") === "outdoor") totalLb *= 1.5;
+      const uses = option(v, "uses", "drinks");
+      if (uses === "bottles") totalLb += guests * 0.5;
+      if (uses === "everything") totalLb += guests;
+      const bags = ceil(totalLb / Math.max(1, n(v, "bagSize", 10)));
+      return { totalLb: round(totalLb), bags, cost: round(bags * n(v, "bagPrice", 3.5), 2), note: "Buy bags a day early and store them cold and closed; pack coolers with a base layer of ice, drinks, then ice on top, and keep a spare bag for top-ups." };
+    },
+    howItWorks: ["Drinks start at 1 pound of ice per guest for the first two hours, then add half a pound per guest per extra hour.", "Warm or outdoor settings multiply the drink total by 1.5 for melt; chilling bottles in coolers adds about half a pound per guest, and food displays add the same again.", "The total converts to whole bags at your bag size and prices out at your local per-bag cost."],
+    example: { title: "20 guests, 3-hour outdoor party", inputs: "Outdoor, drinks + chilling bottles, 10 lb bags", result: "About 55 lb of ice — 6 bags, roughly $21." },
+    faqs: [{ question: "How much ice per person for a party?", answer: "The common range is 1–2 pounds per guest: about 1 lb for a short indoor drinks-only event, 1.5 lb for a typical 3-hour party, and 2 lb or more for hot outdoor events or when ice also chills bottles and displays." }, { question: "How do I keep ice from melting too fast?", answer: "Pre-chill the coolers, keep bags closed and out of the sun, and layer ice under and over the drinks. Keep the lid shut, and hold a spare bag back for top-ups late in the event." }, { question: "Should I buy bags or have ice delivered?", answer: "Grocery and warehouse bags are cheapest per pound for most parties. For long outdoor events, block ice melts far slower; for 100+ guests, delivered bulk ice saves the store runs." }, { question: "Is bagged ice safe for drinks?", answer: "Buy ice packaged and labeled for consumption. Never use ice that has touched a cooler floor or raw food, and serve with a scoop rather than hands." }],
+    seo: { title: "Party Ice Calculator – How Much Ice for a Party | CalcForged", description: "Calculate how many pounds of ice and how many bags to buy for your party — drinks, bottles, and displays included.", h1: "Party ice calculator", intro: "How much ice for a party is one of the most under-planned numbers on the shopping list. The baseline is about a pound of ice per guest for the first two hours of drinks, half a pound more per extra hour, and more again for outdoor heat, chilling bottles, and food displays. Enter your guests, hours, setting, and what the ice has to do, and get total pounds, bags to buy at your bag size, and the cost at your local bag price. Most 10-pound bags run about $3.50 at the grocery store, so a typical 20-guest afternoon lands near five bags." },
+    related: ["wedding-food", "appetizers-per-person", "bbq-meat"],
+  },
 ];
 
 function formatFraction(value: number) {

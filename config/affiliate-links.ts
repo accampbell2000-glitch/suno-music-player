@@ -139,6 +139,24 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Seam roller", blurb: "One light pass on each seam presses the edge down before the paste sets.", query: "wallpaper seam roller" },
 		{ name: "Snap-off knife", blurb: "A fresh blade every couple of panels tears nothing and drags nothing.", query: "snap off utility knife blades" },
 	],
+	"pizza-party": [
+		{ name: "Pizza cutter", blurb: "A sharp wheel turns a whole pie into clean slices without dragging the toppings.", query: "pizza cutter wheel sharp" },
+		{ name: "Pizza stone or steel", blurb: "For oven and grill pizzas that beat delivery — preheat 45 minutes for a crisp crust.", query: "pizza stone for oven grill" },
+		{ name: "Pizza boxes & insulated bags", blurb: "Keeps pickup and transport hot until everyone gathers around the table.", query: "pizza boxes 14 inch insulated bag" },
+		{ name: "Parchment sheets", blurb: "Non-stick baking for homemade party pizzas and an easy cleanup.", query: "parchment paper sheets baking" },
+	],
+	"chicken-wings": [
+		{ name: "Air fryer", blurb: "Crispiest wings without frying oil — cook in batches and hold warm.", query: "air fryer large capacity" },
+		{ name: "Wing sauce variety pack", blurb: "Mild to extra-hot so every guest finds their heat level.", query: "buffalo wing sauce variety pack" },
+		{ name: "Instant-read thermometer", blurb: "Wings are done at 165°F in the thickest piece — no guessing, no pink.", query: "instant read meat thermometer" },
+		{ name: "Wire baking rack", blurb: "Oven wings crisp on all sides when the heat can reach underneath.", query: "wire cooling rack baking sheet oven safe" },
+	],
+	"party-ice": [
+		{ name: "Insulated cooler", blurb: "A quality cooler holds ice far longer than bags dumped in a bin.", query: "insulated cooler wheeled large" },
+		{ name: "Reusable ice bags", blurb: "Portion bulk ice into bags for the drink cooler and the backup stash.", query: "reusable ice bags 10 lb" },
+		{ name: "Beverage dispenser", blurb: "Self-serve drinks cut cooler traffic — and cooler traffic melts ice.", query: "beverage dispenser 2 gallon" },
+		{ name: "Ice scoop & tongs", blurb: "Scoops keep hands out of the ice and the drinks food-safe.", query: "ice scoop metal tongs set" },
+	],
 };
 
 // The single strongest click for each calculator, shown as a compact strip
@@ -165,4 +183,7 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	rebar: { name: "Tie wire & pliers", blurb: "Bar count done — tie wire and a twisting tool hold the grid while you pour.", query: "rebar tie wire pliers set" },
 	"gravel-driveway": { name: "Landscape rake", blurb: "Yards and tons known — a landscape rake turns the pile into a driveway.", query: "landscape rake 36 inch aluminum" },
 	wallpaper: { name: "Smoothing & hanging kit", blurb: "Rolls counted — smooth out the bubbles as each sheet goes up.", query: "wallpaper smoothing kit" },
+	"pizza-party": { name: "Pizza cutter", blurb: "Pizzas counted — a sharp wheel keeps every slice tidy.", query: "pizza cutter wheel sharp" },
+	"chicken-wings": { name: "Air fryer", blurb: "Pounds to buy sorted — an air fryer crisps them without the deep fryer.", query: "air fryer large capacity" },
+	"party-ice": { name: "Insulated cooler", blurb: "Bags counted — a good cooler is what keeps them frozen through the party.", query: "insulated cooler wheeled large" },
 };
