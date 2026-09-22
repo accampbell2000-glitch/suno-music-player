@@ -17,6 +17,9 @@ export type FieldDefinition = {
   key: string;
   label: string;
   type: "number" | "select" | "text" | "ingredient-list";
+  /** Dependent dropdown: the key of another select field whose value picks the option set from `optionsMap`. */
+  optionsFor?: string;
+  optionsMap?: Record<string, FieldOption[]>;
   unit?: string;
   min?: number;
   max?: number;
@@ -143,8 +146,7 @@ const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
 // trims vary wildly the typical mid configuration is stored and the verified
 // range is spelled out in the row note. Models that could not be verified from
 // a manufacturer source were left out entirely — never estimated.
-const TOWING_TABLE: { make: string; model: string; lb: number; note?: string }[] = [
-  { make: "Ford", model: "F-150", lb: 12800, note: "5.0L V8 typical; the lineup spans 8,400 (2.7L EcoBoost) to 13,500 (3.5L EcoBoost with the Max Tow axle)." },
+const TOWING_TABLE: { make: string; model: string; lb: number; note?: string }[] = [  { make: "Ford", model: "F-150", lb: 12800, note: "5.0L V8 typical; the lineup spans 8,400 (2.7L EcoBoost) to 13,500 (3.5L EcoBoost with the Max Tow axle)." },
   { make: "Ford", model: "Ranger", lb: 7500, note: "With the Trailer Tow Package; without it, 3,500." },
   { make: "Ford", model: "Maverick", lb: 4000, note: "2.0L EcoBoost with the 4K Tow Package; hybrid models are rated 2,000." },
   { make: "Ford", model: "Bronco", lb: 3500, note: "Bronco Raptor is rated 4,500." },
@@ -189,6 +191,18 @@ const TOWING_TABLE: { make: string; model: string; lb: number; note?: string }[]
   { make: "Subaru", model: "Ascent", lb: 5000, note: "All trims." },
   { make: "Mazda", model: "CX-90", lb: 5000, note: "3.3L Turbo S; the standard turbo and PHEV are rated 3,500." },
 ];
+
+// Dropdown sources derived from the verified table itself, so the lists can
+// never drift from the data.
+const TOWING_MAKES = [...new Set(TOWING_TABLE.map((row) => row.make))].sort();
+const TOWING_MODEL_OPTIONS: Record<string, { label: string; value: string }[]> = Object.fromEntries(
+  TOWING_MAKES.map((make) => [
+    make,
+    TOWING_TABLE.filter((row) => row.make === make)
+      .map((row) => ({ label: row.model, value: row.model }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  ])
+);
 
 const definitions: CalculatorDefinition[] = [
   {
@@ -1027,8 +1041,8 @@ const definitions: CalculatorDefinition[] = [
   {
     slug: "towing-capacity", name: "Towing Capacity & Tongue Weight Calculator", category: "Automotive", categorySlug: "automotive", icon: "🚚", description: "Look up a verified towing capacity and bracket the safe tongue-weight range for your trailer.",
     fields: [
-      { key: "make", label: "Make", type: "text", defaultValue: "Ford", help: "e.g. Ford, Chevrolet, RAM, Toyota." },
-      { key: "model", label: "Model", type: "text", defaultValue: "F-150", help: "e.g. F-150, Silverado 1500, Tacoma." },
+      { key: "make", label: "Make", type: "select", defaultValue: "", options: [{ label: "Select a make", value: "" }, ...TOWING_MAKES.map((make) => ({ label: make, value: make }))] },
+      { key: "model", label: "Model", type: "select", defaultValue: "", optionsFor: "make", optionsMap: TOWING_MODEL_OPTIONS, help: "The verified models for your make." },
       { key: "year", label: "Year", type: "number", min: 1990, max: 2030, defaultValue: 2024 },
       { key: "trailerWeight", label: "Trailer weight (loaded)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 7000, help: "Trailer plus everything in it — the gross weight, not the dry weight." },
       { key: "myTowingCapacity", label: "Your towing capacity (if known)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 0, help: "Not listed? Enter the capacity from your door jamb or owner's manual." },
@@ -1043,9 +1057,7 @@ const definitions: CalculatorDefinition[] = [
       const makeIn = option(v, "make", "").trim();
       const modelIn = option(v, "model", "").trim();
       const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const makeOk = (rowMake: string) => !norm(makeIn) || norm(rowMake).includes(norm(makeIn)) || norm(makeIn).includes(norm(rowMake)) || (norm(makeIn) === "chevy" && norm(rowMake) === "chevrolet") || (norm(makeIn) === "vw" && norm(rowMake) === "volkswagen");
-      const q = norm(modelIn);
-      const row = q ? TOWING_TABLE.find((r) => norm(r.model) === q && makeOk(r.make)) ?? TOWING_TABLE.find((r) => (norm(r.model).includes(q) || q.includes(norm(r.model))) && makeOk(r.make)) : undefined;
+      const row = makeIn && modelIn ? TOWING_TABLE.find((r) => norm(r.make) === norm(makeIn) && norm(r.model) === norm(modelIn)) : undefined;
       const manual = Math.max(0, n(v, "myTowingCapacity", 0));
       const trailer = Math.max(0, n(v, "trailerWeight", 0));
       const maxTowing = row ? row.lb : manual;
@@ -1054,7 +1066,7 @@ const definitions: CalculatorDefinition[] = [
       const vehicle = [makeIn, modelIn].filter(Boolean).join(" ");
       const warning = [
         maxTowing > 0 && trailer > maxTowing ? `Stop: a ${trailer.toLocaleString("en-US")} lb trailer exceeds the ${maxTowing.toLocaleString("en-US")} lb rating — do not tow it.` : "",
-        row ? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the common-configuration table value. ${row.note ?? ""} Verified from the manufacturer's towing guide, September 2026.` : manual > 0 ? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.` : `No verified table match for ${vehicle || "that vehicle"} — enter the capacity from your door jamb or owner's manual above.`,
+        row ? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the common-configuration table value. ${row.note ?? ""} Verified from the manufacturer's towing guide, September 2026.` : manual > 0 ? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.` : vehicle ? `No verified table match for ${vehicle} — enter the capacity from your door jamb or owner's manual above.` : `Pick your make and model from the lists to pull a verified capacity — or enter your own rating from the door jamb or owner's manual.`,
         "Capacities vary by engine, axle, and package — your VIN's towing guide and door-jamb labels always win, and payload has to carry the tongue weight. Never exceed your hitch or receiver rating.",
       ].filter(Boolean).join(" ");
       return { maxTowing, tongueWeightMin: tongueMin, tongueWeightMax: tongueMax, warning };
