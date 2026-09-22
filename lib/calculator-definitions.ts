@@ -953,7 +953,7 @@ const definitions: CalculatorDefinition[] = [
       { key: "sidewall", label: "Sidewall height", unit: "in", format: "number" },
       { key: "sectionWidth", label: "Section width", unit: "in", format: "number" },
       { key: "revsPerMile", label: "Revolutions per mile", unit: "revs", format: "number", interpretation: "Speedometer and odometer shift with this number." },
-      { key: "matches", label: "Matching sizes", format: "text" },
+      { key: "matches", label: "Options that fit", format: "text" },
     ],
     calculate: (v) => {
       const mm = Math.max(100, n(v, "metricWidth", 225));
@@ -962,7 +962,23 @@ const definitions: CalculatorDefinition[] = [
       if (option(v, "direction", "metric") === "metric") {
         const sidewall = round(mm * aspect / 100 / 25.4, 2);
         const diameter = round(rim + 2 * sidewall, 2);
-        return { tireDiameter: diameter, sidewall, sectionWidth: round(mm / 25.4, 2), revsPerMile: Math.round(63360 / (Math.PI * diameter)), matches: "" };
+        const widthIn = round(mm / 25.4, 2);
+        const revs = Math.round(63360 / (Math.PI * diameter));
+        const combos: { size: string; diameter: number; width: number; pct: number; revs: number }[] = [];
+        for (const w of [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335]) for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
+          if (w === mm && a === aspect) continue;
+          const d = rim + 2 * (w * a / 100 / 25.4);
+          const pct = round((d - diameter) / diameter * 100, 1);
+          if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(d, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * d)) });
+        }
+        combos.sort((x, y) => (Math.abs(x.pct) + 2 * Math.abs(x.width - widthIn)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - widthIn)));
+        const tag = (c: { pct: number }) => Math.abs(c.pct) <= 2 ? "Match" : "Close option";
+        const lines = [
+          `Your size: ${mm}/${aspect}R${rim} — ${diameter} in overall, ${widthIn} in wide, ${revs} revs/mile.`,
+          ...combos.slice(0, 4).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide.`),
+          "Within ±2% keeps the speedometer, ABS, and transmission in factory tolerance; ±3% is the outer fitment guideline. Same rim throughout.",
+        ];
+        return { tireDiameter: diameter, sidewall, sectionWidth: widthIn, revsPerMile: revs, matches: lines.join("\n") };
       }
       const target = Math.max(10, n(v, "targetDiameter", 28.5));
       const targetWidth = Math.max(3, n(v, "targetWidth", 8.9));
@@ -983,8 +999,8 @@ const definitions: CalculatorDefinition[] = [
       ];
       return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: lines.join("\n") };
     },
-    howItWorks: ["Metric sizes decode directly: sidewall = width × aspect ÷ 100 in millimeters, overall diameter = rim + 2 × sidewall, and revolutions per mile = 63,360 ÷ (π × diameter).", "The inches direction holds your rim fixed and sweeps the width and aspect combinations on it, keeping every match within 3% of your target diameter — you already own the wheels, so the rim never changes.", "Anything within 2% is a straight fit; 2–3% is the outer guideline, where the speedometer drifts by the same amount and wheel-well clearance needs a check."],
-    example: { title: "35 in tall, 12.5 in wide, 20 in rim", inputs: "Inches → matching sizes: 35 in diameter, 12.5 in width, 20 in rim", result: "315/60R20 — 34.9 in overall (−0.3%), 12.4 in wide. Close: 325/60R20 and 295/65R20." },
+    howItWorks: ["Metric sizes decode directly: sidewall = width × aspect ÷ 100 in millimeters, overall diameter = rim + 2 × sidewall, and revolutions per mile = 63,360 ÷ (π × diameter) — then the calculator lists every size on the same rim within 3% of that diameter.", "The inches direction holds your rim fixed and sweeps the width and aspect combinations on it, keeping every match within 3% of your target diameter — you already own the wheels, so the rim never changes.", "Anything within 2% is a straight fit; 2–3% is the outer guideline, where the speedometer drifts by the same amount and wheel-well clearance needs a check."],
+    example: { title: "225/65R17 in inches", inputs: "Metric → inches: 225 mm, 65%, 17 in rim", result: "28.52 in overall — 5.76 in sidewall, 8.86 in wide, 707 revs/mile. Same-rim fits: 245/60R17, 215/70R17, 235/60R17." },
     faqs: [{ question: "What do the numbers in 225/65R17 mean?", answer: "225 is the section width in millimeters, 65 is the sidewall height as a percentage of that width, R is radial construction, and 17 is the wheel diameter in inches. Overall height is the rim plus twice the sidewall — 28.5 inches here." }, { question: "Do I have to keep the same rim?", answer: "If you're keeping your wheels, yes — the rim is fixed, and that's how this calculator works: every match it returns is on the rim size you enter. Changing rim sizes means buying new wheels, and then overall diameter and width are the constraints that transfer." }, { question: "What is the 3% rule for tires?", answer: "A widely used fitment guideline (not law): keep a replacement tire's overall diameter within 3% of the stock size so the speedometer, ABS, and transmission stay within tolerance. Within 2% is the comfortable zone; bigger jumps belong on trucks with a recalibration." }, { question: "How does tire size change my speedometer?", answer: "The speedometer counts wheel revolutions. A taller tire covers more ground per revolution, so it reads low — 3% taller means 60 indicated is really about 62 mph. A shorter tire makes it read high by the same logic." }],
     seo: { title: "Tire Size Calculator – Metric to Inches & Matching Sizes | CalcForged", description: "Convert metric tire sizes to inches — diameter, sidewall, width, revs per mile — or find matching sizes on your rim within the 3% fitment rule.", h1: "Tire size calculator", intro: "A tire size like 225/65R17 packs four numbers into one code, and every one of them changes how the tire fits, rolls, and reports your speed. This tire size calculator works both ways: enter the metric size and it converts to inches — overall diameter, sidewall height, section width, and revolutions per mile — or enter your current diameter, width, and rim size, and it sweeps the width and aspect combinations on that rim for sizes within the 3% fitment guideline, flagging the straight matches inside ±2% separately from the 2–3% outer options. The rim stays fixed because you already own the wheels; the speedometer shifts by about the same percentage as the diameter changes, and clearance on the actual vehicle is the final check before you buy." },
     related: ["weight-converter", "percentage"],
