@@ -20,6 +20,8 @@ export type FieldDefinition = {
   /** Dependent dropdown: the key of another select field whose value picks the option set from `optionsMap`. */
   optionsFor?: string;
   optionsMap?: Record<string, FieldOption[]>;
+  /** Only show this input when the named field holds one of these values (e.g. bidirectional calculators). */
+  visibleWhen?: { key: string; values: string[] };
   unit?: string;
   min?: number;
   max?: number;
@@ -967,11 +969,11 @@ const definitions: CalculatorDefinition[] = [
     slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "🛞", description: "Read a metric tire size in inches, or find the standard sizes that match your current diameter.",
     fields: [
       { key: "direction", label: "Direction", type: "select", defaultValue: "metric", options: [{ label: "Metric size → inches", value: "metric" }, { label: "Inches → matching sizes", value: "inches" }] },
-      { key: "metricWidth", label: "Section width", type: "number", unit: "mm", min: 100, max: 400, defaultValue: 225, help: "First number in 225/65R17." },
-      { key: "aspect", label: "Aspect ratio", type: "number", unit: "%", min: 20, max: 95, defaultValue: 65, help: "Sidewall height as a percentage of width — the second number." },
+      { key: "metricWidth", label: "Section width", type: "number", unit: "mm", min: 100, max: 400, defaultValue: 225, help: "First number in 225/65R17.", visibleWhen: { key: "direction", values: ["metric"] } },
+      { key: "aspect", label: "Aspect ratio", type: "number", unit: "%", min: 20, max: 95, defaultValue: 65, help: "Sidewall height as a percentage of width — the second number.", visibleWhen: { key: "direction", values: ["metric"] } },
       { key: "rim", label: "Rim diameter", type: "number", unit: "in", min: 8, max: 26, defaultValue: 17, help: "The R-number. In the inches direction this is your wheel size — every match stays on this rim." },
-      { key: "targetDiameter", label: "Target overall diameter", type: "number", unit: "in", min: 15, max: 45, step: 0.05, defaultValue: 28.5, help: "For the inches direction — your current tire's overall diameter (the metric direction computes it)." },
-      { key: "targetWidth", label: "Target section width", type: "number", unit: "in", min: 4, max: 16, step: 0.05, defaultValue: 8.9 },
+      { key: "targetDiameter", label: "Your current tire height", type: "number", unit: "in", min: 15, max: 45, step: 0.05, defaultValue: 28.5, help: "Ground to top of the tire — measure it, or take it from the metric direction.", visibleWhen: { key: "direction", values: ["inches"] } },
+      { key: "targetWidth", label: "Your current tire width", type: "number", unit: "in", min: 4, max: 16, step: 0.05, defaultValue: 8.9, visibleWhen: { key: "direction", values: ["inches"] } },
     ],
     results: [
       { key: "tireDiameter", label: "Overall diameter", unit: "in", format: "number", interpretation: "Rim diameter plus twice the sidewall height." },
