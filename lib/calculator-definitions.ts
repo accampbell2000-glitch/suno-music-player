@@ -1,3 +1,5 @@
+import { TOWING_MAKES, TOWING_MODEL_OPTIONS, lookupTowing, yearRangeLabel } from "./towing-data";
+
 export type Category =
   | "Food & Catering"
   | "Home Improvement"
@@ -141,70 +143,9 @@ const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
   { d: 37, w: 12.50, rim: 17 }, { d: 37, w: 12.50, rim: 20 }, { d: 37, w: 13.50, rim: 20 },
 ];
 
-// Towing-capacity table — SAFETY DATA. Every number below was verified on
-// 2026-09-22 against the manufacturer's own towing guide or specification
-// pages (manufacturer and manufacturer-quoting dealer sources). The stored
-// value is the common configuration's maximum conventional towing (lb); where
-// trims vary wildly the typical mid configuration is stored and the verified
-// range is spelled out in the row note. Models that could not be verified from
-// a manufacturer source were left out entirely — never estimated.
-const TOWING_TABLE: { make: string; model: string; lb: number; note?: string }[] = [  { make: "Ford", model: "F-150", lb: 12800, note: "5.0L V8 typical; the lineup spans 8,400 (2.7L EcoBoost) to 13,500 (3.5L EcoBoost with the Max Tow axle)." },
-  { make: "Ford", model: "Ranger", lb: 7500, note: "With the Trailer Tow Package; without it, 3,500." },
-  { make: "Ford", model: "Maverick", lb: 4000, note: "2.0L EcoBoost with the 4K Tow Package; hybrid models are rated 2,000." },
-  { make: "Ford", model: "Bronco", lb: 3500, note: "Bronco Raptor is rated 4,500." },
-  { make: "Ford", model: "Expedition", lb: 9600, note: "4x2 with the Heavy-Duty Trailer Tow Package." },
-  { make: "Ford", model: "Explorer", lb: 5000 },
-  { make: "Ford", model: "Transit", lb: 6900, note: "3.5L EcoBoost builds; the base 3.5L V6 runs about 4,500." },
-  { make: "Chevrolet", model: "Silverado 1500", lb: 11300, note: "5.3L V8 typical; spans 9,500 (2.7L TurboMax) to 13,300 (3.0L Duramax or 6.2L with Max Trailering)." },
-  { make: "Chevrolet", model: "Colorado", lb: 7700 },
-  { make: "Chevrolet", model: "Tahoe", lb: 8400, note: "5.3L V8 with the Max Trailering Package." },
-  { make: "Chevrolet", model: "Suburban", lb: 8200, note: "5.3L V8 2WD with the Max Trailering Package." },
-  { make: "Chevrolet", model: "Traverse", lb: 5000, note: "V92 trailering equipment is standard on all trims." },
-  { make: "Chevrolet", model: "Express", lb: 9600, note: "2500/3500 passenger van; a 3500 cargo V8 reaches 10,000." },
-  { make: "GMC", model: "Sierra 1500", lb: 11300, note: "5.3L typical; spans 8,800 to 13,300 (3.0L Duramax with Max Trailering)." },
-  { make: "GMC", model: "Canyon", lb: 7700 },
-  { make: "GMC", model: "Yukon", lb: 8400, note: "5.3L V8; the 6.2L is rated 8,000 and the Duramax 8,200." },
-  { make: "RAM", model: "1500", lb: 11550, note: "2025–2026 properly equipped max; 2019–2024 models with the 5.7L HEMI and Max Tow reached 12,750." },
-  { make: "RAM", model: "ProMaster", lb: 6910 },
-  { make: "Toyota", model: "Tacoma", lb: 6500, note: "SR5/TRD PreRunner i-FORCE; hybrid trims are rated 6,000." },
-  { make: "Toyota", model: "Tundra", lb: 12000 },
-  { make: "Toyota", model: "Sequoia", lb: 9520 },
-  { make: "Toyota", model: "4Runner", lb: 6000, note: "i-FORCE MAX hybrid; gas trims run 5,000–5,800." },
-  { make: "Toyota", model: "Highlander", lb: 5000, note: "2.4L turbo gas; hybrid models are rated 3,500." },
-  { make: "Toyota", model: "Sienna", lb: 3500, note: "Hybrid, all trims." },
-  { make: "Honda", model: "Ridgeline", lb: 5000, note: "All trims." },
-  { make: "Honda", model: "Passport", lb: 5000 },
-  { make: "Honda", model: "Pilot", lb: 5000, note: "With the tow package; base trims are rated 3,500." },
-  { make: "Honda", model: "Odyssey", lb: 3500 },
-  { make: "Jeep", model: "Grand Cherokee", lb: 6200 },
-  { make: "Jeep", model: "Wrangler", lb: 5000, note: "2-door with Max Tow; the 4xe is rated 3,500." },
-  { make: "Jeep", model: "Gladiator", lb: 7700, note: "Max Tow Package with the 4.10 axle." },
-  { make: "Dodge", model: "Durango", lb: 6200, note: "3.6L V6; the V8 Tow 'n Go package reaches 8,700." },
-  { make: "Nissan", model: "Frontier", lb: 6960, note: "Crew Cab 4x4; the lineup spans 6,760–7,150." },
-  { make: "Nissan", model: "Pathfinder", lb: 6000, note: "Rock Creek/Platinum, or SV/SL with the Premium Package; base is 3,500." },
-  { make: "Nissan", model: "Armada", lb: 8500, note: "All trims." },
-  { make: "Hyundai", model: "Santa Cruz", lb: 5000, note: "2.5T with HTRAC AWD; the base 2.5L is rated 3,500." },
-  { make: "Hyundai", model: "Palisade", lb: 5000 },
-  { make: "Hyundai", model: "Santa Fe", lb: 4500 },
-  { make: "Kia", model: "Telluride", lb: 5500, note: "Tow package on higher trims; base is 5,000." },
-  { make: "Kia", model: "Sorento", lb: 4500 },
-  { make: "Kia", model: "Carnival", lb: 3500, note: "Top trims; base is 2,500." },
-  { make: "Volkswagen", model: "Atlas", lb: 5000, note: "2.0T with the tow package." },
-  { make: "Subaru", model: "Ascent", lb: 5000, note: "All trims." },
-  { make: "Mazda", model: "CX-90", lb: 5000, note: "3.3L Turbo S; the standard turbo and PHEV are rated 3,500." },
-];
-
-// Dropdown sources derived from the verified table itself, so the lists can
-// never drift from the data.
-const TOWING_MAKES = [...new Set(TOWING_TABLE.map((row) => row.make))].sort();
-const TOWING_MODEL_OPTIONS: Record<string, { label: string; value: string }[]> = Object.fromEntries(
-  TOWING_MAKES.map((make) => [
-    make,
-    TOWING_TABLE.filter((row) => row.make === make)
-      .map((row) => ({ label: row.model, value: row.model }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
-  ])
-);
+// Towing-capacity data lives in lib/towing-data.ts (~year-aware verified
+// table, expanded 2026-09-22). The safety-data comment block at the top of
+// that file documents the verification bar and sources.
 
 const definitions: CalculatorDefinition[] = [
   {
@@ -1045,7 +986,7 @@ const definitions: CalculatorDefinition[] = [
     fields: [
       { key: "make", label: "Make", type: "select", defaultValue: "", options: [{ label: "Select a make", value: "" }, ...TOWING_MAKES.map((make) => ({ label: make, value: make }))] },
       { key: "model", label: "Model", type: "select", defaultValue: "", optionsFor: "make", optionsMap: TOWING_MODEL_OPTIONS, help: "The verified models for your make." },
-      { key: "year", label: "Year", type: "number", min: 1990, max: 2030, defaultValue: 2024 },
+      { key: "year", label: "Year", type: "number", min: 1990, max: 2030, defaultValue: 2024, help: "Used to pick the rating for your model year — several trucks changed capacity across generations." },
       { key: "trailerWeight", label: "Trailer weight (loaded)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 7000, help: "Trailer plus everything in it — the gross weight, not the dry weight." },
       { key: "myTowingCapacity", label: "Your towing capacity (if known)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 0, help: "Not listed? Enter the capacity from your door jamb or owner's manual." },
     ],
@@ -1058,25 +999,29 @@ const definitions: CalculatorDefinition[] = [
     calculate: (v) => {
       const makeIn = option(v, "make", "").trim();
       const modelIn = option(v, "model", "").trim();
-      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const row = makeIn && modelIn ? TOWING_TABLE.find((r) => norm(r.make) === norm(makeIn) && norm(r.model) === norm(modelIn)) : undefined;
+      const yearIn = Math.round(n(v, "year", 0)) || undefined;
+      const lookup = makeIn && modelIn ? lookupTowing(makeIn, modelIn, yearIn) : { row: undefined, yearInRange: true };
+      const row = lookup.row;
       const manual = Math.max(0, n(v, "myTowingCapacity", 0));
       const trailer = Math.max(0, n(v, "trailerWeight", 0));
       const maxTowing = row ? row.lb : manual;
       const tongueMin = round(trailer * 0.1);
       const tongueMax = round(trailer * 0.15);
       const vehicle = [makeIn, modelIn].filter(Boolean).join(" ");
+      const range = row ? yearRangeLabel(row) : "";
+      const yearNote = row && !lookup.yearInRange ? ` Your ${yearIn ?? ""} year is outside this rating's verified range (${range}) — this is the nearest year's rating, and your truck's door jamb is the final word.` : "";
+      const rangeNote = row && lookup.yearInRange && range ? ` Verified range: ${range}.` : "";
       const warning = [
         maxTowing > 0 && trailer > maxTowing ? `Stop: a ${trailer.toLocaleString("en-US")} lb trailer exceeds the ${maxTowing.toLocaleString("en-US")} lb rating — do not tow it.` : "",
-        row ? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the common-configuration table value. ${row.note ?? ""} Verified from the manufacturer's towing guide, September 2026.` : manual > 0 ? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.` : vehicle ? `No verified table match for ${vehicle} — enter the capacity from your door jamb or owner's manual above.` : `Pick your make and model from the lists to pull a verified capacity — or enter your own rating from the door jamb or owner's manual.`,
+        row ? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the properly-equipped maximum conventional towing for the common configuration. ${row.note ?? ""}${rangeNote}${yearNote} Verified against the manufacturer's towing guide, September 2026.` : manual > 0 ? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.` : vehicle ? `No verified table match for ${vehicle} — enter the capacity from your door jamb or owner's manual above.` : `Pick your make and model from the lists to pull a verified capacity — or enter your own rating from the door jamb or owner's manual.`,
         "Capacities vary by engine, axle, and package — your VIN's towing guide and door-jamb labels always win, and payload has to carry the tongue weight. Never exceed your hitch or receiver rating.",
       ].filter(Boolean).join(" ");
       return { maxTowing, tongueWeightMin: tongueMin, tongueWeightMax: tongueMax, warning };
     },
-    howItWorks: ["A curated table of the most-towed U.S. vehicles returns the common configuration's verified maximum; anything else uses the rating you enter from the door jamb or owner's manual.", "Conventional towing puts 10–15% of the loaded trailer weight on the hitch — the calculator brackets your trailer's tongue weight at exactly those bounds.", "The warning carries the fine print: ratings swing by engine, axle, and package, fifth-wheel pin weight runs 15–25% and rides on payload, and the manufacturer's labels always beat any table."],
-    example: { title: "2019 F-150, 7,000 lb trailer", inputs: "Ford F-150, 7,000 lb loaded trailer", result: "About 12,800 lb from the table — tongue weight should land between 700 and 1,050 lb." },
+    howItWorks: ["A curated table of the most-towed U.S. vehicles — every domestic pickup from 1-ton down (F-150 through F-450, Silverado/Sierra 1500-3500HD, RAM 1500-3500), the full-size SUVs and vans, EV trucks, and popular imports — returns the properly-equipped maximum conventional towing for your model year; anything else uses the rating you enter from the door jamb or owner's manual.", "The year you enter picks the rating: where a truck's capacity changed across generations (RAM 1500 pre/post 2019, Tundra pre/post 2022, Super Duty refreshes), the table stores one rating per year range and matches your year to it — never an average.", "Conventional towing puts 10–15% of the loaded trailer weight on the hitch — the calculator brackets your trailer's tongue weight at exactly those bounds.", "The warning carries the fine print: ratings swing by engine, axle, and package, fifth-wheel pin weight runs 15–25% and rides on payload, and the manufacturer's labels always beat any table."],
+    example: { title: "2019 F-150, 7,000 lb trailer", inputs: "Ford F-150, year 2019, 7,000 lb loaded trailer", result: "13,200 lb (2018-2020 generation, 3.5L EcoBoost + Max Trailer Tow) — tongue weight should land between 700 and 1,050 lb." },
     faqs: [{ question: "How much tongue weight is safe?", answer: "For a conventional ball hitch, 10–15% of the loaded trailer weight — a 7,000 lb trailer wants 700–1,050 lb on the ball. Too little invites sway; too much overloads the rear axle. Measure with a tongue-weight scale, or at a truck scale weighing the truck with and without the trailer tongue down." }, { question: "Where do I find my exact towing capacity?", answer: "The door-jamb sticker, the owner's manual, and the manufacturer's towing guide for your VIN. The table here gives the common configuration's verified maximum — engines, axle ratios, and tow packages move the real number by thousands of pounds, especially on full-size trucks." }, { question: "What's the difference between towing capacity and GCWR?", answer: "Towing capacity is what the hitch can pull; GCWR is the combined limit for the loaded truck plus trailer, passengers, and cargo. Payload is often the real-world limiter — the tongue weight rides in the bed, and it counts against payload before anything else goes in." }, { question: "When do I need a weight-distributing hitch?", answer: "When the manufacturer requires one for your trailer weight (often around 5,000 lb and up) or whenever the rear of the vehicle squats. Spring bars shift tongue weight to the front axle, restoring steering and headlight aim — sized and adjusted per the manufacturer's instructions." }],
-    seo: { title: "Towing Capacity & Tongue Weight Calculator | CalcForged", description: "Look up verified towing capacities for the most-towed vehicles and compute the safe 10–15% tongue-weight range for your trailer.", h1: "Towing capacity & tongue weight calculator", intro: "Towing numbers are safety data, so this calculator keeps them honest. Enter your make, model, and year — the most-towed vehicles in America, from the F-150 and Silverado 1500 to the Tacoma, Explorer, and Grand Cherokee, return a towing capacity verified against the manufacturer's own towing guide, stated for the common configuration with the real range spelled out. Unlisted vehicles take your capacity from the door jamb or owner's manual. Add your loaded trailer weight and the calculator brackets the tongue weight at the safe 10–15% band for a conventional ball hitch — 700 to 1,050 lb on a 7,000 lb trailer — and flags it plainly if the trailer exceeds the rating. Fifth-wheel owners: pin weight runs 15–25% of trailer weight and counts against payload, and the door-jamb labels always win over any table." },
+    seo: { title: "Towing Capacity & Tongue Weight Calculator | CalcForged", description: "Look up verified towing capacities for the most-towed vehicles — all domestic trucks from 1-ton down, SUVs, vans, EVs, and popular imports — and compute the safe 10–15% tongue-weight range.", h1: "Towing capacity & tongue weight calculator", intro: "Towing numbers are safety data, so this calculator keeps them honest. Enter your make, model, and year — every domestic truck from 1-ton down (F-150 through F-450 Dually, Silverado and Sierra 1500-3500HD, RAM 1500-3500), the full-size SUVs and vans, the EV trucks that tow, and the most-towed imports (Tacoma, Tundra, 4Runner, Grand Cherokee, Gladiator, Titan, and more) return a capacity verified against the manufacturer's own towing guide, stated for the properly-equipped configuration with the real range spelled out — and matched to your model year, because RAM 1500, Tundra, and Super Duty ratings changed across generations. Unlisted vehicles take your capacity from the door jamb or owner's manual. Add your loaded trailer weight and the calculator brackets the tongue weight at the safe 10–15% band for a conventional ball hitch — 700 to 1,050 lb on a 7,000 lb trailer — and flags it plainly if the trailer exceeds the rating. Fifth-wheel owners: pin weight runs 15–25% of trailer weight and counts against payload, and the door-jamb labels always win over any table." },
     related: ["tire-size"],
   },
   {
