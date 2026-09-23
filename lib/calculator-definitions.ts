@@ -23,7 +23,7 @@ export type FieldDefinition = {
   optionsFor?: string;
   optionsMap?: Record<string, FieldOption[]>;
   /** Column labels for ingredient-list fields, so editors can be reused for courses, items, and rows that aren't food. */
-  ingredientSchema?: { first: string; amount: string; unit: string; name: string };
+  ingredientSchema?: { first: string; amount: string; unit: string; name: string; amountPlaceholder?: string; unitPlaceholder?: string; namePlaceholder?: string };
   /** Only show this input when the named field holds one of these values (e.g. bidirectional calculators). */
   visibleWhen?: { key: string; values: string[] };
   unit?: string;
@@ -679,7 +679,7 @@ const definitions: CalculatorDefinition[] = [
   },
   {
     slug: "gpa", name: "GPA Calculator", category: "Education", categorySlug: "education", icon: "🎓", description: "Calculate your grade point average from course credits and letter grades.",
-    fields: [{ key: "courses", label: "Courses", type: "ingredient-list", ingredientSchema: { first: "Courses", amount: "Credit hours", unit: "Grade", name: "Course" }, help: "One row per course: credit hours in the amount box and the final grade (A, B+, C− …) in the grade box." }],
+    fields: [{ key: "courses", label: "Courses", type: "ingredient-list", ingredientSchema: { first: "Courses", amount: "Credit hours", unit: "Grade", name: "Course", amountPlaceholder: "3", unitPlaceholder: "A", namePlaceholder: "Intro to Biology" }, help: "One row per course: credit hours in the amount box and the final grade (A, B+, C− …) in the grade box." }],
     results: [{ key: "gpa", label: "Your GPA", format: "number" }, { key: "credits", label: "Total credits", unit: "credits", format: "number" }, { key: "qualityPoints", label: "Quality points", format: "number" }, { key: "band", label: "Letter equivalent", format: "text" }],
     calculate: (v) => {
       const rows = Array.isArray(v.courses) ? v.courses : [];
