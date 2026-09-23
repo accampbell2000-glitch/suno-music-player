@@ -175,6 +175,11 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Brake controller", blurb: "Required on most trailers over 3,000 lb — proportional units stop smoothest.", query: "trailer brake controller" },
 		{ name: "Ball mount kit", blurb: "The right drop and ball size keep the trailer level before anything else matters.", query: "trailer ball mount kit sizes" },
 	],
+	"battery-runtime": [
+		{ name: "Battery monitor", blurb: "A monitor gives you a live reading; this estimate can't measure your battery's actual condition.", query: "12V battery monitor voltage meter car" },
+		{ name: "Digital multimeter", blurb: "Check voltage and current against the accessory's real draw rather than a label guess.", query: "automotive digital multimeter" },
+		{ name: "Smart battery charger", blurb: "Keep a vehicle battery charged with a charger matched to its chemistry and capacity.", query: "smart automotive battery charger 12V" },
+	],
 	"train-scale-converter": [
 		{ name: "Scale rule", blurb: "A dedicated scale rule reads dimensions directly in HO, N, and O — no math mid-project.", query: "model railroad scale rule" },
 		{ name: "Starter track pack", blurb: "Nickel-silver track in the gauge your scale runs — match rail size to era.", query: "model train track pack nickel silver" },

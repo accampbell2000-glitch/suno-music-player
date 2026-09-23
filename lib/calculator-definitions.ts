@@ -1061,6 +1061,41 @@ const definitions: CalculatorDefinition[] = [
     related: ["tire-size"],
   },
   {
+    slug: "battery-runtime", name: "Battery Reserve Capacity & Runtime Calculator", category: "Automotive", categorySlug: "automotive", icon: "🔋", description: "Estimate accessory runtime from a battery's reserve-capacity rating and electrical load.",
+    fields: [
+      { key: "reserveCapacity", label: "Battery reserve capacity", type: "number", unit: "minutes", min: 1, max: 600, defaultValue: 120, help: "Find RC on the battery label or manufacturer specification. The standard RC test is 25 amps at 80°F (26.7°C) to 10.5 volts." },
+      { key: "loadMode", label: "How do you know the load?", type: "select", defaultValue: "amps", options: [{ label: "Current draw (amps)", value: "amps" }, { label: "Power draw (watts)", value: "watts" }] },
+      { key: "loadAmps", label: "Accessory current draw", type: "number", unit: "A", min: 0.1, max: 500, step: 0.1, defaultValue: 5, visibleWhen: { key: "loadMode", values: ["amps"] }, help: "Use the accessory label or manual. For multiple devices, add their current draws." },
+      { key: "loadWatts", label: "Accessory power draw", type: "number", unit: "W", min: 1, max: 6000, defaultValue: 60, visibleWhen: { key: "loadMode", values: ["watts"] }, help: "Enter the total watts for all accessories running at once." },
+      { key: "systemVoltage", label: "Electrical system voltage", type: "select", defaultValue: "12", options: [{ label: "12 V system", value: "12" }, { label: "24 V system", value: "24" }], visibleWhen: { key: "loadMode", values: ["watts"] } },
+      { key: "usableFraction", label: "Capacity to use in estimate", type: "select", defaultValue: "0.5", options: [{ label: "25% — conservative", value: "0.25" }, { label: "50% — cautious planning", value: "0.5" }, { label: "75% — limited reserve", value: "0.75" }, { label: "100% — full RC equivalent (not a recommended target)", value: "1" }], help: "This is a planning fraction of the simple RC equivalent, not a battery-safe discharge limit. Follow the vehicle and battery maker's guidance." },
+    ],
+    results: [
+      { key: "loadCurrent", label: "Estimated load", unit: "A", format: "number", estimate: true, interpretation: "Watts are divided by nominal system voltage when you enter power." },
+      { key: "equivalentCapacity", label: "Simple RC equivalent", unit: "Ah", format: "number", estimate: true, interpretation: "RC minutes × 25 A ÷ 60; not interchangeable with a manufacturer’s 20-hour amp-hour rating." },
+      { key: "runtimeMinutes", label: "Estimated runtime at selected fraction", unit: "min", format: "number", estimate: true, interpretation: "A rough constant-load estimate based on the standard RC test; real runtime may differ substantially." },
+      { key: "runtimeHours", label: "Estimated runtime", unit: "hours", format: "number", estimate: true },
+      { key: "warning", label: "Important battery note", format: "text", estimate: true },
+    ],
+    calculate: (v) => {
+      const rc = Math.max(1, n(v, "reserveCapacity", 120));
+      const mode = option(v, "loadMode", "amps");
+      const voltage = Math.max(1, n(v, "systemVoltage", 12));
+      const load = mode === "watts" ? Math.max(1, n(v, "loadWatts", 60)) / voltage : Math.max(0.1, n(v, "loadAmps", 5));
+      const fraction = Math.min(1, Math.max(0.1, n(v, "usableFraction", 0.5)));
+      const equivalentAh = rc * 25 / 60;
+      const minutes = equivalentAh / load * 60 * fraction;
+      const share = Math.round(fraction * 100);
+      const warning = `Planning estimate only: this scales the standardized ${rc} min reserve-capacity test (25 A to 10.5 V at 80°F) to your entered load and ${share}% fraction. It does not predict whether the vehicle will start afterward. Battery chemistry, age, temperature, charge level, wiring losses, and actual load change results. Protect starting reserve and follow your vehicle and battery manufacturer's guidance.`;
+      return { loadCurrent: round(load, 2), equivalentCapacity: round(equivalentAh, 1), runtimeMinutes: round(minutes), runtimeHours: round(minutes / 60, 2), warning };
+    },
+    howItWorks: ["Reserve capacity is the minutes a fully charged battery sustains a standardized 25-amp discharge at 80°F (26.7°C) until 10.5 volts. The calculator turns that test result into a simple amp-hour equivalent: RC minutes × 25 ÷ 60.", "For a device specified in watts, current is estimated as watts ÷ nominal system voltage. Runtime then scales the RC equivalent to your load and the capacity fraction you select.", "This is only a constant-load planning estimate — not a battery discharge test, a promise of real-world runtime, or a guarantee the vehicle will restart. Real battery behavior varies with chemistry, age, temperature, charge, and wiring."],
+    example: { title: "120-minute RC battery, 5-amp accessory", inputs: "120 min RC, 5 A load, 50% planning fraction", result: "Simple RC equivalent: 50 Ah. Estimated runtime at the selected fraction: about 5 hours. This is not a safe-discharge recommendation or a starting guarantee." },
+    faqs: [{ question: "What does reserve capacity mean on a car battery?", answer: "Reserve capacity (RC) is the number of minutes a fully charged battery can deliver 25 amps at about 80°F (26.7°C) before its voltage falls to 10.5 V under the standardized test. Check the battery maker's specification for the rating and test conditions." }, { question: "Can I convert reserve capacity directly to amp-hours?", answer: "A simple estimate is RC minutes × 25 ÷ 60. It is not an exact conversion to a battery's 20-hour amp-hour rating because the tests use different discharge rates and battery performance depends on chemistry and conditions." }, { question: "How long can I run accessories with the engine off?", answer: "This tool offers a rough constant-load estimate from reserve capacity and accessory draw. Actual runtime can vary significantly; it cannot determine whether enough charge will remain to start your specific vehicle. Follow the vehicle and battery maker's guidance." }, { question: "Does cold weather or an old battery affect runtime?", answer: "Yes. Temperature, battery age and condition, state of charge, load changes, wiring, and battery chemistry all affect performance. The calculation does not model those factors, so treat it as a planning estimate only." }],
+    seo: { title: "Battery Reserve Capacity Calculator – Estimate Accessory Runtime | CalcForged", description: "Estimate accessory runtime from a car battery's reserve-capacity rating and electrical load. Includes an approximate RC-to-Ah conversion and clear limits.", h1: "Battery reserve capacity & runtime calculator", intro: "A battery's reserve-capacity rating comes from a standardized 25-amp test — not from your specific accessories. Enter the battery's RC minutes and the load in amps or watts to see a simple runtime estimate, with an adjustable planning fraction. The calculation is a rough comparison, not a safe-discharge target or a guarantee your vehicle will start afterward; temperature, battery health, charge level, and electrical conditions all matter." },
+    related: ["tire-size", "towing-capacity"],
+  },
+  {
     slug: "train-scale-converter", name: "Model Train Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🚂", description: "Convert real dimensions to model size — or back — across Z, N, HO, O, G, and more.",
     fields: [
       { key: "dimension", label: "Dimension", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 40 },
