@@ -237,4 +237,6 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	"filament-cost": { name: "Filament dry box", blurb: "Cost per print known — dry filament is the cheapest way to protect it.", query: "filament dry box storage" },
 	"resin-cost": { name: "Wash & cure station", blurb: "Resin cost known — a consistent cure is what makes a print finished.", query: "resin wash and cure station" },
 	"charcuterie-board": { name: "Wood serving board", blurb: "Amounts planned — a big board is what makes the spread read as one.", query: "large wood charcuterie serving board" },
+	"length-converter": { name: "Tape measure", blurb: "One tape, both unit systems — measure once, convert never.", query: "tape measure double sided metric" },
+	"volume-converter": { name: "Measuring cup set", blurb: "Cups, ounces, and milliliters in one set — the converters' physical cousins.", query: "measuring cup set metric us" },
 };

@@ -460,3 +460,30 @@
 .cf-account-band-actions { display: grid; gap: 12px; justify-items: start; }
 .cf-account-band-actions .cf-button { text-decoration: none; padding: 13px 22px; font-size: .82rem; }
 @media (max-width: 760px) { .cf-account-band .cf-leadmagnet-card { grid-template-columns: 1fr; } .cf-account-band-actions { justify-items: stretch; text-align: center; } .cf-account-band-actions .cf-button { display: inline-block; } }
+
+/* Homepage quick calculators (basic + scientific) */
+.cf-quickmath { padding: 72px 0 85px; border-bottom: 1px solid var(--line); }
+.cf-quickmath .cf-heading-aside { color: var(--muted-ink); font-size: .84rem; line-height: 1.6; max-width: 300px; text-align: right; }
+.cf-quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px; }
+.cf-quick-panel { border: 1px solid var(--ink); background: var(--paper-2, #ebeae3); padding: 22px; outline: none; }
+.cf-quick-panel:focus-visible { outline: 2px solid var(--ember); }
+.cf-quick-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cf-quick-head .cf-kicker { margin-bottom: 0; }
+.cf-deg-toggle { border: 1px solid var(--line); background: var(--paper); padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .08em; cursor: pointer; color: var(--muted-ink); }
+.cf-deg-toggle.is-deg { color: var(--ember); border-color: var(--ember); }
+.cf-quick-display { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; border: 1px solid var(--line); background: var(--paper); padding: 14px 16px; margin-bottom: 14px; min-height: 74px; }
+.cf-quick-expr { font-family: 'DM Mono', monospace; font-size: 1.05rem; color: var(--ink); word-break: break-all; text-align: right; min-height: 1.3em; }
+.cf-quick-result { font-family: 'DM Mono', monospace; font-size: .78rem; color: var(--muted-ink); min-height: 1em; }
+.cf-quick-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cf-quick-keys.is-sci { grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.cf-qkey { border: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; font-size: .95rem; font-weight: 600; padding: 13px 4px; cursor: pointer; transition: background .12s ease, color .12s ease; }
+.cf-quick-keys.is-sci .cf-qkey { font-size: .78rem; padding: 11px 2px; }
+.cf-qkey:hover { background: var(--ink); color: var(--paper); }
+.cf-qkey.is-op { color: var(--ember); font-weight: 700; }
+.cf-qkey.is-fn { font-family: 'DM Mono', monospace; font-size: .72rem; font-weight: 500; color: var(--muted-ink); }
+.cf-quick-keys.is-sci .cf-qkey.is-fn { font-size: .64rem; }
+.cf-qkey.is-fn:hover { color: var(--paper); }
+.cf-qkey.is-eq { background: var(--ember); color: #fff; border-color: var(--ember); font-weight: 800; }
+.cf-qkey.is-eq:hover { background: var(--ink); }
+@media (max-width: 900px) { .cf-quick-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .cf-quickmath { padding: 55px 0 65px; } .cf-quickmath .cf-heading-aside { text-align: left; } .cf-quick-grid { gap: 24px; } }
