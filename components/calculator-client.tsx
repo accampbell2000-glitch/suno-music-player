@@ -41,7 +41,7 @@ function AbracadabraPartyPick({ slug }: { slug: string }) {
     : slug === "pizza-party"
       ? "Planning a celebration? Browse costumes, props, and playful party extras."
       : "Getting the party together? Browse costumes, props, and playful extras.";
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=4&data=${encodeURIComponent(returnUrl)}`;
+  const qrUrl = `/qr/${slug}.png`;
   return (
     <>
       <div className="cf-partner-strip cf-abracadabra-pick">
