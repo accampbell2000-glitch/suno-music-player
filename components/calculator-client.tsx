@@ -29,6 +29,31 @@ function PartnerPick({ slug }: { slug: string }) {
   );
 }
 
+const ABRACADABRA_AFFILIATE_URL = "https://www.anrdoezrs.net/click-101888675-17267207";
+const BALLOON_CALCULATOR_URL = "https://calcforged.com/calculators/events/balloon-quantity";
+
+function AbracadabraPartyPick({ slug }: { slug: string }) {
+  if (slug !== "balloon-quantity") return null;
+  return (
+    <>
+      <div className="cf-partner-strip cf-abracadabra-pick">
+        <p className="cf-kicker">Party find</p>
+        <a href={ABRACADABRA_AFFILIATE_URL} target="_blank" rel="sponsored nofollow noopener">
+          <img src="https://www.lduhtrp.net/image-101888675-17267207" width="640" height="640" alt="Abracadabra NYC — costumes, props, and party finds" />
+          <span className="cf-abracadabra-copy"><strong>Costumes &amp; party extras</strong><span>Planning the balloons? Browse costumes and playful extras for the celebration.</span><em aria-hidden="true">Explore Abracadabra NYC ↗</em></span>
+        </a>
+        <small>Affiliate link: CalcForged may earn a commission if you make a qualifying purchase.</small>
+      </div>
+      <div className="cf-print-return">
+        <strong>Keep planning with CalcForged</strong>
+        <span>Reopen this balloon estimate and find our party recommendation:</span>
+        <a href={BALLOON_CALCULATOR_URL}>{BALLOON_CALCULATOR_URL}</a>
+        <small>Affiliate disclosure: CalcForged may earn a commission if you purchase through the party recommendation on the page.</small>
+      </div>
+    </>
+  );
+}
+
 function initialValues(definition: CalculatorDefinition): CalculatorValues {
   return Object.fromEntries(definition.fields.map((field) => [field.key, field.type === "ingredient-list" ? [{ ingredient: "", amount: "", unit: "" }] : field.defaultValue ?? field.options?.[0]?.value ?? ""]));
 }
@@ -172,6 +197,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
           <div className="cf-results">{definition.results.filter((result) => results[result.key] !== "").map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
           <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
           <PartnerPick slug={definition.slug} />
+          <AbracadabraPartyPick slug={definition.slug} />
         </div>
       </div>
     </div>

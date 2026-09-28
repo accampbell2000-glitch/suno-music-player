@@ -429,7 +429,24 @@
 .cf-partner-strip a:hover em { text-decoration: underline; }
 .cf-partner-strip > small { display: block; margin-top: 9px; font-size: .58rem; color: #989b92; }
 
-@media print { .cf-partner-strip { display: none !important; } }
+.cf-abracadabra-pick { border-left: 3px solid var(--ember); }
+.cf-abracadabra-pick a { grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 14px; }
+.cf-abracadabra-pick img { display: block; width: 72px; height: 72px; object-fit: contain; background: white; }
+.cf-abracadabra-copy { display: grid; gap: 4px; }
+.cf-abracadabra-copy strong { font-size: .92rem; font-weight: 700; letter-spacing: -.01em; }
+.cf-abracadabra-copy > span { color: var(--muted-ink); font-size: .74rem; line-height: 1.45; }
+.cf-abracadabra-copy em { font-style: normal; font-family: 'DM Mono', monospace; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ember); margin-top: 3px; }
+.cf-print-return { display: none; }
+@media (max-width: 480px) { .cf-abracadabra-pick a { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; } .cf-abracadabra-pick img { width: 56px; height: 56px; } }
+
+@media print {
+  .cf-partner-strip { display: none !important; }
+  .cf-print-return { display: grid; gap: 4px; margin: 18px 20px 0; padding: 12px 0 0; border-top: 1px solid #aaa; color: #222; font-size: 9pt; }
+  .cf-print-return strong { font-size: 10pt; }
+  .cf-print-return a { color: #222; text-decoration: underline; }
+  .cf-print-return small { margin-top: 4px; font-size: 7pt; }
+}
+
 
 /* Homepage: curated six + library pointer */
 .cf-featured-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
