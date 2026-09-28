@@ -441,9 +441,10 @@
 
 @media print {
   .cf-partner-strip { display: none !important; }
-  .cf-print-return { display: grid; gap: 4px; margin: 18px 20px 0; padding: 12px 0 0; border-top: 1px solid #aaa; color: #222; font-size: 9pt; }
+  .cf-print-return { display: flex; align-items: center; gap: 14px; margin: 18px 20px 0; padding: 12px 0 0; border-top: 1px solid #aaa; color: #222; font-size: 9pt; }
+  .cf-print-return img { display: block; width: 84px; height: 84px; object-fit: contain; }
+  .cf-print-return-copy { display: grid; gap: 4px; }
   .cf-print-return strong { font-size: 10pt; }
-  .cf-print-return a { color: #222; text-decoration: underline; }
   .cf-print-return small { margin-top: 4px; font-size: 7pt; }
 }
 

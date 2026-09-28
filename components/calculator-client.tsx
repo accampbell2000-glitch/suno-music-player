@@ -31,27 +31,35 @@ function PartnerPick({ slug }: { slug: string }) {
 
 const ABRACADABRA_AFFILIATE_URL = "https://www.anrdoezrs.net/click-101888675-17267207";
 
-function AbracadabraPartyPick({ slug, returnUrl }: { slug: string; returnUrl: string }) {
-  if (slug !== "balloon-quantity") return null;
+function AbracadabraPartyPick({ slug }: { slug: string }) {
+  const partySlugs = ["balloon-quantity", "pizza-party", "party-ice"];
+  if (!partySlugs.includes(slug)) return null;
+  const calculator = calculatorsBySlug[slug];
+  const returnUrl = `https://calcforged.com/calculators/${calculator.categorySlug}/${slug}`;
+  const description = slug === "balloon-quantity"
+    ? "Planning the balloons? Browse costumes and playful extras for the celebration."
+    : slug === "pizza-party"
+      ? "Planning a celebration? Browse costumes, props, and playful party extras."
+      : "Getting the party together? Browse costumes, props, and playful extras.";
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=4&data=${encodeURIComponent(returnUrl)}`;
   return (
     <>
       <div className="cf-partner-strip cf-abracadabra-pick">
         <p className="cf-kicker">Party find</p>
         <a href={ABRACADABRA_AFFILIATE_URL} target="_blank" rel="sponsored nofollow noopener">
           <img src="https://www.lduhtrp.net/image-101888675-17267207" width="640" height="640" alt="Abracadabra NYC — costumes, props, and party finds" />
-          <span className="cf-abracadabra-copy"><strong>Costumes &amp; party extras</strong><span>Planning the balloons? Browse costumes and playful extras for the celebration.</span><em aria-hidden="true">Explore Abracadabra NYC ↗</em></span>
+          <span className="cf-abracadabra-copy"><strong>Costumes &amp; party extras</strong><span>{description}</span><em aria-hidden="true">Explore Abracadabra NYC ↗</em></span>
         </a>
         <small>Affiliate link: CalcForged may earn a commission if you make a qualifying purchase.</small>
       </div>
       <div className="cf-print-return">
-        <strong>Keep planning with CalcForged</strong>
-        <span>Reopen this balloon estimate and find our party recommendation:</span>
-        <a href={returnUrl}>{returnUrl}</a>
-        <small>Affiliate disclosure: CalcForged may earn a commission if you purchase through the party recommendation on the page.</small>
+        <img src={qrUrl} width="180" height="180" alt={`QR code to reopen the ${calculator.name} on CalcForged`} />
+        <span className="cf-print-return-copy"><strong>Keep planning with CalcForged</strong><span>Scan to reopen this calculator and find our party recommendation.</span><small>Affiliate disclosure: CalcForged may earn a commission if you purchase through the party recommendation on the page.</small></span>
       </div>
     </>
   );
 }
+
 
 function initialValues(definition: CalculatorDefinition): CalculatorValues {
   return Object.fromEntries(definition.fields.map((field) => [field.key, field.type === "ingredient-list" ? [{ ingredient: "", amount: "", unit: "" }] : field.defaultValue ?? field.options?.[0]?.value ?? ""]));
@@ -196,7 +204,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
           <div className="cf-results">{definition.results.filter((result) => results[result.key] !== "").map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
           <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
           <PartnerPick slug={definition.slug} />
-          <AbracadabraPartyPick slug={definition.slug} returnUrl={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}${window.location.search}` : "https://calcforged.com/calculators/events/balloon-quantity"} />
+          <AbracadabraPartyPick slug={definition.slug} />
         </div>
       </div>
     </div>
