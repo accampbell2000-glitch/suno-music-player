@@ -984,7 +984,7 @@ const definitions: CalculatorDefinition[] = [
         const lines = [
           `Your size: ${mm}/${aspect}R${rim} — ${diameter} in overall, ${widthIn} in wide, ${revs} revs/mile.`,
           ...combos.slice(0, 4).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide.`),
-          "Within ±2% keeps the speedometer, ABS, and transmission in factory tolerance; ±3% is the outer fitment guideline. Same rim throughout.",
+          "Within ±2% is the calculator’s closer comparison range; ±3% is the outer range, not vehicle-specific approval. Check your vehicle’s fitment, speedometer, ABS, transmission, load rating, and clearance before buying. Same rim throughout.",
         ];
         return { tireDiameter: diameter, sidewall, sectionWidth: widthIn, revsPerMile: revs, matches: lines.join("\n") };
       }
@@ -1007,7 +1007,7 @@ const definitions: CalculatorDefinition[] = [
       const lines = [
         `${tag(best)}: ${best.size} — ${best.diameter} in overall (${best.pct > 0 ? "+" : ""}${best.pct}% vs target), ${best.width} in wide, ${best.revs} revs/mile.`,
         ...combos.slice(1, 4).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide, ${c.revs} revs/mile.`),
-        "Within ±2% keeps the speedometer, ABS, and transmission in factory tolerance; ±3% is the outer fitment guideline. The speedometer shifts by about the same percentage as the diameter — verify clearance before buying.",
+        "Within ±2% is the calculator’s closer comparison range; ±3% is the outer range, not vehicle-specific approval. A diameter change can affect speedometer readings. Check your vehicle’s fitment, ABS, transmission, load rating, and clearance before buying.",
       ];
       return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: lines.join("\n") };
     },
