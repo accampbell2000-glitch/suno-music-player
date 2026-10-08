@@ -10,7 +10,6 @@ export type Category =
   | "Automotive"
   | "Everyday Life"
   | "Finance"
-  | "Health"
   | "Travel"
   | "Education";
 
@@ -482,51 +481,6 @@ const definitions: CalculatorDefinition[] = [
     related: ["investment", "savings", "loan"],
   },
   {
-    slug: "bmi", name: "BMI Calculator", category: "Health", categorySlug: "health", icon: "⚖", description: "Compute Body Mass Index and see where it falls on the standard scale.",
-    fields: [{ key: "weight", label: "Weight", type: "number", min: 20, max: 1000, step: 0.1, defaultValue: 154 }, { key: "weightUnit", label: "Weight unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }] }, { key: "height", label: "Height", type: "number", min: 20, max: 120, step: 0.5, defaultValue: 67 }, { key: "heightUnit", label: "Height unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }] }],
-    results: [{ key: "bmi", label: "Your BMI", format: "number" }, { key: "category", label: "Standard category", format: "text" }, { key: "healthyRange", label: "Healthy weight range", format: "text", estimate: true }],
-    calculate: (v) => {
-      const weight = n(v, "weight", 154); const height = n(v, "height", 67);
-      const kg = option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
-      const meters = option(v, "heightUnit", "in") === "in" ? height * 0.0254 : height / 100;
-      if (meters <= 0) return { bmi: "—", category: "Enter a valid height", healthyRange: "—" };
-      const bmi = kg / (meters * meters);
-      const category = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy weight" : bmi < 30 ? "Overweight" : "Obesity";
-      const lowKg = 18.5 * meters * meters; const highKg = 24.9 * meters * meters;
-      const toDisplay = (kgValue: number) => option(v, "weightUnit", "lb") === "lb" ? `${Math.round(kgValue / 0.45359237)} lb` : `${Math.round(kgValue)} kg`;
-      return { bmi: round(bmi, 1), category, healthyRange: `${toDisplay(lowKg)} – ${toDisplay(highKg)} for your height` };
-    },
-    howItWorks: ["Weight is converted to kilograms and height to meters.", "BMI equals kilograms divided by height in meters squared.", "The category bands are the standard adult cutoffs: under 18.5, 18.5–24.9, 25–29.9, and 30+."],
-    example: { title: "154 lb at 5'7\"", inputs: "154 lb, 67 inches", result: "BMI of about 24.1 — healthy weight, with a range of roughly 118–159 lb." },
-    faqs: [{ question: "Is BMI accurate for everyone?", answer: "No. It doesn't distinguish muscle from fat, so athletes often score high, and it isn't calibrated for children, pregnancy, or adults over 65." }, { question: "What BMI is healthy?", answer: "For most adults, 18.5 to 24.9 is the standard healthy band, but individual health depends on far more than this one number." }, { question: "Why does the healthy range use my weight unit?", answer: "The range is calculated from your height and shown in the same unit you entered, so you can compare it directly with your weight." }, { question: "Should I use BMI or body fat percentage?", answer: "BMI is a quick population-level screen; body composition measures say more about individual risk. Treat BMI as a starting point, not a diagnosis." }],
-    seo: { title: "BMI Calculator – Body Mass Index | CalcForged", description: "Calculate Body Mass Index in pounds or kilograms and see the standard weight category.", h1: "BMI calculator", intro: "Body Mass Index is the fastest general screen for whether your weight is in a standard healthy band for your height. Enter your weight and height in whichever units you use — pounds or kilograms, inches or centimeters — and the calculator returns your BMI, the standard category, and the weight range that corresponds to a healthy BMI for someone your height. BMI is a population screening tool, not a diagnosis: it can't tell muscle from fat, so use it as a starting point for a conversation with a healthcare provider." },
-    related: ["pregnancy-due-date", "weight-converter", "age"],
-  },
-  {
-    slug: "pregnancy-due-date", name: "Pregnancy Due Date Calculator", category: "Health", categorySlug: "health", icon: "🤰", description: "Estimate a due date from your last period or conception date.",
-    fields: [{ key: "method", label: "Start from", type: "select", defaultValue: "lmp", options: [{ label: "First day of last period", value: "lmp" }, { label: "Conception date", value: "conception" }] }, { key: "date", label: "Date", type: "text", help: "YYYY-MM-DD" }, { key: "cycle", label: "Average cycle length", type: "number", unit: "days", min: 20, max: 45, defaultValue: 28 }, { key: "asOf", label: "Show progress as of", type: "text", defaultToday: true, help: "Leave blank and today fills in automatically" }],
-    results: [{ key: "dueDate", label: "Estimated due date", format: "text", estimate: true }, { key: "conceptionDate", label: "Estimated conception", format: "text", estimate: true }, { key: "progress", label: "Progress on the date above", format: "text", estimate: true }, { key: "trimester", label: "Trimester on that date", format: "text" }],
-    calculate: (v) => {
-      const start = parseYmd(String(v.date ?? ""));
-      if (!start) return { dueDate: "Enter a valid date (YYYY-MM-DD)", conceptionDate: "—", progress: "—", trimester: "—" };
-      const method = option(v, "method", "lmp"); const cycleAdjust = method === "lmp" ? n(v, "cycle", 28) - 28 : 0;
-      const conception = method === "lmp" ? addDaysUtc(start, 14 + cycleAdjust) : start;
-      const due = addDaysUtc(conception, 266);
-      const asOf = parseYmd(String(v.asOf ?? ""));
-      if (!asOf) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: "—", trimester: "—" };
-      const days = Math.floor((asOf.getTime() - start.getTime()) / 86400000);
-      if (days < 0) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: "Cycle day " + (days + 280 > 0 ? Math.max(1, days + 281) : 1), trimester: "—" };
-      const weeks = Math.floor(days / 7); const remainder = days % 7;
-      const trimester = weeks < 13 ? "First trimester" : weeks < 27 ? "Second trimester" : "Third trimester";
-      return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: weeks > 42 ? "Past 42 weeks — speak with your provider" : `${weeks} weeks, ${remainder} days pregnant`, trimester };
-    },
-    howItWorks: ["From the first day of your last period, the estimate adds 280 days, adjusted by your average cycle length (Naegele's rule).", "From a known or estimated conception date, it adds 266 days.", "Progress counts completed weeks and days from the start date to the date shown, using standard obstetric counting."],
-    example: { title: "Last period June 1", inputs: "LMP June 1, 28-day cycle", result: "Estimated due date around March 8, with conception near June 15." },
-    faqs: [{ question: "How accurate is a due date estimate?", answer: "Only a small share of babies arrive on their estimated date; most arrive within a window about two weeks either side. An early ultrasound is the most accurate dating method." }, { question: "Why does cycle length change the estimate?", answer: "The 280-day rule assumes ovulation on day 14. If your cycles run longer or shorter, ovulation likely shifted, so the estimate moves with it." }, { question: "Why is progress counted from the last period?", answer: "Pregnancy age is conventionally counted from the first day of the last menstrual period, which is about two weeks before conception." }, { question: "Is this medical advice?", answer: "No. This is a planning estimate. Your prenatal provider will confirm dating with measurements and adjust as needed." }],
-    seo: { title: "Pregnancy Due Date Calculator – Estimate Your Date | CalcForged", description: "Estimate a due date from the first day of your last period or a conception date, with progress and trimester.", h1: "Pregnancy due date calculator", intro: "An estimated due date gives a pregnancy its shape: appointments, planning, and the finish line. Enter the first day of your last menstrual period — or a known conception date — and your average cycle length. The calculator applies the standard obstetric rules (280 days from the last period, adjusted for cycle length, or 266 days from conception), estimates the conception window, and shows how many weeks along the pregnancy is as of today. Every estimate is a midpoint, not a deadline; most babies arrive within about two weeks of the date." },
-    related: ["bmi", "age", "time-zone"],
-  },
-  {
     slug: "currency-converter", name: "Currency Converter", category: "Travel", categorySlug: "travel", icon: "💱", description: "Convert between major world currencies using live exchange rates.",
     liveRates: true,
     fields: [{ key: "amount", label: "Amount", type: "number", min: 0, step: 0.01, defaultValue: 100 }, { key: "from", label: "From currency", type: "select", defaultValue: "USD", options: CURRENCIES }, { key: "to", label: "To currency", type: "select", defaultValue: "EUR", options: CURRENCIES }],
@@ -597,7 +551,7 @@ const definitions: CalculatorDefinition[] = [
     example: { title: "150 lb in kilograms", inputs: "150 lb → kg", result: "About 68.04 kg — and the table shows ounces, grams, and stone too." },
     faqs: [{ question: "How many pounds is a kilogram?", answer: "One kilogram is about 2.2046 pounds. For quick mental math, multiply kilograms by 2.2." }, { question: "What is stone, and who uses it?", answer: "A stone is 14 pounds, commonly used for body weight in the UK and Ireland." }, { question: "How precise are the conversions?", answer: "The factors are exact by definition where possible (pound, ounce, gram); results are rounded for display but computed from full precision." }, { question: "Does this work for cooking measurements?", answer: "Yes for weight — ounces and grams here are units of mass. Fluid ounces measure volume and are not interchangeable." }],
     seo: { title: "Weight Converter – lb, kg, oz, g & stone | CalcForged", description: "Convert weight between pounds, kilograms, ounces, grams, and stone with exact factors.", h1: "Weight converter", intro: "Weight units split awkwardly across the Atlantic: recipes in grams, gym plates in pounds, body weight in stone in the UK. This converter handles all five units with exact standard factors — enter a weight, pick the units, and see the precise conversion plus a table showing the same weight in every unit at once. Useful for travel, shipping, cooking from foreign recipes, and translating a medical form that assumes you think in kilograms." },
-    related: ["percentage", "bmi", "currency-converter"],
+    related: ["percentage", "currency-converter"],
   },
   {
     slug: "length-converter", name: "Length Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "📏", description: "Convert between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers.",
@@ -675,7 +629,7 @@ const definitions: CalculatorDefinition[] = [
     example: { title: "Born May 14, 1990", inputs: "As of January 31, 2026", result: "35 years, 8 months, 17 days — next birthday in 103 days." },
     faqs: [{ question: "Why do months vary in length?", answer: "Calendar months run 28 to 31 days, so an age in years-months-days depends on which months are involved. The day count is always exact." }, { question: "Can I calculate an age on a past or future date?", answer: "Yes — edit the second date to any day, past or future, and the age is calculated as of that date." }, { question: "Does it handle leap-year birthdays?", answer: "February 29 birthdays are counted on March 1 in non-leap years for the next-birthday result." }, { question: "Why would I need an exact day count?", answer: "Visa and residency applications, insurance forms, and sports age divisions often ask for age in years, months, and days rather than just years." }],
     seo: { title: "Age Calculator – Exact Age in Years, Months & Days | CalcForged", description: "Calculate exact age from a birth date, with total days lived, next birthday countdown, and birth weekday.", h1: "Age calculator", intro: "\"How old are you\" has a simple answer until a form asks for it exactly. Enter a date of birth and this calculator returns the precise age in years, months, and days as of today (or any date you choose), plus the total days lived, a countdown to the next birthday, and the weekday you were born on. Calendar-accurate, including leap years — useful for applications, anniversaries, milestone planning, and settling birthday debates." },
-    related: ["pregnancy-due-date", "bmi", "percentage"],
+    related: ["percentage"],
   },
   {
     slug: "gpa", name: "GPA Calculator", category: "Education", categorySlug: "education", icon: "🎓", description: "Calculate your grade point average from course credits and letter grades.",
@@ -1288,7 +1242,6 @@ export const categories: { name: Category; slug: string; description: string }[]
   { name: "Automotive", slug: "automotive", description: "Maintenance and ownership planning tools." },
   { name: "Everyday Life", slug: "everyday-life", description: "Small decisions, answered clearly." },
   { name: "Finance", slug: "finance", description: "Loans, savings, and money decisions made clear." },
-  { name: "Health", slug: "health", description: "Quick health checks and personal timelines." },
   { name: "Travel", slug: "travel", description: "Money and time, converted for wherever you're headed." },
   { name: "Education", slug: "education", description: "Grades, roots, and quick academic answers." },
 ];
