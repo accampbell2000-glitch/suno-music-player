@@ -51,7 +51,7 @@ export default function CalculatorRequestPage() {
 						<p className="cf-request-count">26</p>
 						<p>
 							Calculators live today across food and events, home
-							improvement, construction, finance, travel, education,
+							improvement, construction, finance, health, travel, education,
 							and everyday life.
 						</p>
 						<p className="cf-request-promise">
