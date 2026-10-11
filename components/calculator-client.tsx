@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { calculatorsBySlug } from "@/lib/calculator-definitions";
+import { calculatorsBySlug, verifiedTireSizes } from "@/lib/calculator-definitions";
 import type { CalculatorDefinition, CalculatorValues, IngredientRow, ResultDefinition } from "@/lib/calculator-definitions";
 import { affiliateTopPicks, affiliateUrl } from "@/config/affiliate-links";
 
@@ -75,10 +75,12 @@ function formatValue(value: string | number, format?: string) {
 export function CalculatorClient({ slug }: { slug: string }) {
   const definition = calculatorsBySlug[slug];
   const [values, setValues] = useState<CalculatorValues>(() => initialValues(definition));
+  const [recipeUnitSystem, setRecipeUnitSystem] = useState<"us" | "metric">("us");
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState("");
   const [saved, setSaved] = useState<boolean | null>(null);
-  const results = useMemo(() => definition.calculate(values), [definition, values]);
+  const calculationValues = useMemo(() => definition.slug === "recipe-scaling" ? { ...values, __recipeUnitSystem: recipeUnitSystem } : values, [definition.slug, values, recipeUnitSystem]);
+  const results = useMemo(() => definition.calculate(calculationValues), [definition, calculationValues]);
 
   useEffect(() => {
     const key = `calcforge-session-${definition.slug}`;
@@ -114,6 +116,8 @@ export function CalculatorClient({ slug }: { slug: string }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const unitPreference = params.get("units");
+    if (definition.slug === "recipe-scaling" && (unitPreference === "us" || unitPreference === "metric")) setRecipeUnitSystem(unitPreference);
     const next = { ...values };
     definition.fields.forEach((field) => {
       const encoded = params.get(field.key);
@@ -136,7 +140,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
     }
     if (definition.liveRates) {
       let cancelled = false;
-      fetch("https://api.frankfurter.app/latest?base=USD")
+      fetch("https://api.frankfurter.dev/v1/latest?base=USD")
         .then((res) => res.json() as Promise<{ rates?: Record<string, number>; date?: string }>)
         .then((data) => {
           if (!cancelled && data?.rates) {
@@ -177,6 +181,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
       const value = values[field.key];
       if (typeof value === "string" || typeof value === "number") params.set(field.key, String(value));
     });
+    if (definition.slug === "recipe-scaling") params.set("units", recipeUnitSystem);
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     navigator.clipboard?.writeText(url);
     fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "share_results", calculatorSlug: definition.slug }) }).catch(() => undefined);
@@ -194,19 +199,115 @@ export function CalculatorClient({ slug }: { slug: string }) {
   return (
     <div className="cf-calculator" id="calculator">
       <div className="cf-calculator-head"><div><p className="cf-kicker">Live calculator</p><h2>Enter your details</h2></div><div className="cf-head-actions"><button type="button" className={`cf-save-star${saved ? " is-saved" : ""}`} onClick={toggleSaved} disabled={saved === null} aria-label={saved ? "Remove from my toolkit" : "Save to my toolkit"}><span aria-hidden="true">{saved ? "★" : "☆"}</span>{saved ? "Saved" : "Save"}</button><span className="cf-live-dot">Updates instantly</span></div></div>
+      <PrintSheet definition={definition} values={values} results={results} />
       <div className="cf-calc-grid">
         <div className="cf-inputs">
           {definition.photoScan && <RecipePhotoScan onScan={applyScan} />}
           {definition.fields.filter((field) => !field.visibleWhen || field.visibleWhen.values.includes(String(values[field.visibleWhen.key]))).map((field) => field.type === "ingredient-list" ? <IngredientEditor key={field.key} value={(values[field.key] as IngredientRow[]) ?? []} onChange={(rows) => update(field.key, rows)} schema={field.ingredientSchema} /> : <label className="cf-field" key={field.key}><span>{field.label}</span><div className="cf-input-wrap">{field.type === "select" ? (() => { const opts = field.optionsFor ? (field.optionsMap?.[String(values[field.optionsFor])] ?? []) : (field.options ?? []); const current = String(values[field.key]); return <select value={current} onChange={(event) => update(field.key, event.target.value)}>{field.optionsFor && <option value="" disabled>{opts.length ? `Choose a ${field.label.toLowerCase()}` : "Choose an option"}</option>}{opts.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>; })() : <input type={field.type} min={field.min} max={field.max} step={field.step} value={String(values[field.key])} onChange={(event) => update(field.key, field.type === "number" ? Number(event.target.value) : event.target.value)} />}{field.unit && <em>{field.unit}</em>}</div>{field.help && <small>{field.help}</small>}</label>)}
         </div>
         <div className="cf-results-wrap">
-          <div className="cf-results-head"><div><p className="cf-kicker">Your estimate</p><h3>Results</h3></div><span className="cf-estimate-note">Planning estimate</span></div>
-          <div className="cf-results">{definition.results.filter((result) => results[result.key] !== "").map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span><ResultBody result={result} value={results[result.key]} />{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
+          <div className="cf-results-head"><div><p className="cf-kicker">Your estimate</p><h3>Results</h3></div><div className="cf-results-head-tools">{definition.slug === "recipe-scaling" && <div className="cf-unit-switch-wrap"><div className="cf-unit-switch-row"><span className="cf-unit-switch-label">Show in</span><div className="cf-unit-switch" role="group" aria-label="Recipe result units"><button type="button" aria-pressed={recipeUnitSystem === "us"} onClick={() => setRecipeUnitSystem("us")}>US</button><button type="button" aria-pressed={recipeUnitSystem === "metric"} onClick={() => setRecipeUnitSystem("metric")}>Metric</button></div></div><small className="cf-unit-note">Weight and volume stay separate.</small></div>}<span className="cf-estimate-note">Planning estimate</span></div></div>
+          <div className="cf-results">{definition.results.filter((result) => results[result.key] !== "").map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span>{definition.slug === "tire-size" && result.key === "matches" ? <TireMatchResults value={String(results[result.key] ?? "")} /> : <ResultBody result={result} value={results[result.key]} />}{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
           <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
-          <PartnerPick slug={definition.slug} />
+          {definition.slug !== "tire-size" && <PartnerPick slug={definition.slug} />}
           <AbracadabraPartyPick slug={definition.slug} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function PrintSheet({ definition, values, results }: { definition: CalculatorDefinition; values: CalculatorValues; results: ReturnType<CalculatorDefinition["calculate"]> }) {
+  const visibleFields = definition.fields.filter((field) => !field.visibleWhen || field.visibleWhen.values.includes(String(values[field.visibleWhen.key])));
+  const printableResults = definition.results.filter((result) => results[result.key] !== undefined && results[result.key] !== "");
+
+  return (
+    <section className="cf-print-sheet" aria-hidden="true">
+      <div className="cf-print-masthead">
+        <div className="cf-print-wordmark"><span className="cf-print-mark">C</span><span>CALCFORGED</span></div>
+        <span className="cf-print-category">{definition.category} / Calculation sheet</span>
+      </div>
+      <header className="cf-print-title">
+        <h1>{definition.name}</h1>
+        <p>{definition.description}</p>
+      </header>
+      <div className="cf-print-columns">
+        <section className="cf-print-section cf-print-inputs">
+          <h2>Inputs used</h2>
+          <div className="cf-print-input-grid">
+            {visibleFields.map((field) => {
+              const value = values[field.key];
+              if (field.type === "ingredient-list") {
+                const rows = Array.isArray(value) ? (value as IngredientRow[]).filter((row) => [row.ingredient, row.amount, row.unit].some((part) => String(part ?? "").trim())) : [];
+                return (
+                  <div className="cf-print-input cf-print-input-list" key={field.key}>
+                    <span className="cf-print-label">{field.label}</span>
+                    {rows.length ? <ul>{rows.map((row, index) => {
+                      const detail = field.ingredientSchema
+                        ? [row.ingredient, row.amount && `${row.amount} ${field.ingredientSchema.amount.toLowerCase()}`, row.unit && `${row.unit} ${field.ingredientSchema.unit.toLowerCase()}`].filter(Boolean).join(" · ")
+                        : [row.amount, row.unit, row.ingredient].filter(Boolean).join(" ");
+                      return <li key={`${field.key}-${index}`}>{detail}</li>;
+                    })}</ul> : <strong>None entered</strong>}
+                  </div>
+                );
+              }
+
+              let displayValue: string;
+              if (field.type === "select") {
+                const options = field.optionsFor ? field.optionsMap?.[String(values[field.optionsFor])] ?? [] : field.options ?? [];
+                displayValue = options.find((option) => option.value === String(value ?? ""))?.label ?? (value ? String(value) : "Not selected");
+              } else {
+                const unit = field.unit && Number(value) === 1 && field.unit.endsWith("s") ? field.unit.slice(0, -1) : field.unit;
+                displayValue = value === undefined || value === "" ? "Not entered" : `${String(value)}${unit ? ` ${unit}` : ""}`;
+              }
+              return <div className="cf-print-input" key={field.key}><span className="cf-print-label">{field.label}</span><strong>{displayValue}</strong></div>;
+            })}
+          </div>
+        </section>
+        <section className="cf-print-section cf-print-outputs">
+          <h2>Results</h2>
+          <div className="cf-print-result-grid">
+            {printableResults.map((result) => {
+              const value = results[result.key];
+              const lines = typeof value === "string" && value.includes("\n") ? value.split("\n").filter((line) => line.trim()) : null;
+              return (
+                <article className={`cf-print-result${lines ? " cf-print-result-wide" : ""}${result.format === "text" ? " cf-print-result-text" : ""}`} key={result.key}>
+                  <span className="cf-print-label">{result.label}{result.estimate && <em>Estimate</em>}</span>
+                  {lines ? <ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul> : <strong>{formatValue(value, result.format)}{result.unit && result.format !== "currency" && <small> {Number(value) === 1 && result.unit.endsWith("s") ? result.unit.slice(0, -1) : result.unit}</small>}</strong>}
+                  {result.interpretation && <p>{result.interpretation}</p>}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+      <section className="cf-print-notes">
+        <h2>Additional notes</h2>
+        <div className="cf-print-note-lines" aria-hidden="true">{Array.from({ length: 6 }, (_, index) => <div key={index} />)}</div>
+      </section>
+      <footer className="cf-print-footer"><strong>CalcForged</strong><span>Practical calculators. Straight answers.</span></footer>
+    </section>
+  );
+}
+
+function TireMatchResults({ value }: { value: string }) {
+  const lines = value.split("\n").filter((line) => line.trim());
+  const sizePattern = /^(Your size|Match|Close option|Calculated option):\s*(.+?)\s+\u2014\s+(.+)$/;
+  const linkCount = lines.filter((line) => sizePattern.test(line)).length;
+  return (
+    <div className="cf-tire-match-results">
+      {linkCount > 0 && <div className="cf-tire-shopping-note"><strong>Shop by tire size</strong><span>Select a size below to search Amazon. Calculated options may not be retailer-verified.</span></div>}
+      <ul className="cf-tire-match-lines">
+        {lines.map((line, index) => {
+          const match = sizePattern.exec(line);
+          if (!match) return <li className="cf-tire-match-note" key={`note-${index}`}>{line}</li>;
+          const [, label, size, details] = match;
+          const isVerified = verifiedTireSizes.has(size);
+          const searchSize = size.replace(/×/g, "x");
+          return <li className="cf-tire-match-row" key={`${label}-${size}-${index}`}><span className="cf-tire-match-label">{label === "Your size" && !isVerified ? "Entered size" : label}: </span><a className={`cf-tire-match-size${isVerified ? "" : " cf-tire-match-unverified"}`} href={affiliateUrl(`${searchSize} tires`)} target="_blank" rel="sponsored nofollow noopener" aria-label={`Search Amazon for tires in size ${size}${isVerified ? "" : ", not retailer-verified"}`}>{size}</a><span className="cf-tire-match-details"> · {details}</span>{!isVerified && <small className="cf-tire-unverified-note">Not in our verified retailer list.</small>}</li>;
+        })}
+      </ul>
+      {linkCount > 0 && <small className="cf-tire-affiliate-disclosure">As an Amazon Associate, CalcForged earns from qualifying purchases.</small>}
     </div>
   );
 }
@@ -271,7 +372,7 @@ function RecipePhotoScan({ onScan }: { onScan: (scan: { originalServings?: numbe
       <legend>Scan a recipe photo</legend>
       {preview && <img className="cf-scan-preview" src={preview} alt="Recipe photo preview" width={64} height={64} />}
       <p>Snap the recipe — cookbook page, handwritten card, or screenshot — and AI reads the ingredients into the list below.</p>
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(event) => { handleFile(event.target.files?.[0]); event.target.value = ""; }} />
+      <input ref={inputRef} type="file" accept="image/*" hidden onChange={(event) => { handleFile(event.target.files?.[0]); event.target.value = ""; }} />
       <button className="cf-add-row" type="button" onClick={() => inputRef.current?.click()} disabled={status === "scanning"}>{status === "scanning" ? "Scanning…" : "📷 Choose recipe photo"}</button>
       {status === "error" && <p className="cf-scan-error" role="alert">{message}</p>}
     </fieldset>

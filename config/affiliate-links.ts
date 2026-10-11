@@ -151,6 +151,12 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Instant-read thermometer", blurb: "Wings are done at 165°F in the thickest piece — no guessing, no pink.", query: "instant read meat thermometer" },
 		{ name: "Wire baking rack", blurb: "Oven wings crisp on all sides when the heat can reach underneath.", query: "wire cooling rack baking sheet oven safe" },
 	],
+	"christmas-lights": [
+		{ name: "LED mini string lights", blurb: "Low draw means one outlet carries the whole tree, and cool bulbs stay safe on dry branches.", query: "led christmas string lights 100 count mini" },
+		{ name: "C9 LED roofline strands", blurb: "Big classic bulbs built for gutters and eaves, at a fraction of the incandescent wattage.", query: "c9 led christmas lights strand outdoor" },
+		{ name: "Light clips", blurb: "One clip per foot on the roofline keeps every run straight without nails or staples.", query: "christmas light clips gutters shingles" },
+		{ name: "Outdoor light timer", blurb: "Set it once in November and the display turns itself on and off all season.", query: "outdoor christmas light timer photocell" },
+	],
 	"party-ice": [
 		{ name: "Insulated cooler", blurb: "A quality cooler holds ice far longer than bags dumped in a bin.", query: "insulated cooler wheeled large" },
 		{ name: "Reusable ice bags", blurb: "Portion bulk ice into bags for the drink cooler and the backup stash.", query: "reusable ice bags 10 lb" },
@@ -233,6 +239,7 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	wallpaper: { name: "Smoothing & hanging kit", blurb: "Rolls counted — smooth out the bubbles as each sheet goes up.", query: "wallpaper smoothing kit" },
 	"pizza-party": { name: "Pizza cutter", blurb: "Pizzas counted — a sharp wheel keeps every slice tidy.", query: "pizza cutter wheel sharp" },
 	"chicken-wings": { name: "Air fryer", blurb: "Pounds to buy sorted — an air fryer crisps them without the deep fryer.", query: "air fryer large capacity" },
+	"christmas-lights": { name: "Popular Christmas light strings", blurb: "Browse popular mini and C7/C9 strands for trees and rooflines. Compare bulb type, strand length, and indoor/outdoor rating.", query: "Christmas light strings 100 count mini C7 C9 warm white outdoor" },
 	"party-ice": { name: "Insulated cooler", blurb: "Bags counted — a good cooler is what keeps them frozen through the party.", query: "insulated cooler wheeled large" },
 	"balloon-quantity": { name: "Balloon pump", blurb: "Counts done — a pump fills garlands and arches fast, no helium needed.", query: "balloon pump electric handheld" },
 	"tire-size": { name: "Tread depth gauge", blurb: "Size picked — check the tread before you commit to a set.", query: "tire tread depth gauge" },

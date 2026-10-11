@@ -137,8 +137,7 @@ const BASIC_KEYS: Key[] = [
 	{ label: "7", push: "7" }, { label: "8", push: "8" }, { label: "9", push: "9" }, { label: "×", push: "×", kind: "op" },
 	{ label: "4", push: "4" }, { label: "5", push: "5" }, { label: "6", push: "6" }, { label: "−", push: "-", kind: "op" },
 	{ label: "1", push: "1" }, { label: "2", push: "2" }, { label: "3", push: "3" }, { label: "+", push: "+", kind: "op" },
-	{ label: "0", push: "0" }, { label: ".", push: "." }, { label: "(", push: "(" }, { label: ")", push: ")" },
-	{ label: "=", action: "equals", kind: "eq" },
+	{ label: "0", push: "0", kind: "wide" }, { label: ".", push: "." }, { label: "=", action: "equals", kind: "eq" },
 ];
 
 export function QuickCalculators() {
@@ -175,22 +174,22 @@ export function QuickCalculators() {
 		keys: Key[],
 		isSci: boolean,
 	) => (
-		<div className="cf-quick-panel" tabIndex={0}
+		<div className={`cf-quick-panel ${isSci ? "is-scientific" : "is-basic"}`} role="group" aria-label={`${title} calculator`} tabIndex={0}
 			onKeyDown={(event) => {
 				if (event.key === "Enter") { event.preventDefault(); press(setter, state, { action: "equals" }); }
 				else if (event.key === "Escape") { event.preventDefault(); setter(""); }
 				else if (event.key === "Backspace") { event.preventDefault(); setter(state.slice(0, -1)); }
 				else if (/^[0-9.+\-*/()^%]$/.test(event.key)) { event.preventDefault(); setter(state + (event.key === "*" ? "×" : event.key === "/" ? "÷" : event.key)); }
 			}}>
-			<div className="cf-quick-head"><span className="cf-kicker">{title}</span>{isSci && <button type="button" className={`cf-deg-toggle${deg ? " is-deg" : ""}`} onClick={() => setDeg((d) => !d)} aria-label="Toggle degrees or radians">{deg ? "DEG" : "RAD"}</button>}</div>
+			<div className="cf-quick-head"><div className="cf-quick-brandline"><span className="cf-quick-brandmark" aria-hidden="true">CF</span><span className="cf-quick-brandname">CALCFORGED</span><span className="cf-quick-model">{isSci ? "SCIENTIFIC" : "BASIC"}</span></div></div>
 			<div className="cf-quick-display" aria-live="polite">
 				<span className="cf-quick-expr">{state || "0"}</span>
 				<span className="cf-quick-result">{result !== null && state ? `= ${result}` : "\u00A0"}</span>
 			</div>
-			<div className={`cf-quick-keys ${isSci ? "is-sci" : ""}`}>
+			<div className={`cf-quick-keys ${isSci ? "is-sci" : "is-basic"}`}>
 				{keys.map((key, index) => {
 					const isToggle = key.kind === "deg";
-					return <button key={`${key.label}-${index}`} type="button" className={`cf-qkey${key.kind ? ` is-${key.kind}` : ""}`} onClick={() => (isToggle ? setDeg((d) => !d) : press(setter, state, key))}>{isToggle ? (deg ? "DEG" : "RAD") : key.label}</button>;
+					return <button key={`${key.label}-${index}`} type="button" className={`cf-qkey${key.kind ? ` is-${key.kind}` : ""}`} aria-label={isToggle ? "Toggle degrees or radians" : undefined} aria-pressed={isToggle ? deg : undefined} onClick={() => (isToggle ? setDeg((d) => !d) : press(setter, state, key))}>{isToggle ? (deg ? "DEG" : "RAD") : key.label}</button>;
 				})}
 			</div>
 		</div>

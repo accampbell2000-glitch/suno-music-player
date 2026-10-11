@@ -134,9 +134,32 @@ const zoneDiffLabel = (fromZone: string, toZone: string, at: Date) => {
 
 const GPA_POINTS: Record<string, number> = { "A+": 4, A: 4, "A-": 3.7, "B+": 3.3, B: 3, "B-": 2.7, "C+": 2.3, C: 2, "C-": 1.7, "D+": 1.3, D: 1, "D-": 0.7, F: 0 };
 
+// Curated from current U.S. retailer product listings checked October 11, 2026.
+// This snapshot is intentionally narrower than every possible size and should be refreshed periodically.
+export const verifiedTireSizes = new Set<string>([
+  "185/60R15", "185/65R14", "185/65R15", "195/65R15", "205/55R16", "205/60R16", "205/65R15",
+  "215/60R17", "215/70R15", "215/70R17", "215/75R15", "215/75R16",
+  "225/45R17", "225/50R18", "225/55R17", "225/55R19", "225/60R16", "225/65R17", "225/70R16",
+  "235/40R19", "235/50R17", "235/50R19", "235/55R19", "235/60R17", "235/60R18", "235/65R17", "235/65R18", "235/70R16", "235/75R15", "235/75R17", "235/80R17",
+  "245/40R19", "245/60R17", "245/60R18", "245/65R17", "245/70R16", "245/70R17", "245/75R16",
+  "255/40R18", "255/65R16", "265/35R20", "265/65R17", "265/70R17",
+  "275/55R20", "275/60R20", "275/65R18", "275/65R20", "275/70R18",
+  "285/50R20", "285/70R17", "285/70R18", "285/75R16", "295/70R18", "305/70R17", "305/70R18", "315/70R17",
+  "33×12.50R17", "35×12.50R17", "37×12.50R17",
+]);
+
+type TireSizeCandidate = { size: string; diameter: number; width: number; pct: number; revs: number; verified: boolean };
+
+function selectTireSizeCandidates(candidates: TireSizeCandidate[], minimumCount: number, compare: (a: TireSizeCandidate, b: TireSizeCandidate) => number) {
+  const sorted = [...candidates].sort(compare);
+  const verified = sorted.filter((candidate) => candidate.verified);
+  const calculated = sorted.filter((candidate) => !candidate.verified).slice(0, Math.max(0, minimumCount - verified.length));
+  return [...verified, ...calculated];
+}
+
 // Standard LT flotation tire sizes (height × width × rim, inches) offered by
-// the major truck-tire makers. Nominal width — actual measured width runs
-// ~0.1–0.3 in narrower depending on the wheel.
+// the major truck-tire makers. Nominal width; actual measured width runs
+// about 0.1–0.3 in narrower depending on the wheel.
 const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
   { d: 30, w: 9.50, rim: 15 }, { d: 31, w: 10.50, rim: 15 }, { d: 32, w: 11.50, rim: 15 },
   { d: 33, w: 12.50, rim: 15 }, { d: 33, w: 12.50, rim: 17 }, { d: 33, w: 12.50, rim: 18 }, { d: 33, w: 12.50, rim: 20 },
@@ -227,14 +250,14 @@ const definitions: CalculatorDefinition[] = [
     related: ["catering-food-quantity", "wedding-food", "recipe-scaling"],
   },
   {
-    slug: "recipe-scaling", name: "Recipe Scaling Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "⌁", description: "Scale a recipe to a new serving count and keep ingredient amounts readable. Scan a photo of any recipe and let AI fill it in.", photoScan: true,
+    slug: "recipe-scaling", name: "Recipe Scaling Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "⌁", description: "Scale a recipe, convert supported weights and volumes between US and metric, and scan a photo to fill in the ingredient list.", photoScan: true,
     fields: [{ key: "originalServings", label: "Original servings", type: "number", unit: "servings", min: 1, defaultValue: 4 }, { key: "newServings", label: "New servings", type: "number", unit: "servings", min: 1, defaultValue: 8 }, { key: "ingredients", label: "Ingredients", type: "ingredient-list", help: "Add the amount, unit, and ingredient name for each row." }],
     results: [{ key: "factor", label: "Scale factor", format: "number" }, { key: "scaled", label: "Scaled ingredients", format: "text" }, { key: "note", label: "Baking note", format: "text" }],
-    calculate: (v) => { const factor = n(v, "newServings", 8) / n(v, "originalServings", 4); const rows = Array.isArray(v.ingredients) ? v.ingredients : []; const scaled = rows.map((r) => `${formatFraction(Number(r.amount) * factor)} ${r.unit} ${r.ingredient}`); return { factor: round(factor, 2), scaled: scaled.join("\n") || "Add ingredients above", note: "For baking, scale pan size and time carefully; doubling a recipe rarely means doubling bake time." }; },
-    howItWorks: ["The scale factor is new servings divided by original servings.", "Each ingredient amount is multiplied by that factor, while units and ingredient names stay the same.", "Cooking time and pan size do not always scale linearly, especially for baking; use the note as a prompt to check the recipe."],
-    example: { title: "4 servings to 8", inputs: "Original 4 servings, new 8 servings", result: "A 2× scale factor. A 1/2 cup ingredient becomes 1 cup." },
-    faqs: [{ question: "How do I scale a recipe down?", answer: "Enter a smaller new serving count. The scale factor will be below 1 and each ingredient will shrink proportionally." }, { question: "Can I scan a photo of my recipe?", answer: "Yes. Use the scan box in the calculator to upload a photo of a recipe page, handwritten card, or screenshot. The scanner reads the ingredients and original servings, fills them in, and then you pick the new serving count as usual. Always glance over the rows it fills in — photos and handwriting vary." }, { question: "Does cooking time double?", answer: "Usually not. Watch doneness and use the recipe's pan-size guidance, especially for baking." }, { question: "Can I scale spices exactly?", answer: "Start with the calculated amount, then adjust to taste. Salt, chili, and strong spices may not scale perfectly." }, { question: "What units can I enter?", answer: "Enter any unit you already use—cups, grams, teaspoons, pounds, or another label. The tool scales the number and keeps your unit." }],
-    seo: { title: "Recipe Scaling Calculator – Scale Ingredients | CalcForged", description: "Scan a photo of any recipe and AI rescales every ingredient to your new serving count, with readable fractions and baking notes.", h1: "Recipe scaling calculator", intro: "Scaling a recipe should be simple: divide the servings you want by the servings you have, then multiply each ingredient by that factor. Snap a photo of any recipe — a cookbook page, a handwritten card, a screenshot — and the scanner reads it and fills the list in for you, then you pick the new serving count. You can also add the ingredients by hand. The calculator does the arithmetic and formats common results as useful fractions so your shopping list stays readable. For baking, use the result as a starting point and remember that pan size, oven time, and leavening often need their own judgment." },
+    calculate: (v) => { const factor = n(v, "newServings", 8) / n(v, "originalServings", 4); const rows = Array.isArray(v.ingredients) ? v.ingredients : []; const system = v.__recipeUnitSystem === "metric" ? "metric" : "us"; const scaled = rows.map((r) => formatScaledRecipeIngredient(r.amount, r.unit, r.ingredient, factor, system)).filter(Boolean); return { factor: round(factor, 2), scaled: scaled.join("\n") || "Add ingredients above", note: "For baking, scale pan size and time carefully; doubling a recipe rarely means doubling bake time." }; },
+    howItWorks: ["The scale factor is new servings divided by original servings.", "Choose US or Metric above the results. Supported weight and volume units convert between systems, while weight stays weight and volume stays volume.", "Cooking time and pan size do not always scale linearly, especially for baking; use the note as a prompt to check the recipe."],
+    example: { title: "4 servings to 8", inputs: "Original 4 servings, new 8 servings", result: "A 2× scale factor. A 1/2 cup ingredient becomes 1 cup, and 4 tablespoons become 1/2 cup." },
+    faqs: [{ question: "How do I scale a recipe down?", answer: "Enter a smaller new serving count. The scale factor will be below 1 and each ingredient will shrink proportionally." }, { question: "Can I scan a photo of my recipe?", answer: "Yes. Use the scan box in the calculator to upload a photo of a recipe page, handwritten card, or screenshot. The scanner reads the ingredients and original servings, fills them in, and then you pick the new serving count as usual. Always glance over the rows it fills in — photos and handwriting vary." }, { question: "Does cooking time double?", answer: "Usually not. Watch doneness and use the recipe's pan-size guidance, especially for baking." }, { question: "Can I scale spices exactly?", answer: "Start with the calculated amount, then adjust to taste. Salt, chili, and strong spices may not scale perfectly." }, { question: "What units can I enter?", answer: "Choose US or Metric above the results. Recognized weights and volumes convert within their own type, so grams do not turn into cups; units the calculator does not recognize stay as entered." }],
+    seo: { title: "Recipe Scaling Calculator – Scale Ingredients | CalcForged", description: "Scan a recipe photo, scale every ingredient, and switch supported weights and volumes between US and metric units.", h1: "Recipe scaling calculator", intro: "Scaling a recipe should be simple: divide the servings you want by the servings you have, then multiply each ingredient by that factor. Snap a photo of any recipe — a cookbook page, a handwritten card, a screenshot — and the scanner reads it and fills the list in for you, then you pick the new serving count. You can also add the ingredients by hand. The calculator does the arithmetic and formats common results as useful fractions so your shopping list stays readable. Use the US/Metric switch above the results to convert supported weights and volumes; it keeps weight and volume separate. For baking, use the result as a starting point and remember that pan size, oven time, and leavening often need their own judgment." },
     related: ["restaurant-food-cost", "catering-food-quantity", "wedding-food"],
   },
   {
@@ -943,7 +966,35 @@ const definitions: CalculatorDefinition[] = [
     related: ["party-ice", "appetizers-per-person", "wedding-dessert-table"],
   },
   {
-    slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "🛞", description: "Convert metric tire sizes to inches, or compare an inch-based tire with metric options on the same rim.",
+    slug: "fuel-mileage", name: "Fuel Mileage Calculator", category: "Automotive", categorySlug: "automotive", icon: "⛽", description: "Calculate miles per gallon and fuel costs, then save the latest five fill-ups to your account.",
+    fields: [
+      { key: "startOdometer", label: "Starting odometer", type: "number", unit: "mi", min: 0, max: 1000000, defaultValue: 0 },
+      { key: "endOdometer", label: "Ending odometer", type: "number", unit: "mi", min: 0, max: 1000000, defaultValue: 0 },
+      { key: "gallonsUsed", label: "Gallons used", type: "number", unit: "gal", min: 0, max: 500, defaultValue: 0 },
+      { key: "totalPaid", label: "Total paid", type: "number", unit: "USD", min: 0, max: 5000, defaultValue: 0 },
+    ],
+    results: [
+      { key: "distance", label: "Distance", unit: "mi", format: "number" },
+      { key: "mpg", label: "Fuel economy", unit: "MPG", format: "number" },
+      { key: "costPerMile", label: "Cost per mile", format: "currency" },
+      { key: "pricePerGallon", label: "Average pump price", unit: "USD/gal", format: "currency" },
+    ],
+    calculate: (v) => {
+      const start = Math.max(0, n(v, "startOdometer"));
+      const end = Math.max(0, n(v, "endOdometer"));
+      const gallons = Math.max(0, n(v, "gallonsUsed"));
+      const paid = Math.max(0, n(v, "totalPaid"));
+      const distance = Math.max(0, end - start);
+      return { distance: round(distance, 1), mpg: distance > 0 && gallons > 0 ? round(distance / gallons, 1) : 0, costPerMile: distance > 0 ? round(paid / distance, 2) : 0, pricePerGallon: gallons > 0 ? round(paid / gallons, 2) : 0 };
+    },
+    howItWorks: ["Distance is the ending odometer reading minus the starting reading.", "Fuel economy is distance divided by gallons used. For a reliable per-tank result, compare full tanks and include every partial fill between them.", "When you log a partial fill, its gallons carry forward. The log calculates MPG when you record the next full tank, then shows the last five fill-up costs."],
+    example: { title: "350 miles between fill-ups", inputs: "Starting odometer 42,180 mi, ending odometer 42,530 mi, 12.5 gallons, $45 paid", result: "350 miles, 28.0 MPG, $3.60 per gallon, and about $0.13 per mile." },
+    faqs: [{ question: "How do I calculate miles per gallon?", answer: "Subtract the starting odometer from the ending odometer, then divide the miles driven by gallons used. For the most accurate fuel economy, start and finish with a full tank and keep the fill-up method consistent." }, { question: "Can I log a partial fill-up?", answer: "Yes. Mark it as partial and enter the gallons added. The log carries those gallons into the next full-tank interval, then calculates MPG from the distance and total gallons between full tanks." }, { question: "What does the account fuel log save?", answer: "Any signed-in account can save odometer readings, gallons, and pump totals. The calculator shows the latest five fill-ups, recent spending, and full-to-full fuel economy. Manual calculations work without signing in." }, { question: "Why does the first full tank not show MPG?", answer: "The first full tank is the starting point. The next full-tank reading closes the first interval, so the calculator can divide the miles driven by the fuel added across that interval." }],
+    seo: { title: "Fuel Mileage Calculator: MPG, Fuel Cost & Fill-Up Log | CalcForged", description: "Calculate miles per gallon, pump cost, and cost per mile. Sign in to save the latest five fill-ups, including partial tanks and full-to-full MPG.", h1: "Fuel mileage calculator", intro: "Calculate miles per gallon from two odometer readings and the gallons used, then see your fuel cost and cost per mile. Sign in to save the latest five fill-ups and reuse your last odometer reading. For accurate tank-to-tank MPG, mark partial fills and let the next full tank close the interval." },
+    related: ["tire-size", "towing-capacity", "battery-runtime"],
+  },
+  {
+    slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "🛞", description: "Convert tire sizes and compare alternatives within 3% on the same rim, with diameter and speedometer estimates.",
     fields: [
       { key: "direction", label: "Direction", type: "select", defaultValue: "metric", options: [{ label: "Metric size → inches", value: "metric" }, { label: "Inches → matching sizes", value: "inches" }] },
       { key: "metricWidth", label: "Section width", type: "number", unit: "mm", min: 100, max: 400, defaultValue: 225, help: "First number in 225/65R17.", visibleWhen: { key: "direction", values: ["metric"] } },
@@ -968,53 +1019,55 @@ const definitions: CalculatorDefinition[] = [
         const diameter = round(rim + 2 * sidewall, 2);
         const widthIn = round(mm / 25.4, 2);
         const revs = Math.round(63360 / (Math.PI * diameter));
-        const combos: { size: string; diameter: number; width: number; pct: number; revs: number }[] = [];
+        const combos: TireSizeCandidate[] = [];
         for (const w of [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335]) for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
           if (w === mm && a === aspect) continue;
           const d = rim + 2 * (w * a / 100 / 25.4);
           const pct = round((d - diameter) / diameter * 100, 1);
-          if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(d, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * d)) });
+          if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(d, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * d)), verified: verifiedTireSizes.has(`${w}/${a}R${rim}`) });
         }
         for (const f of FLOTATION_SIZES) if (f.rim === rim) {
           const pct = round((f.d - diameter) / diameter * 100, 1);
-          if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)) });
+          if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)), verified: verifiedTireSizes.has(`${f.d}×${f.w.toFixed(2)}R${rim}`) });
         }
-        combos.sort((x, y) => (Math.abs(x.pct) + 2 * Math.abs(x.width - widthIn)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - widthIn)));
-        const tag = (c: { pct: number }) => Math.abs(c.pct) <= 2 ? "Match" : "Close option";
+        const score = (x: TireSizeCandidate, y: TireSizeCandidate) => (Math.abs(x.pct) + 2 * Math.abs(x.width - widthIn)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - widthIn));
+        const options = selectTireSizeCandidates(combos, 3, score);
+        const tag = (c: TireSizeCandidate) => !c.verified ? "Calculated option" : Math.abs(c.pct) <= 2 ? "Match" : "Close option";
         const lines = [
           `Your size: ${mm}/${aspect}R${rim} — ${diameter} in overall, ${widthIn} in wide, ${revs} revs/mile.`,
-          ...combos.slice(0, 4).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide.`),
-          "Within ±2% is the calculator’s closer comparison range; ±3% is the outer range, not vehicle-specific approval. Check your vehicle’s fitment, speedometer, ABS, transmission, load rating, and clearance before buying. Same rim throughout.",
+          ...options.map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide.`),
+          "Retailer-verified sizes appear first. When needed, calculated options within 3% are added to reach four size links when possible; these are not confirmed in retailer listings. We do not widen beyond 3%. Check your vehicle’s fitment, speedometer, ABS, transmission, load rating, and clearance before buying. Same rim throughout.",
         ];
         return { tireDiameter: diameter, sidewall, sectionWidth: widthIn, revsPerMile: revs, matches: lines.join("\n") };
       }
       const target = Math.max(10, n(v, "targetDiameter", 28.5));
       const targetWidth = Math.max(3, n(v, "targetWidth", 8.9));
-      const combos: { size: string; diameter: number; width: number; pct: number; revs: number }[] = [];
+      const combos: TireSizeCandidate[] = [];
       for (const w of [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335]) for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
         const diameter = rim + 2 * (w * a / 100 / 25.4);
         const pct = round((diameter - target) / target * 100, 1);
-        if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(diameter, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * diameter)) });
+        if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(diameter, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * diameter)), verified: verifiedTireSizes.has(`${w}/${a}R${rim}`) });
       }
       for (const f of FLOTATION_SIZES) if (f.rim === rim) {
         const pct = round((f.d - target) / target * 100, 1);
-        if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)) });
+        if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)), verified: verifiedTireSizes.has(`${f.d}×${f.w.toFixed(2)}R${rim}`) });
       }
-      combos.sort((x, y) => (Math.abs(x.pct) + 2 * Math.abs(x.width - targetWidth)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - targetWidth)));
-      const tag = (c: { pct: number }) => Math.abs(c.pct) <= 2 ? "Match" : "Close option";
-      const best = combos[0];
-      if (!best) return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: `No standard size lands within 3% of ${target} in — that diameter needs a recalibrated speedometer or a different rim.` };
+      const score = (x: TireSizeCandidate, y: TireSizeCandidate) => (Math.abs(x.pct) + 2 * Math.abs(x.width - targetWidth)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - targetWidth));
+      const options = selectTireSizeCandidates(combos, 4, score);
+      const tag = (c: TireSizeCandidate) => !c.verified ? "Calculated option" : Math.abs(c.pct) <= 2 ? "Match" : "Close option";
+      const best = options[0];
+      if (!best) return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: `No calculated tire-size candidate lands within 3% of ${target} in on this rim. The calculator keeps the 3% limit and does not widen the list.` };
       const lines = [
         `${tag(best)}: ${best.size} — ${best.diameter} in overall (${best.pct > 0 ? "+" : ""}${best.pct}% vs target), ${best.width} in wide, ${best.revs} revs/mile.`,
-        ...combos.slice(1, 4).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide, ${c.revs} revs/mile.`),
-        "Within ±2% is the calculator’s closer comparison range; ±3% is the outer range, not vehicle-specific approval. A diameter change can affect speedometer readings. Check your vehicle’s fitment, ABS, transmission, load rating, and clearance before buying.",
+        ...options.slice(1).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide, ${c.revs} revs/mile.`),
+        "Retailer-verified sizes appear first. When needed, calculated options within 3% are added to reach four size links when possible; these are not confirmed in retailer listings. We do not widen beyond 3%. This is not vehicle-specific fitment approval. Check your vehicle’s clearance, ABS, transmission, load rating, and speedometer effect before buying.",
       ];
       return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: lines.join("\n") };
     },
-    howItWorks: ["For 225/65R17, multiply section width by aspect ratio for sidewall height: 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in.", "To compare metric options, the calculator converts width to inches and estimates revolutions per mile, then lists close matches on the same rim.", "For an inch-based tire, enter overall diameter, width, and rim. The calculator returns metric sizes on that rim within its 3% comparison range, with closer matches first. Check vehicle clearance and tire load rating before buying."],
+    howItWorks: ["For 225/65R17, multiply section width by aspect ratio for sidewall height: 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in.", "To compare metric options, the calculator converts width to inches and estimates revolutions per mile. Retailer-verified sizes appear first; calculated options within the 3% band may be added when needed to reach four links. Added calculated sizes are not confirmed in retailer listings.", "For an inch-based tire, enter overall diameter, width, and rim. The calculator compares sizes on that rim within 3%, showing retailer-verified sizes first and adding calculated options when needed to reach four links. Calculated options are not confirmed in retailer listings. Check vehicle clearance and tire load rating before buying."],
     example: { title: "Convert 225/65R17 to inches", inputs: "Metric size: 225/65R17 (225 mm wide, 65% aspect ratio, 17 in rim)", result: "About 28.52 in overall diameter, 5.76 in sidewall height, 8.86 in section width, and 707 revolutions per mile. The calculator also compares close sizes on the same rim." },
-    faqs: [{ question: "How do I convert a metric tire size like 225/65R17 to inches?", answer: "The sidewall is 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in. The calculator also shows width and revolutions per mile." }, { question: "How do I convert a standard tire size to metric?", answer: "Choose Inches → matching sizes and enter the tire’s overall diameter, width, and rim. The calculator compares metric options on the same rim and lists close matches within its 3% range." }, { question: "What do the numbers in a metric tire size mean?", answer: "In 225/65R17, 225 is section width in millimeters, 65 is sidewall height as a percentage of width, R means radial construction, and 17 is wheel diameter in inches." }, { question: "Do I have to keep the same rim?", answer: "If you are keeping your wheels, enter that rim size. The matching-size direction holds the rim fixed. A different rim needs a separate clearance and overall-diameter check." }, { question: "What is the 3% tire-size rule?", answer: "This calculator uses 3% as an outer comparison range and 2% as the closer-match range. These are comparison guidelines, not vehicle-specific approval. Check your vehicle’s fitment, load rating, and clearance before buying." }, { question: "How does tire size affect my speedometer?", answer: "A taller tire covers more ground with each wheel rotation, so a speedometer calibrated for a shorter tire can read low. The difference is approximately proportional to the diameter change." }],
-    seo: { title: "Metric Tire Size Calculator | Metric to Inches | CalcForged", description: "Convert metric tire sizes to inches, or compare an inch-based tire with metric options on the same rim. See diameter, sidewall, width, and revolutions per mile.", h1: "Metric tire size calculator", intro: "Use this metric tire size calculator to convert a size such as 225/65R17 to inches. Enter width in millimeters, aspect ratio, and rim diameter to see sidewall height, section width, overall diameter, and revolutions per mile. To convert a standard tire size to metric options, choose Inches → matching sizes and enter the tire’s diameter, width, and rim. This page compares sizes on the same rim; check vehicle clearance and tire load rating before buying." },
+    faqs: [{ question: "How do I convert a metric tire size like 225/65R17 to inches?", answer: "The sidewall is 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in. The calculator also shows width and revolutions per mile." }, { question: "How do I convert a standard tire size to metric?", answer: "Choose Inches → matching sizes and enter overall diameter, width, and rim. The calculator shows retailer-verified sizes first and may add calculated options within 3% when fewer than four verified alternatives are available. Calculated options are not in our verified retailer list, so check availability and vehicle fitment before buying." }, { question: "What do the numbers in a metric tire size mean?", answer: "In 225/65R17, 225 is section width in millimeters, 65 is sidewall height as a percentage of width, R means radial construction, and 17 is wheel diameter in inches." }, { question: "Do I have to keep the same rim?", answer: "If you are keeping your wheels, enter that rim size. The matching-size direction holds the rim fixed. A different rim needs a separate clearance and overall-diameter check." }, { question: "What is the 3% tire-size rule?", answer: "The 2% and 3% bands compare overall diameter, not vehicle-specific approval. Retailer-verified sizes appear first. When needed, the calculator may add calculated sizes within 3% to reach four links, but these are not confirmed in retailer listings. Check your vehicle’s fitment, load rating, and clearance before buying." }, { question: "How does tire size affect my speedometer?", answer: "A taller tire covers more ground with each wheel rotation, so a speedometer calibrated for a shorter tire can read low. The difference is approximately proportional to the diameter change." }],
+    seo: { title: "Metric Tire Size Calculator: Metric to Standard | CalcForged", description: "Convert metric tire sizes to inches and compare same-rim alternatives within 3%. See diameter and speedometer differences. Unverified options are labeled.", h1: "Metric tire size calculator", intro: "Convert a metric size like 225/65R17 to inches, or compare inch-based tires with metric options on the same rim. See overall diameter, sidewall height, and revolutions per mile. Retailer-verified sizes appear first; calculated options are marked when they are not in our verified list. Comparisons stay within 3% and do not confirm vehicle fitment. Check your vehicle’s approved size, load rating, speedometer effect, and clearance before buying." },
     related: ["weight-converter", "percentage"],
   },
   {
@@ -1127,7 +1180,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["yarn-yardage", "filament-cost"],
   },
   {
-    slug: "miniature-scale-converter", name: "Miniature Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🎲", description: "Convert between real-world heights and tabletop figure scales like 28 mm heroic and 32 mm.",
+    slug: "miniature-scale-converter", name: "Miniature Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🎲", description: "Convert real-world heights to 1:50, 1:56, 1:64, and 1:100 miniature scales, or convert a figure back to real size.",
     fields: [
       { key: "height", label: "Height", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 6 },
       { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Millimeters", value: "mm" }] },
@@ -1155,7 +1208,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["Figure scales are ratios: 15 mm runs about 1:100, 25 mm about 1:64, 28 mm heroic about 1:56, and 32 mm about 1:50.", "Real → figure divides your height by the ratio after converting to millimeters; figure → real multiplies back out.", "The proportions note flags the heroic caveat — oversized heads and hands mean a printed true-scale figure looks lanky next to heroic metal or plastic."],
     example: { title: "6 ft human in 28 mm heroic", inputs: "6 ft, 28 mm heroic (~1:56)", result: "About 33 mm tall (1.3 in) — chunkier proportions than a true 1:56 figure." },
     faqs: [{ question: "What scale are D&D miniatures?", answer: "Most official and third-party D&D minis are 28–32 mm heroic: a Medium human stands roughly 30–33 mm tall on a 25 mm (1 inch) base. The base is a game convention, not a scale measurement." }, { question: "28 mm or 32 mm — which do I buy?", answer: "They mix fine on the table. 32 mm runs a slightly larger ratio (about 1:50) with beefier proportions; modern Warhammer moved to 32 mm while D&D and most fantasy lines sit at 28 mm heroic. Pick one for a rank-and-file army, mix freely for an adventuring party." }, { question: "Can I 3D print true-scale miniatures?", answer: "Yes — rescale a 32 mm sculpt to 1:56 for true proportions, but heads and weapons will look small next to heroic metal or plastic. Many printers compromise around 1:50–52 for 'heroic-plus' that matches a mixed collection." }, { question: "Do bases tell me the scale?", answer: "No — bases follow game rules (25 mm rounds for Medium D&D creatures, 32 mm under newer editions), not figure height. Judge scale by the figure's overall height, and remember manufacturers often measure foot-to-eye, which is one more reason ratios are approximate." }],
-    seo: { title: "Miniature Scale Converter – 15mm, 25mm, 28mm & 32mm Ratios | CalcForged", description: "Convert real heights to tabletop miniature scale — 15 mm, 25 mm, 28 mm heroic, and 32 mm — or a figure back to real-world size.", h1: "Miniature scale converter", intro: "How tall is a 6-foot human at 28 mm heroic scale? About 33 millimeters — and the answer changes with every line of miniatures you buy. This miniature scale converter works both directions across the hobby's common scales: 15 mm (about 1:100, the big-battle historical standard), 25 mm (about 1:64, the classic), 28 mm heroic (about 1:56, the D&D and fantasy standard), and 32 mm (about 1:50, the newer Warhammer size). Enter a real-world height in feet, inches, centimeters, or millimeters and get the figure height in millimeters and inches — or measure a miniature and recover what it represents. The proportions note carries the caveat that matters in practice: heroic lines upsize heads and hands deliberately, so a true-scale print beside heroic metal looks lanky, not broken." },
+    seo: { title: "Miniature Scale Converter: 1:50, 1:56, 1:100 | CalcForged", description: "Convert real heights to 15, 25, 28 mm heroic, or 32 mm miniatures. See 1:50, 1:56, 1:64, and 1:100 ratios, or convert a figure back to real size.", h1: "Miniature scale converter", intro: "Use this miniature scale converter for common ratios, including 1:50, 1:56, 1:64, and 1:100. Enter a real-world height to calculate a figure’s model size, or enter the miniature’s height to estimate its real-world size. Choose 15 mm, 25 mm, 28 mm heroic, or 32 mm figures. Heroic miniatures have intentionally chunkier proportions than true-scale models, so treat the result as a scale estimate." },
     related: ["train-scale-converter", "filament-cost", "resin-cost"],
   },
   {
@@ -1265,16 +1318,224 @@ const definitions: CalculatorDefinition[] = [
     seo: { title: "Charcuterie Board Calculator – Amounts Per Person | CalcForged", description: "Calculate cheese, meat, crackers, and fillers per person for a charcuterie board — appetizer or board-as-meal — rounded to store-friendly packages.", h1: "Charcuterie board calculator", intro: "How much charcuterie per person is the difference between a board that holds and a board that gets picked clean in ten minutes. For an appetizer spread alongside dinner, plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each, plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the gaps. Enter your guest count, the board's role, and how many cheeses and meats you want, and the calculator returns totals in pounds plus a shopping list divided by variety and rounded up to store-friendly packages — whole cheese blocks, 8 oz meat packs, full cracker boxes. The buying-ahead and 2-hour-room rules are in the FAQs, because a board is only as good as when it was built." },
     related: ["appetizers-per-person", "wedding-dessert-table", "pizza-party"],
   },
+  {
+    slug: "christmas-lights", name: "Christmas Lights Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "💡", description: "Estimate strand feet, sets to buy, and outlet load for a Christmas tree or a full roofline outline.",
+    fields: [
+      { key: "mode", label: "Where are you hanging lights?", type: "select", defaultValue: "tree", options: [{ label: "A Christmas tree", value: "tree" }, { label: "Roofline & house outline", value: "roofline" }] },
+      { key: "treeHeight", label: "Tree height", type: "number", unit: "ft", min: 2, max: 15, defaultValue: 7, help: "Floor to tip of the tree, not to the star.", visibleWhen: { key: "mode", values: ["tree"] } },
+      { key: "fullness", label: "How full should it look?", type: "select", defaultValue: "classic", options: [{ label: "Sparse — branches show through", value: "sparse" }, { label: "Classic — the standard glow", value: "classic" }, { label: "Full — lush and bright", value: "full" }, { label: "Showstopper — wall of light", value: "showstopper" }], visibleWhen: { key: "mode", values: ["tree"] } },
+      { key: "bulbSpacing", label: "Bulb spacing on the strand", type: "select", defaultValue: "4", options: [{ label: "2.5 in — dense mini sets", value: "2.5" }, { label: "4 in — standard mini sets", value: "4" }, { label: "6 in — wide-spaced sets", value: "6" }], help: "Usually on the box: strand length divided by light count.", visibleWhen: { key: "mode", values: ["tree"] } },
+      { key: "eaves", label: "Straight edges to outline", type: "number", unit: "ft", min: 0, max: 2000, defaultValue: 120, help: "Eaves, porch, garage — walk the run and add the lengths together.", visibleWhen: { key: "mode", values: ["roofline"] } },
+      { key: "gableCount", label: "Triangle gables to outline", type: "number", unit: "gables", min: 0, max: 6, defaultValue: 2, help: "Set 0 if you're lighting only the flat edges.", visibleWhen: { key: "mode", values: ["roofline"] } },
+      { key: "gableWidth", label: "Gable width", type: "number", unit: "ft", min: 0, max: 60, defaultValue: 24, help: "Across the base of one triangle.", visibleWhen: { key: "mode", values: ["roofline"] } },
+      { key: "gableRise", label: "Gable rise", type: "number", unit: "ft", min: 0, max: 30, defaultValue: 8, help: "From the eave line up to the peak.", visibleWhen: { key: "mode", values: ["roofline"] } },
+      { key: "waste", label: "Extra for corners & the outlet run", type: "select", defaultValue: "15", options: [{ label: "10% — simple straight runs", value: "10" }, { label: "15% — corners, typical house", value: "15" }, { label: "20% — many corners, long outlet run", value: "20" }], visibleWhen: { key: "mode", values: ["roofline"] } },
+      { key: "strandLength", label: "Length per strand or reel", type: "number", unit: "ft", min: 5, max: 200, defaultValue: 25, help: "On the box — 25 ft is a typical 100-count mini set." },
+      { key: "bulbType", label: "Bulb type", type: "select", defaultValue: "led", options: [{ label: "LED — low draw, more strands per outlet", value: "led" }, { label: "Incandescent — traditional warm glow", value: "inc" }] },
+    ],
+    results: [
+      { key: "bulbs", label: "Bulbs needed", unit: "bulbs", format: "number", estimate: true, interpretation: "From the classic rule of about 100 lights per vertical foot; sparse or fuller shifts that." },
+      { key: "strandFeet", label: "Lit length needed", unit: "ft", format: "number", estimate: true },
+      { key: "strands", label: "Strands to buy", unit: "strands", format: "number", estimate: true, interpretation: "Rounded up — one spare strand is never wasted at clipping-up height." },
+      { key: "watts", label: "Estimated total draw", unit: "W", format: "number", estimate: true, interpretation: "From typical per-foot wattage; the label on your sets is the real number." },
+      { key: "power", label: "Power plan", format: "text" },
+    ],
+    calculate: (v) => {
+      const mode = option(v, "mode", "tree");
+      const strandLength = Math.max(5, n(v, "strandLength", 25));
+      const led = option(v, "bulbType", "led") === "led";
+      let bulbs: string | number = "";
+      let strandFeet = 0;
+      let perFoot = 0;
+      if (mode === "tree") {
+        const height = Math.max(2, n(v, "treeHeight", 7));
+        const rates: Record<string, number> = { sparse: 50, classic: 100, full: 150, showstopper: 200 };
+        const spacing = Math.max(1, n(v, "bulbSpacing", 4));
+        const bulbCount = Math.round(height * (rates[option(v, "fullness", "classic")] ?? 100));
+        bulbs = bulbCount;
+        strandFeet = (bulbCount * spacing) / 12;
+        perFoot = led ? 0.25 : 1.6;
+      } else {
+        const rakePerGable = n(v, "gableWidth", 0) > 0 ? 2 * Math.sqrt((n(v, "gableWidth", 0) / 2) ** 2 + n(v, "gableRise", 0) ** 2) : 0;
+        strandFeet = (n(v, "eaves", 0) + rakePerGable * Math.max(0, n(v, "gableCount", 0))) * (1 + n(v, "waste", 15) / 100);
+        perFoot = led ? 1 : 7;
+      }
+      const strands = ceil(strandFeet / strandLength);
+      const watts = Math.round(strandFeet * perFoot);
+      const wattsPerStrand = Math.max(1, Math.round(perFoot * strandLength));
+      const maxPerCircuit = Math.floor(1440 / wattsPerStrand);
+      const circuits = Math.max(1, ceil(strands / Math.max(1, maxPerCircuit)));
+      let power: string;
+      if (strandFeet < 1) {
+        power = "Enter the lengths you plan to light and the numbers will fill in.";
+      } else if (led) {
+        power = `About ${watts}W total — LED sets draw roughly ${wattsPerStrand}W per ${strandLength}-ft strand, so one standard outdoor outlet carries this with room to spare. Check each set's label for its own end-to-end connection limit.`;
+      } else if (mode === "tree") {
+        power = `About ${watts}W total — incandescent minis run near ${wattsPerStrand}W per strand, so keep the tree on its own outlet and mind what else shares the circuit. Check each set's label for its end-to-end limit.`;
+      } else if (circuits > 1) {
+        power = `About ${watts}W — incandescent C9s run near ${wattsPerStrand}W per strand, and a standard 15-amp circuit plans to about 1,440W, so split this display across ${circuits} outdoor outlets. Check each set's label for its end-to-end limit.`;
+      } else {
+        power = `About ${watts}W — incandescent C9s run near ${wattsPerStrand}W per strand; one standard 15-amp outlet (about 1,440W planning limit) can carry it, but nothing else should share the circuit. Check each set's label for its end-to-end limit.`;
+      }
+      return { bulbs, strandFeet: round(strandFeet), strands, watts, power };
+    },
+    howItWorks: ["Tree mode starts from the classic rule of thumb — about 100 mini lights per vertical foot for the standard look, from 50 for sparse branches to 200 for a full wall of light — then converts bulbs to feet of strand using the bulb spacing printed on the box.", "Roofline mode adds up your straight edges and computes each gable's two sloped sides from width and rise with basic geometry, then pads the total by 10–20% for corners, plug ends, and the run back to the outlet.", "Both modes estimate total wattage from typical per-foot draw (LED minis ~0.25 W/ft, incandescent minis ~1.6, LED C9 ~1, incandescent C9 ~7) against the roughly 1,440W planning limit of a standard 15-amp circuit, so you know how many outlets the display needs."],
+    example: { title: "A 7 ft tree and a two-gable roofline", inputs: "Tree: 7 ft, classic, 4-inch spacing. Roofline: 120 ft of eaves, two 24-ft gables with 8-ft rise, 15% extra. 25-ft strands.", result: "Tree: about 700 bulbs ≈ 233 ft of strand — 10 strands. Roofline: about 204 ft — 9 strands. In LED that draws roughly 200W on one outlet; in incandescent C9s it's ~1,430W, split across two." },
+    faqs: [{ question: "How many feet of lights for a 7-foot tree?", answer: "A classic 7-foot tree wants about 700 mini lights — roughly 100 per vertical foot. In strand feet that's about 145 ft at 2.5-inch spacing, 230 ft at 4-inch, or 350 ft at 6-inch, which is why two people with the same tree buy different amounts. Match your strand's spacing and the calculator does the rest." }, { question: "How many strings of Christmas lights can I connect end to end?", answer: "Follow the limit printed on the set — the plugs, wiring, and fuse are rated for it. As a planning figure, a standard 15-amp circuit carries about 1,440W for sustained loads: 40W incandescent sets use that up quickly, while LED sets barely register. Count what else shares the circuit, too." }, { question: "LED or incandescent Christmas lights?", answer: "LED draws a fraction of the power, runs cooler, and lets one outlet carry far more strands; incandescent gives the traditional warm glow but adds real wattage fast. For a whole roofline, LED usually pays for itself in fewer cords, clips, and outlets." }, { question: "How do I measure my roofline for lights?", answer: "Walk the edges you'll light with a tape, or measure along the ground and add the overhang. For a gable, measure the base width and the peak height — each sloped side is the square root of half-the-width squared plus the rise squared. Add 10–15% for corners and the run back to the outlet." }],
+    seo: { title: "Christmas Lights Calculator – Tree & Roofline Feet | CalcForged", description: "How many feet of Christmas lights do you need? Estimate bulbs, strand length, sets to buy, and outlet load for a tree or a full roofline outline.", h1: "Christmas lights calculator", intro: "How many feet of Christmas lights you need comes down to two very different measurements: the tree and the roofline. A classic tree wants about 100 mini lights per vertical foot — 700 bulbs on a 7-footer — but the same 700 bulbs is 145 feet of strand at 2.5-inch spacing or 230 feet at 4-inch, so spacing decides what you actually buy. A roofline is pure geometry: straight eave runs plus each gable's two sloped sides, padded 10–15% for corners and the plug run. This calculator handles both, then estimates the total wattage against a standard outdoor outlet, so you know whether one cord carries the whole display or it needs a second one." },
+    related: ["party-ice", "balloon-quantity", "pizza-party"],
+  },
 ];
 
-function formatFraction(value: number) {
-  const rounded = Math.round(value * 16) / 16;
-  const whole = Math.floor(rounded);
-  const remainder = Math.round((rounded - whole) * 16);
-  if (remainder === 0) return String(whole);
+function parseRecipeAmount(raw: string): number | null {
+  const amount = raw.trim().replace(/,/g, "");
+  if (!amount) return null;
+  const mixed = /^([+-]?\d+)\s+(\d+)\/(\d+)$/.exec(amount);
+  if (mixed) {
+    const whole = Number(mixed[1]);
+    const numerator = Number(mixed[2]);
+    const denominator = Number(mixed[3]);
+    if (denominator === 0) return null;
+    return whole < 0 ? whole - numerator / denominator : whole + numerator / denominator;
+  }
+  const fraction = /^([+-]?\d+)\/(\d+)$/.exec(amount);
+  if (fraction) {
+    const denominator = Number(fraction[2]);
+    if (denominator === 0) return null;
+    return Number(fraction[1]) / denominator;
+  }
+  const numeric = Number(amount);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+const US_VOLUME_ML: Record<string, number> = {
+  tsp: 4.92892159375,
+  tbsp: 14.78676478125,
+  cup: 236.5882365,
+  "fl-oz": 29.5735295625,
+  pint: 473.176473,
+  quart: 946.352946,
+  gallon: 3785.411784,
+  "imperial-pint": 568.26125,
+  "imperial-fl-oz": 28.4130625,
+};
+const METRIC_VOLUME_ML: Record<string, number> = { ml: 1, l: 1000 };
+const US_WEIGHT_G: Record<string, number> = { oz: 28.349523125, lb: 453.59237 };
+const METRIC_WEIGHT_G: Record<string, number> = { g: 1, kg: 1000 };
+
+function normalizedRecipeUnit(raw: string) {
+  const unit = raw.toLowerCase().trim().replace(/\./g, "").replace(/[\s_-]+/g, "");
+  if (["tsp", "tsps", "teaspoon", "teaspoons"].includes(unit)) return "tsp";
+  if (["tbsp", "tbs", "tablespoon", "tablespoons", "tbl", "tablesp"].includes(unit)) return "tbsp";
+  if (["floz", "fluidoz", "fluidounce", "fluidounces"].includes(unit)) return "fl-oz";
+  if (["imperialfloz", "imperialfluidounce", "imperialfluidounces", "ukfloz", "ukfluidounce", "ukfluidounces"].includes(unit)) return "imperial-fl-oz";
+  if (["cup", "cups"].includes(unit)) return "cup";
+  if (["pint", "pints", "pt", "pts"].includes(unit)) return "pint";
+  if (["imperialpint", "ukpint", "imppint"].includes(unit)) return "imperial-pint";
+  if (["quart", "quarts", "qt", "qts"].includes(unit)) return "quart";
+  if (["gallon", "gallons", "gal", "gals"].includes(unit)) return "gallon";
+  if (["g", "gram", "grams"].includes(unit)) return "g";
+  if (["kg", "kilogram", "kilograms"].includes(unit)) return "kg";
+  if (["ml", "milliliter", "milliliters", "millilitre", "millilitres"].includes(unit)) return "ml";
+  if (["l", "liter", "liters", "litre", "litres"].includes(unit)) return "l";
+  if (["oz", "ounce", "ounces"].includes(unit)) return "oz";
+  if (["lb", "lbs", "pound", "pounds"].includes(unit)) return "lb";
+  return unit;
+}
+
+function formatDecimal(value: number, digits: number) {
+  return String(Number(value.toFixed(digits)));
+}
+
+function formatUSVolume(milliliters: number) {
+  if (milliliters >= US_VOLUME_ML.cup / 2) {
+    const cups = milliliters / US_VOLUME_ML.cup;
+    const formattedCups = formatFraction(cups, [2, 3, 4, 8]);
+    return `${formattedCups} ${formattedCups === "1" ? "cup" : "cups"}`;
+  }
+  if (milliliters >= US_VOLUME_ML.tbsp) return `${formatFraction(milliliters / US_VOLUME_ML.tbsp, [2, 3, 4, 8])} tbsp`;
+  return `${formatFraction(milliliters / US_VOLUME_ML.tsp, [2, 3, 4, 8])} tsp`;
+}
+
+function formatMetricVolume(milliliters: number) {
+  if (milliliters >= 1000) return `${formatDecimal(milliliters / 1000, 2)} L`;
+  return `${formatDecimal(milliliters, milliliters < 10 ? 1 : 0)} mL`;
+}
+
+function formatUSWeight(grams: number) {
+  if (grams >= US_WEIGHT_G.lb) return `${formatDecimal(grams / US_WEIGHT_G.lb, 1)} lb`;
+  return `${formatDecimal(grams / US_WEIGHT_G.oz, 1)} oz`;
+}
+
+function formatMetricWeight(grams: number) {
+  if (grams >= 1000) return `${formatDecimal(grams / 1000, 2)} kg`;
+  return `${Math.round(grams)} g`;
+}
+
+function formatScaledRecipeIngredient(rawAmount: string, rawUnit: string, ingredient: string, factor: number, system: "us" | "metric") {
+  const amount = parseRecipeAmount(rawAmount);
+  const unit = rawUnit.trim();
+  const name = ingredient.trim();
+  if (amount === null) return [rawAmount.trim(), unit, name].filter(Boolean).join(" ");
+
+  const scaledAmount = amount * factor;
+  const unitKey = normalizedRecipeUnit(unit);
+  const usVolume = US_VOLUME_ML[unitKey];
+  const metricVolume = METRIC_VOLUME_ML[unitKey];
+  const usWeight = US_WEIGHT_G[unitKey];
+  const metricWeight = METRIC_WEIGHT_G[unitKey];
+  const joinName = (quantity: string) => [quantity, name].filter(Boolean).join(" ");
+
+  if (usVolume !== undefined) {
+    const milliliters = scaledAmount * usVolume;
+    if (system === "metric") return joinName(formatMetricVolume(milliliters));
+    if (unitKey === "imperial-pint" || unitKey === "imperial-fl-oz") return joinName(formatUSVolume(milliliters));
+    if (unitKey === "tsp" && scaledAmount >= 12) return joinName(`${formatFraction(scaledAmount / 48)} ${scaledAmount / 48 <= 1 ? "cup" : "cups"}`);
+    if (unitKey === "tsp" && scaledAmount >= 3) return joinName(`${formatFraction(scaledAmount / 3)} tbsp`);
+    if (unitKey === "tbsp" && scaledAmount >= 4) return joinName(`${formatFraction(scaledAmount / 16)} ${scaledAmount / 16 <= 1 ? "cup" : "cups"}`);
+    if (unitKey === "fl-oz" && scaledAmount >= 4) return joinName(formatUSVolume(milliliters));
+    return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
+  }
+
+  if (metricVolume !== undefined) {
+    const milliliters = scaledAmount * metricVolume;
+    return joinName(system === "metric" ? formatMetricVolume(milliliters) : formatUSVolume(milliliters));
+  }
+  if (metricWeight !== undefined) {
+    const grams = scaledAmount * metricWeight;
+    return joinName(system === "metric" ? formatMetricWeight(grams) : formatUSWeight(grams));
+  }
+  if (usWeight !== undefined) {
+    const grams = scaledAmount * usWeight;
+    if (system === "metric") return joinName(formatMetricWeight(grams));
+    if (unitKey === "oz" && scaledAmount >= 16) return joinName(`${formatFraction(scaledAmount / 16)} lb`);
+    return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
+  }
+
+  return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
+}
+
+function formatFraction(value: number, denominators = [2, 3, 4, 8, 16]) {
+  const whole = Math.floor(value);
+  const remainder = value - whole;
+  let bestNumerator = 0;
+  let bestDenominator = 1;
+  let bestDifference = Math.abs(remainder);
+  for (const denominator of denominators) {
+    for (let numerator = 1; numerator < denominator; numerator++) {
+      const difference = Math.abs(remainder - numerator / denominator);
+      if (difference < bestDifference) {
+        bestNumerator = numerator;
+        bestDenominator = denominator;
+        bestDifference = difference;
+      }
+    }
+  }
+  if (Math.abs(1 - remainder) < bestDifference) return String(whole + 1);
+  if (bestNumerator === 0) return String(whole);
   const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
-  const divisor = gcd(remainder, 16);
-  const fraction = `${remainder / divisor}/${16 / divisor}`;
+  const divisor = gcd(bestNumerator, bestDenominator);
+  const fraction = `${bestNumerator / divisor}/${bestDenominator / divisor}`;
   return whole ? `${whole} ${fraction}` : fraction;
 }
 
