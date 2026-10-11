@@ -222,7 +222,7 @@ function PrintSheet({ definition, values, results }: { definition: CalculatorDef
   const printableResults = definition.results.filter((result) => results[result.key] !== undefined && results[result.key] !== "");
 
   return (
-    <section className="cf-print-sheet" aria-hidden="true">
+    <section className="cf-print-sheet">
       <div className="cf-print-masthead">
         <div className="cf-print-wordmark"><span className="cf-print-mark">C</span><span>CALCFORGED</span></div>
         <span className="cf-print-category">{definition.category} / Calculation sheet</span>

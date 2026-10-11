@@ -561,15 +561,15 @@
 }
 
 
-/* Give the print sheet a writable notes area that expands into unused page space. */
+/* Keep the print sheet in normal block flow for consistent browser and printer rendering. */
 @media print {
-  .cf-print-sheet { display: flex !important; flex-direction: column; min-height: 9.9in; }
-  .cf-print-columns { flex: 0 0 auto; }
-  .cf-print-notes { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 2in; margin-top: 11px; padding-top: 6px; border-top: 1px solid #bfc0b7; break-inside: avoid; }
+  .cf-print-sheet { display: block !important; position: static !important; min-height: 0 !important; visibility: visible !important; }
+  .cf-print-sheet * { visibility: visible !important; }
+  .cf-print-notes { display: block; margin-top: 11px; padding-top: 6px; border-top: 1px solid #bfc0b7; break-inside: avoid; }
   .cf-print-notes h2 { margin: 0 0 3px; color: #c95d2d; font-family: 'DM Mono', monospace; font-size: 7pt; font-weight: 500; line-height: 1.2; letter-spacing: .08em; text-transform: uppercase; }
-  .cf-print-note-lines { display: grid; flex: 1 1 auto; grid-template-rows: repeat(6, minmax(.3in, 1fr)); margin-top: 1px; }
-  .cf-print-note-lines div { border-bottom: 1px solid #d5d5cb; }
-  .cf-print-footer { flex: 0 0 auto; margin-top: 7px !important; }
+  .cf-print-note-lines { display: block; margin-top: 1px; }
+  .cf-print-note-lines div { height: .3in; border-bottom: 1px solid #d5d5cb; }
+  .cf-print-footer { margin-top: 7px !important; }
 }
 
 @media print {
