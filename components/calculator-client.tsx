@@ -196,6 +196,17 @@ export function CalculatorClient({ slug }: { slug: string }) {
     window.setTimeout(() => setCopied(false), 1800);
   };
 
+  const printResults = () => {
+    fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined);
+    const root = document.documentElement;
+    const cleanup = () => root.classList.remove("cf-print-mode");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    root.classList.add("cf-print-mode");
+    void root.offsetHeight;
+    window.print();
+    window.setTimeout(cleanup, 60000);
+  };
+
   return (
     <div className="cf-calculator" id="calculator">
       <div className="cf-calculator-head"><div><p className="cf-kicker">Live calculator</p><h2>Enter your details</h2></div><div className="cf-head-actions"><button type="button" className={`cf-save-star${saved ? " is-saved" : ""}`} onClick={toggleSaved} disabled={saved === null} aria-label={saved ? "Remove from my toolkit" : "Save to my toolkit"}><span aria-hidden="true">{saved ? "★" : "☆"}</span>{saved ? "Saved" : "Save"}</button><span className="cf-live-dot">Updates instantly</span></div></div>
@@ -208,7 +219,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
         <div className="cf-results-wrap">
           <div className="cf-results-head"><div><p className="cf-kicker">Your estimate</p><h3>Results</h3></div><div className="cf-results-head-tools">{definition.slug === "recipe-scaling" && <div className="cf-unit-switch-wrap"><div className="cf-unit-switch-row"><span className="cf-unit-switch-label">Show in</span><div className="cf-unit-switch" role="group" aria-label="Recipe result units"><button type="button" aria-pressed={recipeUnitSystem === "us"} onClick={() => setRecipeUnitSystem("us")}>US</button><button type="button" aria-pressed={recipeUnitSystem === "metric"} onClick={() => setRecipeUnitSystem("metric")}>Metric</button></div></div><small className="cf-unit-note">Weight and volume stay separate.</small></div>}<span className="cf-estimate-note">Planning estimate</span></div></div>
           <div className="cf-results">{definition.results.filter((result) => results[result.key] !== "").map((result) => { const wide = result.format === "text" && typeof results[result.key] === "string" && (results[result.key] as string).includes("\n"); return <div className={`cf-result${wide ? " cf-result-wide" : ""}`} key={result.key}><span>{result.label}{result.estimate && <sup>EST.</sup>}</span>{definition.slug === "tire-size" && result.key === "matches" ? <TireMatchResults value={String(results[result.key] ?? "")} /> : <ResultBody result={result} value={results[result.key]} />}{result.interpretation && <p>{result.interpretation}</p>}</div>; })}</div>
-          <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={() => { fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventType: "print_results", calculatorSlug: definition.slug }) }).catch(() => undefined); window.print(); }}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
+          <div className="cf-result-actions"><button type="button" onClick={copyResults}>{copied ? "Copied" : "Copy results"}</button><button type="button" onClick={printResults}>Print</button><button type="button" onClick={shareUrl}>Share link</button></div>{notice && <p className="cf-action-notice" role="status">{notice}</p>}
           {definition.slug !== "tire-size" && <PartnerPick slug={definition.slug} />}
           <AbracadabraPartyPick slug={definition.slug} />
         </div>

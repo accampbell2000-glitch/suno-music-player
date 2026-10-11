@@ -509,6 +509,12 @@
 
 /* Print sheet: paired inputs and results, designed for a single US Letter page. */
 .cf-print-sheet { position: fixed; left: -10000px; top: 0; width: 7.5in; visibility: hidden; pointer-events: none; }
+
+html.cf-print-mode .cf-header, html.cf-print-mode .cf-footer, html.cf-print-mode .cf-breadcrumbs, html.cf-print-mode .cf-calculator-intro, html.cf-print-mode .cf-content-grid, html.cf-print-mode .cf-related, html.cf-print-mode .cf-affiliate, html.cf-print-mode .cf-leadmagnet, html.cf-print-mode .cf-partner-strip, html.cf-print-mode .cf-ad-slot, html.cf-print-mode #crevio-badge { display: none !important; }
+html.cf-print-mode .cf-calculator > :not(.cf-print-sheet) { display: none !important; }
+html.cf-print-mode .cf-site { background: #fff !important; color: #1d211d !important; }
+html.cf-print-mode .cf-print-sheet { position: fixed; top: 0; left: 0; width: 100%; visibility: visible; background: #fff; z-index: 2147483647; }
+html.cf-print-mode .cf-print-sheet * { visibility: visible; }
 @page { size: letter portrait; margin: 0.34in; }
 @media print {
   .cf-header, .cf-footer, .cf-breadcrumbs, .cf-calculator-intro, .cf-calculator-head,
