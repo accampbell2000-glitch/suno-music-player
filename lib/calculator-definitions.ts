@@ -701,6 +701,85 @@ const definitions: CalculatorDefinition[] = [
     related: ["pregnancy-due-date", "bmi", "percentage"],
   },
   {
+    slug: "date", name: "Date Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "📆", description: "Count days between dates or add and subtract days, weeks, months, and years.",
+    fields: [
+      { key: "mode", label: "What do you need?", type: "select", defaultValue: "between", options: [{ label: "Days between dates", value: "between" }, { label: "Add or subtract from a date", value: "adjust" }] },
+      { key: "startDate", label: "Starting date", type: "text", defaultToday: true, help: "Enter a date as YYYY-MM-DD." },
+      { key: "endDate", label: "Ending date", type: "text", visibleWhen: { key: "mode", values: ["between"] }, help: "Enter a date as YYYY-MM-DD." },
+      { key: "direction", label: "Add or subtract", type: "select", defaultValue: "add", visibleWhen: { key: "mode", values: ["adjust"] }, options: [{ label: "Add", value: "add" }, { label: "Subtract", value: "subtract" }] },
+      { key: "amount", label: "How many", type: "number", min: 0, max: 365000, step: 1, defaultValue: 7, visibleWhen: { key: "mode", values: ["adjust"] } },
+      { key: "unit", label: "Unit", type: "select", defaultValue: "days", visibleWhen: { key: "mode", values: ["adjust"] }, options: [{ label: "Days", value: "days" }, { label: "Weeks", value: "weeks" }, { label: "Months", value: "months" }, { label: "Years", value: "years" }] },
+    ],
+    results: [{ key: "answer", label: "Result", format: "text" }, { key: "breakdown", label: "Breakdown", format: "text" }, { key: "weekday", label: "Weekday", format: "text" }],
+    calculate: (v) => {
+      const mode = option(v, "mode", "between"); const start = parseYmd(String(v.startDate ?? "").trim());
+      if (!start) return { answer: "Enter a valid starting date like 2026-10-11", breakdown: "—", weekday: "—" };
+      const weekday = (date: Date) => date.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" });
+      if (mode === "adjust") {
+        const amount = n(v, "amount", 7); const unit = option(v, "unit", "days"); const direction = option(v, "direction", "add");
+        if (!Number.isInteger(amount) || amount < 0 || amount > 365000 || !["days", "weeks", "months", "years"].includes(unit)) return { answer: "Enter a whole number from 0 to 365,000", breakdown: "—", weekday: "—" };
+        const sign = direction === "subtract" ? -1 : 1; let resultDate: Date;
+        if (unit === "days" || unit === "weeks") resultDate = addDaysUtc(start, sign * amount * (unit === "weeks" ? 7 : 1));
+        else {
+          const monthOffset = sign * amount * (unit === "years" ? 12 : 1); const targetMonth = start.getUTCFullYear() * 12 + start.getUTCMonth() + monthOffset; const year = Math.floor(targetMonth / 12); const month = ((targetMonth % 12) + 12) % 12;
+          if (year < 1000 || year > 9999) return { answer: "That result is outside the supported date range", breakdown: "—", weekday: "—" };
+          const day = Math.min(start.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate()); resultDate = new Date(Date.UTC(year, month, day));
+        }
+        if (resultDate.getUTCFullYear() < 1000 || resultDate.getUTCFullYear() > 9999) return { answer: "That result is outside the supported date range", breakdown: "—", weekday: "—" };
+        const unitLabel = amount === 1 ? unit.slice(0, -1) : unit; const action = sign > 0 ? "added" : "subtracted";
+        return { answer: fmtDate(resultDate), breakdown: `${amount} ${unitLabel} ${action} from ${fmtDate(start)}`, weekday: weekday(resultDate) };
+      }
+      const end = parseYmd(String(v.endDate ?? "").trim());
+      if (!end) return { answer: "Enter a valid ending date like 2026-10-18", breakdown: "—", weekday: "—" };
+      const days = Math.round(Math.abs(end.getTime() - start.getTime()) / 86400000); const weeks = Math.floor(days / 7); const remainingDays = days % 7;
+      return { answer: days === 0 ? "Same date" : `${days.toLocaleString("en-US")} calendar days apart`, breakdown: `${weeks} week${weeks === 1 ? "" : "s"} and ${remainingDays} day${remainingDays === 1 ? "" : "s"}`, weekday: `${weekday(start)} to ${weekday(end)}` };
+    },
+    howItWorks: ["Days between dates are elapsed calendar days: the starting date is day zero, rather than counting both endpoints as full days.", "Adding or subtracting days and weeks uses calendar days. For months and years, the calculator keeps the day number when it exists; if the destination month is shorter, it uses that month's last day.", "The weekday is calculated from the actual calendar date, including leap years. This tool does not remove weekends or public holidays."],
+    example: { title: "Add one month to January 31", inputs: "Starting date January 31, 2026; add 1 month", result: "February 28, 2026, a Saturday." },
+    faqs: [{ question: "Does the day count include both dates?", answer: "No. It counts elapsed days from the start date to the end date. For example, March 1 to March 2 is 1 elapsed day." }, { question: "What happens when I add one month to a date near month-end?", answer: "If the destination month does not have that day number, the result is the last day of that month. January 31 plus one month becomes February 28, or February 29 in a leap year." }, { question: "Does this count business days?", answer: "No. The difference is in calendar days and includes weekends. Public holidays are not removed." }, { question: "Can I subtract time from a date?", answer: "Yes. Choose Add or subtract from a date, select Subtract, then enter a number of days, weeks, months, or years." }],
+    seo: { title: "Date Calculator – Days Between Dates & Date Math | CalcForged", description: "Find elapsed days between two dates, or add and subtract days, weeks, months, and years with month-end handling.", h1: "Date calculator", intro: "Count the time between two dates, or move a date forward or back by days, weeks, months, or years. The calculator shows the calendar-day gap, the equivalent weeks and days, and the weekday. Month and year changes handle short months sensibly: adding one month to January 31 lands on the last day of February." },
+    related: ["age", "pregnancy-due-date", "time"],
+  },
+  {
+    slug: "time", name: "Time Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "🕒", description: "Calculate hours between times, subtract breaks, or add and subtract time across midnight.",
+    fields: [
+      { key: "mode", label: "What do you need?", type: "select", defaultValue: "duration", options: [{ label: "Hours between two times", value: "duration" }, { label: "Add or subtract time", value: "adjust" }] },
+      { key: "startTime", label: "Starting time", type: "text", defaultValue: "09:00", help: "Use 24-hour time, such as 09:00 or 21:30." },
+      { key: "endTime", label: "Ending time", type: "text", defaultValue: "17:00", visibleWhen: { key: "mode", values: ["duration"] }, help: "If this is earlier than the start, it is treated as the next day." },
+      { key: "breakMinutes", label: "Unpaid break", type: "number", unit: "minutes", min: 0, max: 1440, step: 1, defaultValue: 0, visibleWhen: { key: "mode", values: ["duration"] } },
+      { key: "operation", label: "Operation", type: "select", defaultValue: "add", visibleWhen: { key: "mode", values: ["adjust"] }, options: [{ label: "Add", value: "add" }, { label: "Subtract", value: "subtract" }] },
+      { key: "hours", label: "Hours", type: "number", min: 0, max: 240, step: 1, defaultValue: 1, visibleWhen: { key: "mode", values: ["adjust"] } },
+      { key: "minutes", label: "Minutes", type: "number", min: 0, max: 59, step: 1, defaultValue: 30, visibleWhen: { key: "mode", values: ["adjust"] } },
+    ],
+    results: [{ key: "answer", label: "Result", format: "text" }, { key: "decimalHours", label: "Decimal hours", format: "text" }, { key: "dayShift", label: "Day change", format: "text" }, { key: "details", label: "Calculation", format: "text" }],
+    calculate: (v) => {
+      const mode = option(v, "mode", "duration"); const parseTime = (value: string) => { const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim()); return match ? Number(match[1]) * 60 + Number(match[2]) : null; };
+      const formatTime = (minutes: number) => { const hour = Math.floor(minutes / 60) % 24; const minute = minutes % 60; const displayHour = hour % 12 || 12; return `${displayHour}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`; };
+      const formatDuration = (total: number) => { const hours = Math.floor(total / 60); const minutes = total % 60; if (!hours) return `${minutes} minute${minutes === 1 ? "" : "s"}`; return minutes ? `${hours} hour${hours === 1 ? "" : "s"} and ${minutes} minute${minutes === 1 ? "" : "s"}` : `${hours} hour${hours === 1 ? "" : "s"}`; };
+      const start = parseTime(String(v.startTime ?? ""));
+      if (start === null) return { answer: "Enter a valid time like 09:00 or 21:30", decimalHours: "—", dayShift: "—", details: "Use the 24-hour clock." };
+      if (mode === "adjust") {
+        const hours = n(v, "hours", 1); const minutes = n(v, "minutes", 30); const operation = option(v, "operation", "add");
+        if (!Number.isInteger(hours) || hours < 0 || hours > 240 || !Number.isInteger(minutes) || minutes < 0 || minutes > 59) return { answer: "Enter whole hours from 0 to 240 and minutes from 0 to 59", decimalHours: "—", dayShift: "—", details: "—" };
+        const delta = hours * 60 + minutes; const signed = operation === "subtract" ? -delta : delta; const total = start + signed; const dayShift = Math.floor(total / 1440); const resultTime = ((total % 1440) + 1440) % 1440;
+        const shiftLabel = dayShift === 0 ? "Same day" : dayShift === 1 ? "Next day" : dayShift === -1 ? "Previous day" : dayShift > 1 ? `${dayShift} days later` : `${Math.abs(dayShift)} days earlier`;
+        return { answer: formatTime(resultTime), decimalHours: "—", dayShift: shiftLabel, details: `${formatDuration(delta)} ${signed < 0 ? "subtracted from" : "added to"} ${formatTime(start)}` };
+      }
+      const end = parseTime(String(v.endTime ?? ""));
+      if (end === null) return { answer: "Enter a valid ending time like 17:00", decimalHours: "—", dayShift: "—", details: "Use the 24-hour clock." };
+      let elapsed = end - start; const overnight = elapsed < 0; if (overnight) elapsed += 1440;
+      const breakMinutes = n(v, "breakMinutes", 0);
+      if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > elapsed) return { answer: "The break cannot exceed the time between the two times", decimalHours: "—", dayShift: "—", details: "Check the break length and times." };
+      const worked = elapsed - breakMinutes;
+      return { answer: formatDuration(worked), decimalHours: `${round(worked / 60, 2)} hours`, dayShift: overnight ? "Ends the next day" : "Same day", details: breakMinutes ? `${breakMinutes} unpaid break minutes deducted` : "No break deducted" };
+    },
+    howItWorks: ["For a time span, the ending time is treated as the next day when it is earlier than the starting time. Matching start and end times count as zero hours.", "An unpaid break is subtracted from the elapsed minutes. The result is shown as hours and minutes, plus decimal hours for timesheets or quotes.", "For Add or subtract time, the clock wraps at midnight and the day change is shown separately."],
+    example: { title: "An overnight shift", inputs: "Start 22:30, end 06:15, with a 30-minute unpaid break", result: "7 hours 15 minutes, or 7.25 decimal hours, ending the next day." },
+    faqs: [{ question: "Does the time calculator handle overnight shifts?", answer: "Yes. If the ending time is earlier than the starting time, it is treated as the next day. If both times match, the duration is zero." }, { question: "How do I subtract a lunch break?", answer: "Enter the unpaid break in minutes. The calculator subtracts it from the elapsed time before showing hours and decimal hours." }, { question: "What are decimal hours?", answer: "Decimal hours express minutes as part of an hour. For example, 30 minutes is 0.5 hours, so 7 hours 30 minutes is 7.5 hours." }, { question: "Can I add time to a clock time?", answer: "Yes. Choose Add or subtract time, enter a starting clock time and the hours and minutes, then choose Add or Subtract. The result shows whether it lands on another day." }],
+    seo: { title: "Time Calculator – Hours Between Times & Time Math | CalcForged", description: "Calculate hours between times, subtract breaks, or add and subtract time across midnight. See total and decimal hours.", h1: "Time calculator", intro: "Work out the time between two clock times, subtract an unpaid break, or add and subtract hours and minutes from a starting time. Overnight spans are handled automatically, and the result includes decimal hours for timesheets, payroll entries, or job estimates. Enter times in 24-hour format, such as 09:00 or 21:30." },
+    related: ["date", "time-zone", "age"],
+  },
+  {
     slug: "gpa", name: "GPA Calculator", category: "Education", categorySlug: "education", icon: "🎓", description: "Calculate your grade point average from course credits and letter grades.",
     fields: [{ key: "courses", label: "Courses", type: "ingredient-list", ingredientSchema: { first: "Courses", amount: "Credit hours", unit: "Grade", name: "Course", amountPlaceholder: "3", unitPlaceholder: "A", namePlaceholder: "Intro to Biology" }, help: "One row per course: credit hours in the amount box and the final grade (A, B+, C− …) in the grade box." }],
     results: [{ key: "gpa", label: "Your GPA", format: "number" }, { key: "credits", label: "Total credits", unit: "credits", format: "number" }, { key: "qualityPoints", label: "Quality points", format: "number" }, { key: "band", label: "Letter equivalent", format: "text" }],
