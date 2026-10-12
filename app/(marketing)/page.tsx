@@ -11,7 +11,7 @@ export default async function Home() {
   const total = calculatorDefinitions.length;
   const FEATURED_SLUGS = ["recipe-scaling", "paint", "mortgage", "wedding-food", "bbq-meat", "tip"];
   const featured = FEATURED_SLUGS.map((slug) => calculatorsBySlug[slug]).filter(Boolean);
-  const heroTools = ["recipe-scaling", "miniature-scale-converter", "fuel-mileage"].map((slug) => calculatorsBySlug[slug]);
+  const heroTools = ["recipe-scaling", "miniature-scale-converter", "fuel-mileage", "gig-driver-mileage-tracker"].map((slug) => calculatorsBySlug[slug]);
   const isSignedIn = Boolean(await getSession());
   const signIn = await signInUrl("/dashboard/toolkit");
   return <>
