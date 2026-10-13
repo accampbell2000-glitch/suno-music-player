@@ -27,11 +27,9 @@ export default function DashboardLayout({
 	requireFeature("auth");
 	return (
 		<TooltipProvider>
-			<SidebarProvider>
-				<Suspense fallback={null}>
-					<GatedShell>{children}</GatedShell>
-				</Suspense>
-			</SidebarProvider>
+			<Suspense fallback={null}>
+				<GatedShell>{children}</GatedShell>
+			</Suspense>
 		</TooltipProvider>
 	);
 }
@@ -44,7 +42,7 @@ async function GatedShell({ children }: { children: React.ReactNode }) {
 	]);
 
 	return (
-		<>
+		<SidebarProvider>
 			<AppSidebar
 				storeName={account?.name ?? "Members"}
 				supportEmail={account?.supportEmail}
@@ -67,6 +65,6 @@ async function GatedShell({ children }: { children: React.ReactNode }) {
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
 			</SidebarInset>
-		</>
+		</SidebarProvider>
 	);
 }
