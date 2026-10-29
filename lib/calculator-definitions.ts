@@ -452,6 +452,73 @@ const definitions: CalculatorDefinition[] = [
     related: ["mortgage", "compound-interest", "savings"],
   },
   {
+    slug: "auto-loan-payoff", name: "Auto Loan Cost & Payoff Calculator", category: "Automotive", categorySlug: "automotive", icon: "◈", description: "Estimate an auto loan payment, total vehicle cost, and how extra monthly principal could change the payoff.",
+    fields: [
+      { key: "vehiclePrice", label: "Vehicle price", type: "number", unit: "$", min: 0, max: 500000, step: 500, defaultValue: 32000 },
+      { key: "taxAndFees", label: "Sales tax and fees", type: "number", unit: "$", min: 0, max: 100000, step: 100, defaultValue: 2500, help: "Enter the combined amount from your quote; tax rules vary by location." },
+      { key: "downPayment", label: "Down payment", type: "number", unit: "$", min: 0, max: 500000, step: 500, defaultValue: 4000 },
+      { key: "tradeEquity", label: "Net trade-in equity (+/-)", type: "number", unit: "$", min: -100000, max: 100000, step: 100, defaultValue: 0, help: "Positive equity reduces the loan. Negative equity adds what you still owe above the trade-in value." },
+      { key: "apr", label: "APR", type: "number", unit: "%", min: 0, max: 40, step: 0.05, defaultValue: 6.5 },
+      { key: "termMonths", label: "Loan term", type: "select", defaultValue: "60", options: [{ label: "36 months", value: "36" }, { label: "48 months", value: "48" }, { label: "60 months", value: "60" }, { label: "72 months", value: "72" }, { label: "84 months", value: "84" }, { label: "96 months", value: "96" }] },
+      { key: "extraPayment", label: "Extra principal each month", type: "number", unit: "$", min: 0, max: 10000, step: 25, defaultValue: 100, help: "Check that your lender applies extra money to principal." },
+    ],
+    results: [
+      { key: "amountFinanced", label: "Estimated amount financed", unit: "$", format: "currency" },
+      { key: "monthlyPayment", label: "Scheduled monthly payment", unit: "$/mo", format: "currency", estimate: true },
+      { key: "scheduledInterest", label: "Interest with scheduled payments", unit: "$", format: "currency", estimate: true },
+      { key: "totalCostScheduled", label: "Vehicle cost with scheduled payments", unit: "$", format: "currency", estimate: true, interpretation: "Vehicle price, entered taxes and fees, and modeled loan interest. Excludes ownership costs." },
+      { key: "monthlyWithExtra", label: "Monthly outflow with extra", unit: "$/mo", format: "currency", estimate: true },
+      { key: "payoffMonthsWithExtra", label: "Modeled payoff with extra", unit: "months", format: "number", estimate: true },
+      { key: "interestWithExtra", label: "Interest with extra payments", unit: "$", format: "currency", estimate: true },
+      { key: "interestSaved", label: "Modeled interest saved", unit: "$", format: "currency", estimate: true },
+      { key: "totalCostWithExtra", label: "Vehicle cost with extra payments", unit: "$", format: "currency", estimate: true },
+    ],
+    calculate: (v) => {
+      const vehiclePrice = Math.max(0, n(v, "vehiclePrice", 32000));
+      const taxAndFees = Math.max(0, n(v, "taxAndFees", 2500));
+      const cashPrice = vehiclePrice + taxAndFees;
+      const downPayment = Math.max(0, n(v, "downPayment", 4000));
+      const tradeEquity = n(v, "tradeEquity", 0);
+      const principal = Math.max(0, cashPrice - downPayment - tradeEquity);
+      const annualRate = Math.min(40, Math.max(0, n(v, "apr", 6.5)));
+      const rate = annualRate / 1200;
+      const months = Math.min(96, Math.max(1, Math.round(n(v, "termMonths", 60))));
+      const extra = Math.max(0, n(v, "extraPayment", 100));
+      const rawPayment = principal === 0 ? 0 : rate === 0 ? principal / months : principal * rate / (1 - (1 + rate) ** -months);
+      const monthlyPayment = Math.ceil(rawPayment * 100) / 100;
+      const simulate = (payment: number) => {
+        let balance = principal;
+        let interest = 0;
+        let totalPaid = 0;
+        let periods = 0;
+        while (balance > 0.004 && periods < months) {
+          const periodInterest = balance * rate;
+          const due = balance + periodInterest;
+          const paid = Math.min(due, payment);
+          interest += periodInterest;
+          totalPaid += paid;
+          balance = Math.max(0, due - paid);
+          periods++;
+        }
+        return { interest: round(interest, 2), totalPaid: round(totalPaid, 2), periods };
+      };
+      const scheduled = simulate(monthlyPayment);
+      const accelerated = simulate(monthlyPayment + extra);
+      const interestSaved = round(Math.max(0, scheduled.interest - accelerated.interest), 2);
+      return {
+        amountFinanced: round(principal, 2), monthlyPayment, scheduledInterest: scheduled.interest,
+        totalCostScheduled: round(cashPrice + scheduled.interest, 2), monthlyWithExtra: round(monthlyPayment + extra, 2),
+        payoffMonthsWithExtra: accelerated.periods, interestWithExtra: accelerated.interest, interestSaved,
+        totalCostWithExtra: round(cashPrice + accelerated.interest, 2),
+      };
+    },
+    howItWorks: ["Add the vehicle price and the taxes and fees from your quote, then subtract your down payment and net trade-in equity. Negative equity increases the amount financed.", "The scheduled payment uses a fixed-rate monthly amortization estimate. The comparison then models interest on the remaining balance each month and applies any extra payment to principal.", "Vehicle cost adds the entered purchase price and fees to modeled loan interest. It does not include insurance, fuel, maintenance, or other ownership costs."],
+    example: { title: "Compare an auto purchase", inputs: "$32,000 vehicle, $2,500 taxes and fees, $4,000 down, 6.5% APR for 60 months, plus $100 monthly", result: "$596.77 monthly as scheduled and $39,806.02 total vehicle cost. With $100 extra each month: 51 months, $38,907.50 total, and $898.52 less interest." },
+    faqs: [{ question: "Is this an exact lender payoff quote?", answer: "No. It models monthly interest on a fixed-rate balance. Actual auto loans may accrue interest daily, and payment timing, fees, and contract terms can change the lender's figure. Request a dated payoff quote before closing the loan." }, { question: "How should I enter trade-in equity?", answer: "Enter the trade-in value minus the payoff on your current vehicle. Positive equity reduces the new loan; negative equity adds to it. Put sales tax and fees in their own field." }, { question: "Will extra payments reduce interest?", answer: "This estimate assumes extra payments are credited to principal on a simple-interest style balance. Check your contract and ask your lender how extra payments are applied; precomputed interest and fees can change the result." }, { question: "What is included in total vehicle cost?", answer: "It includes the vehicle price, the taxes and fees you enter, and modeled loan interest. It excludes insurance, fuel, maintenance, registration renewals, and other costs of ownership." }],
+    seo: { title: "Auto Loan Cost & Payoff Calculator | CalcForged", description: "Estimate an auto loan payment, amount financed, total vehicle cost, and interest savings from extra monthly principal payments.", h1: "Auto loan cost and payoff calculator", intro: "A car payment is only part of the purchase cost. Enter the vehicle price, taxes and fees, down payment, net trade-in equity, APR, and term to estimate the amount financed and scheduled payment. Then compare the modeled interest and payoff time if you add extra principal each month. The estimate uses monthly periods; your contract, daily interest, payment dates, and lender instructions determine the exact payoff." },
+    related: ["loan", "fuel-mileage", "tire-size"],
+  },
+  {
     slug: "investment", name: "Investment Calculator", category: "Finance", categorySlug: "finance", icon: "📈", description: "Project the growth of a one-time investment plus ongoing monthly contributions.",
     fields: [{ key: "initial", label: "Starting amount", type: "number", unit: "$", min: 0, step: 100, defaultValue: 10000 }, { key: "monthly", label: "Monthly contribution", type: "number", unit: "$", min: 0, step: 10, defaultValue: 500 }, { key: "returnRate", label: "Expected annual return", type: "number", unit: "%", min: -10, max: 30, step: 0.1, defaultValue: 7 }, { key: "years", label: "Years invested", type: "number", unit: "years", min: 1, max: 60, defaultValue: 20 }],
     results: [{ key: "futureValue", label: "Projected value", unit: "$", format: "currency", estimate: true }, { key: "totalDeposits", label: "Total contributed", unit: "$", format: "currency" }, { key: "growth", label: "Investment growth", unit: "$", format: "currency", estimate: true }],
@@ -1366,6 +1433,37 @@ const definitions: CalculatorDefinition[] = [
     related: ["filament-cost", "miniature-scale-converter"],
   },
   {
+    slug: "sandwich-quantity", name: "Sandwich Quantity Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "▤", description: "Estimate whole sandwiches and serving pieces for a lunch, light meal, or buffet.",
+    fields: [
+      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 10000, defaultValue: 30 },
+      { key: "plan", label: "How sandwiches fit the menu", type: "select", defaultValue: "main", options: [{ label: "Main meal - 1 full sandwich per guest", value: "main" }, { label: "Light meal with sides - 3/4 per guest", value: "sides" }, { label: "Appetizer beside other food - 1/2 per guest", value: "appetizer" }], help: "Serving amounts are planning estimates. Adjust for appetite and the rest of the menu." },
+      { key: "cut", label: "Cut each sandwich into", type: "select", defaultValue: "2", options: [{ label: "1 whole piece", value: "1" }, { label: "2 halves", value: "2" }, { label: "4 quarters", value: "4" }] },
+      { key: "buffer", label: "Extra for seconds and surprises", type: "select", defaultValue: "10", options: [{ label: "No extra", value: "0" }, { label: "10% extra", value: "10" }, { label: "15% extra", value: "15" }] },
+    ],
+    results: [
+      { key: "baseEquivalents", label: "Base sandwich equivalents", unit: "sandwiches", format: "number", estimate: true },
+      { key: "wholeSandwiches", label: "Whole sandwiches to prepare", unit: "sandwiches", format: "number", estimate: true },
+      { key: "servingPieces", label: "Pieces to serve", unit: "pieces", format: "number", estimate: true },
+      { key: "extraSandwiches", label: "Extra sandwiches in buffer", unit: "sandwiches", format: "number", estimate: true },
+    ],
+    calculate: (v) => {
+      const guests = Math.max(0, n(v, "guests", 30));
+      const plan = option(v, "plan", "main");
+      const perGuest: Record<string, number> = { main: 1, sides: 0.75, appetizer: 0.5 };
+      const base = guests * (perGuest[plan] ?? 1);
+      const buffer = Math.max(0, n(v, "buffer", 10));
+      const wholeSandwiches = ceil(base * (1 + buffer / 100));
+      const cutCounts: Record<string, number> = { "1": 1, "2": 2, "4": 4 };
+      const cutPieces = cutCounts[option(v, "cut", "2")] ?? 2;
+      return { baseEquivalents: round(base, 1), wholeSandwiches, servingPieces: wholeSandwiches * cutPieces, extraSandwiches: Math.max(0, wholeSandwiches - ceil(base)) };
+    },
+    howItWorks: ["Multiply the guest count by the selected full-sandwich portion: 1 for a main meal, 0.75 for a light meal with sides, or 0.5 for an appetizer spread.", "Add the selected buffer and round up to whole sandwiches.", "The cut setting changes the piece count only. Halves and quarters do not change the amount of food you prepare."],
+    example: { title: "30-person lunch", inputs: "30 guests, sandwiches as the main meal, 10% extra, cut in half", result: "Prepare 33 whole sandwiches, or 66 halves." },
+    faqs: [{ question: "How many sandwiches should I plan per person?", answer: "For a standard meal, a practical catering starting point is one full sandwich per guest, or two halves, plus a 10% to 15% buffer. Choose a lighter plan when sandwiches share the menu with substantial sides or other mains." }, { question: "Does cutting sandwiches in half mean I need twice as much food?", answer: "No. The tool counts full-sandwich equivalents first. Halves and quarters only change the number of pieces on the platter." }, { question: "Should I always add a buffer?", answer: "No. The buffer is optional. Ten to fifteen percent gives a cushion for seconds and an uncertain headcount; use zero when portions and attendance are firm." }, { question: "Are these exact portions?", answer: "No. Guest appetites, sandwich size, event length, and the rest of the menu vary. Use the result as a planning estimate and adjust the serving plan to fit your event." }],
+    seo: { title: "Sandwich Quantity Calculator - Sandwiches & Pieces | CalcForged", description: "Estimate how many whole sandwiches to prepare, how many halves or quarters to serve, and an optional event buffer.", h1: "Sandwich quantity calculator", intro: "Planning sandwiches for a group is easier when the serving plan is clear. Enter your guest count, choose whether sandwiches are the main meal or part of a larger spread, then set a buffer and serving cut. The calculator rounds up to whole sandwiches and shows the piece count for your platter. Treat the portions as planning estimates; appetites, sandwich size, and other food on the table all matter." },
+    related: ["catering-food-quantity", "appetizers-per-person", "charcuterie-board"],
+  },
+  {
     slug: "charcuterie-board", name: "Charcuterie Board Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🧀", description: "Turn a guest count into cheese, meat, cracker, and filler amounts for a board that holds.",
     fields: [
       { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 500, defaultValue: 12 },
@@ -1474,6 +1572,52 @@ const definitions: CalculatorDefinition[] = [
     faqs: [{ question: "How many feet of lights for a 7-foot tree?", answer: "A classic 7-foot tree wants about 700 mini lights — roughly 100 per vertical foot. In strand feet that's about 145 ft at 2.5-inch spacing, 230 ft at 4-inch, or 350 ft at 6-inch, which is why two people with the same tree buy different amounts. Match your strand's spacing and the calculator does the rest." }, { question: "How many strings of Christmas lights can I connect end to end?", answer: "Follow the limit printed on the set — the plugs, wiring, and fuse are rated for it. As a planning figure, a standard 15-amp circuit carries about 1,440W for sustained loads: 40W incandescent sets use that up quickly, while LED sets barely register. Count what else shares the circuit, too." }, { question: "LED or incandescent Christmas lights?", answer: "LED draws a fraction of the power, runs cooler, and lets one outlet carry far more strands; incandescent gives the traditional warm glow but adds real wattage fast. For a whole roofline, LED usually pays for itself in fewer cords, clips, and outlets." }, { question: "How do I measure my roofline for lights?", answer: "Walk the edges you'll light with a tape, or measure along the ground and add the overhang. For a gable, measure the base width and the peak height — each sloped side is the square root of half-the-width squared plus the rise squared. Add 10–15% for corners and the run back to the outlet." }],
     seo: { title: "Christmas Lights Calculator – Tree & Roofline Feet | CalcForged", description: "How many feet of Christmas lights do you need? Estimate bulbs, strand length, sets to buy, and outlet load for a tree or a full roofline outline.", h1: "Christmas lights calculator", intro: "How many feet of Christmas lights you need comes down to two very different measurements: the tree and the roofline. A classic tree wants about 100 mini lights per vertical foot — 700 bulbs on a 7-footer — but the same 700 bulbs is 145 feet of strand at 2.5-inch spacing or 230 feet at 4-inch, so spacing decides what you actually buy. A roofline is pure geometry: straight eave runs plus each gable's two sloped sides, padded 10–15% for corners and the plug run. This calculator handles both, then estimates the total wattage against a standard outdoor outlet, so you know whether one cord carries the whole display or it needs a second one." },
     related: ["party-ice", "balloon-quantity", "pizza-party"],
+  },
+  {
+    slug: "christmas-tree-water", name: "Christmas Tree Water & Stand Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "✳", description: "Check a fresh-cut Christmas tree's stand water capacity, trunk fit, and ceiling clearance.",
+    fields: [
+      { key: "treeHeight", label: "Tree height to the tip", type: "number", unit: "ft", min: 2, max: 20, step: 0.5, defaultValue: 7 },
+      { key: "ceilingHeight", label: "Room ceiling height", type: "number", unit: "ft", min: 6, max: 20, step: 0.5, defaultValue: 9 },
+      { key: "topperHeight", label: "Topper height", type: "number", unit: "in", min: 0, max: 36, step: 0.5, defaultValue: 6 },
+      { key: "clearance", label: "Space wanted above topper", type: "number", unit: "in", min: 0, max: 24, step: 0.5, defaultValue: 6 },
+      { key: "trunkDiameter", label: "Trunk diameter", type: "number", unit: "in", min: 1, max: 12, step: 0.25, defaultValue: 3 },
+      { key: "standCapacity", label: "Stand usable water capacity", type: "number", unit: "gal", min: 0, max: 20, step: 0.25, defaultValue: 1, help: "Use the capacity from the stand's product details." },
+      { key: "standMaxTrunk", label: "Stand's rated maximum trunk diameter", type: "number", unit: "in", min: 1, max: 12, step: 0.25, defaultValue: 4, help: "Check the stand label. Do not shave the tree trunk to make it fit." },
+    ],
+    results: [
+      { key: "minimumCapacity", label: "Minimum stand water capacity", unit: "gal", format: "number", estimate: true, interpretation: "Based on one quart of capacity per inch of trunk diameter." },
+      { key: "capacityCheck", label: "Water capacity check", format: "text" },
+      { key: "trunkCheck", label: "Trunk fit check", format: "text" },
+      { key: "clearanceAbove", label: "Space above topper", unit: "in", format: "number" },
+      { key: "heightCheck", label: "Height check", format: "text" },
+    ],
+    calculate: (v) => {
+      const treeHeight = Math.max(0, n(v, "treeHeight", 7));
+      const ceilingHeight = Math.max(0, n(v, "ceilingHeight", 9));
+      const topperHeight = Math.max(0, n(v, "topperHeight", 6));
+      const wantedClearance = Math.max(0, n(v, "clearance", 6));
+      const trunkDiameter = Math.max(0, n(v, "trunkDiameter", 3));
+      const standCapacity = Math.max(0, n(v, "standCapacity", 1));
+      const standMaxTrunk = Math.max(0, n(v, "standMaxTrunk", 4));
+      const minimumCapacity = trunkDiameter / 4;
+      const capacityDifference = round(standCapacity - minimumCapacity, 2);
+      const capacityCheck = standCapacity >= minimumCapacity
+        ? `Meets the minimum, with ${capacityDifference} gal above the guideline.`
+        : `Short by ${round(minimumCapacity - standCapacity, 2)} gal. Choose a stand with more usable capacity.`;
+      const trunkCheck = trunkDiameter <= standMaxTrunk
+        ? `Fits the stand rating of up to ${round(standMaxTrunk, 2)} in.`
+        : `Does not fit: the trunk is ${round(trunkDiameter - standMaxTrunk, 2)} in wider than the stand rating. Do not shave the trunk.`;
+      const clearanceAbove = round((ceilingHeight - treeHeight) * 12 - topperHeight, 1);
+      const heightCheck = clearanceAbove >= wantedClearance
+        ? `Fits with ${clearanceAbove} in above the topper.`
+        : `Needs ${round(wantedClearance - clearanceAbove, 1)} more in of room. Choose a shorter tree or topper.`;
+      return { minimumCapacity: round(minimumCapacity, 2), capacityCheck, trunkCheck, clearanceAbove, heightCheck };
+    },
+    howItWorks: ["The National Christmas Tree Association's stand guideline is 1 quart of water capacity per inch of trunk diameter. The result converts that to gallons and compares it with your stand's usable capacity.", "The trunk-fit check compares the tree's measured diameter with the maximum printed for your stand. The stand must support the trunk without trimming away its outer wood.", "Ceiling space is room height minus tree height and topper height. The height check compares that space with the clearance you want."],
+    example: { title: "7-foot tree in a 9-foot room", inputs: "3-inch trunk, 6-inch topper, 6-inch clearance, 1-gallon stand rated for a 4-inch trunk", result: "Minimum stand capacity: 0.75 gal. The stand meets the water guideline and trunk rating; 18 inches remain above the topper." },
+    faqs: [{ question: "How much water capacity should a Christmas tree stand have?", answer: "The National Christmas Tree Association recommends stand capacity of about 1 quart per inch of stem diameter. This is a capacity guideline, not a promise of daily water use. Check the stand each day and keep the cut end under water." }, { question: "How do I know if my tree trunk fits the stand?", answer: "Compare the trunk diameter with the stand's rated size range. The National Christmas Tree Association advises against whittling the sides of the trunk because the outer wood takes up water efficiently." }, { question: "How much room should I leave above a Christmas tree?", answer: "Measure from the floor to the ceiling, then subtract the tree height and topper height. Add the clearance you want before deciding whether the tree will fit." }, { question: "Does this apply to an artificial tree?", answer: "No. The water-capacity estimate is for a fresh-cut tree in a reservoir stand. Artificial trees do not need a water reservoir." }],
+    seo: { title: "Christmas Tree Water & Stand Size Calculator | CalcForged", description: "Check Christmas tree stand water capacity, trunk fit, and room clearance for a fresh-cut tree.", h1: "Christmas tree water and stand calculator", intro: "A real Christmas tree needs a stand that fits its trunk and holds enough water. Enter the trunk diameter and the stand's usable capacity to compare it with the National Christmas Tree Association's one-quart-per-inch capacity guideline. Add your room height, tree height, topper, and preferred clearance to check whether the tree fits. Check the reservoir daily and keep the cut end submerged; this is a planning check, not a substitute for the stand maker's size rating." },
+    related: ["christmas-lights"],
   },
 ];
 
