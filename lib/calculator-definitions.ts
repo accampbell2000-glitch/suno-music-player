@@ -272,6 +272,42 @@ const definitions: CalculatorDefinition[] = [
     related: ["flooring", "concrete", "mulch"],
   },
   {
+    slug: "area", name: "Area Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "◫", description: "Find the area of common shapes in square feet, square yards, and square meters.",
+    fields: [
+      { key: "shape", label: "Shape", type: "select", defaultValue: "rectangle", options: [{ label: "Rectangle", value: "rectangle" }, { label: "Square", value: "square" }, { label: "Circle", value: "circle" }, { label: "Triangle", value: "triangle" }, { label: "Trapezoid", value: "trapezoid" }, { label: "Ellipse", value: "ellipse" }] },
+      { key: "dimensionUnit", label: "Dimension unit", type: "select", defaultValue: "ft", options: [{ label: "Feet (ft)", value: "ft" }, { label: "Meters (m)", value: "m" }], help: "Use the selected unit for every dimension below." },
+      { key: "length", label: "Length", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 12, visibleWhen: { key: "shape", values: ["rectangle"] } },
+      { key: "width", label: "Width", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["rectangle"] } },
+      { key: "side", label: "Side", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["square"] } },
+      { key: "diameter", label: "Diameter", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["circle"] } },
+      { key: "base", label: "Base", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 8, visibleWhen: { key: "shape", values: ["triangle"] } },
+      { key: "triangleHeight", label: "Height", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 6, visibleWhen: { key: "shape", values: ["triangle"] } },
+      { key: "baseA", label: "Shorter parallel side", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 8, visibleWhen: { key: "shape", values: ["trapezoid"] } },
+      { key: "baseB", label: "Longer parallel side", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 12, visibleWhen: { key: "shape", values: ["trapezoid"] } },
+      { key: "trapezoidHeight", label: "Height", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 5, visibleWhen: { key: "shape", values: ["trapezoid"] } },
+      { key: "majorAxis", label: "Major diameter", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["ellipse"] } },
+      { key: "minorAxis", label: "Minor diameter", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 6, visibleWhen: { key: "shape", values: ["ellipse"] } },
+    ],
+    results: [{ key: "squareFeet", label: "Area", unit: "sq ft", format: "number" }, { key: "squareYards", label: "Area", unit: "sq yd", format: "number" }, { key: "squareMeters", label: "Area", unit: "sq m", format: "number" }],
+    calculate: (v) => {
+      const scale = option(v, "dimensionUnit", "ft") === "m" ? 3.280839895013123 : 1;
+      const dim = (key: string, fallback: number) => Math.max(0, n(v, key, fallback)) * scale;
+      const shape = option(v, "shape", "rectangle");
+      const areaSqFt = shape === "square" ? dim("side", 10) ** 2
+        : shape === "circle" ? Math.PI * (dim("diameter", 10) / 2) ** 2
+          : shape === "triangle" ? dim("base", 8) * dim("triangleHeight", 6) / 2
+            : shape === "trapezoid" ? (dim("baseA", 8) + dim("baseB", 12)) / 2 * dim("trapezoidHeight", 5)
+              : shape === "ellipse" ? Math.PI * dim("majorAxis", 10) * dim("minorAxis", 6) / 4
+                : dim("length", 12) * dim("width", 10);
+      return { squareFeet: round(areaSqFt, 2), squareYards: round(areaSqFt / 9, 2), squareMeters: round(areaSqFt / 10.763910416709722, 2) };
+    },
+    howItWorks: ["Choose a shape; the calculator shows only the dimensions needed for that formula.", "Enter all dimensions in the selected unit. Meter inputs are converted before the area is calculated.", "The result is shown in square feet, square yards, and square meters."],
+    example: { title: "12 × 10 ft rectangle", inputs: "Length 12 ft, width 10 ft", result: "120 sq ft, 13.33 sq yd, or 11.15 sq m." },
+    faqs: [{ question: "Which shapes can I calculate?", answer: "Choose a rectangle, square, circle, triangle, trapezoid, or ellipse. Each shape shows the dimensions its formula needs." }, { question: "Can I calculate an irregular outline?", answer: "Split it into simple shapes, calculate each piece separately, add the areas, and subtract any openings. This calculator handles one shape at a time." }, { question: "Does a circle use its radius or diameter?", answer: "Enter the diameter, the full distance across the circle. The formula uses half of it as the radius." }, { question: "Can I enter meters?", answer: "Yes. Select meters and enter every dimension in meters. Results are still provided in square feet, square yards, and square meters." }],
+    seo: { title: "Area Calculator for 6 Shapes | CalcForged", description: "Calculate the area of a rectangle, square, circle, triangle, trapezoid, or ellipse in square feet, square yards, and square meters.", h1: "Area calculator for common shapes", intro: "Get the area without swapping formulas. Choose a rectangle, square, circle, triangle, trapezoid, or ellipse, enter dimensions in feet or meters, and see the result in square feet, square yards, and square meters. For an irregular outline, split it into simple shapes, calculate each piece, then add the areas and subtract openings." },
+    related: ["flooring", "concrete", "mulch"],
+  },
+  {
     slug: "flooring", name: "Flooring Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▤", description: "Calculate flooring square footage, waste allowance, boxes, and material cost.",
     fields: [{ key: "length", label: "Room length", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 12 }, { key: "width", label: "Room width", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 10 }, { key: "waste", label: "Waste factor", type: "select", defaultValue: "10", options: [{ label: "10% — straight lay", value: "10" }, { label: "15% — diagonal or herringbone", value: "15" }] }, { key: "boxCoverage", label: "Coverage per box", type: "number", unit: "sq ft", min: 1, step: 0.1, defaultValue: 20 }, { key: "price", label: "Price per box", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 42 }],
     results: [{ key: "area", label: "Room area", unit: "sq ft", format: "number" }, { key: "orderArea", label: "Order with waste", unit: "sq ft", format: "number", estimate: true }, { key: "boxes", label: "Boxes to buy", unit: "boxes", format: "number", estimate: true }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }],
