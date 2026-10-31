@@ -10,7 +10,7 @@ export function CalcForgedFooter() {
           <p className="cf-footer-note">Practical calculators. Straight answers.</p>
         </div>
         <div className="cf-footer-links">
-          <div><p className="cf-footer-label">Browse</p><Link href="/calculators">All calculators</Link><Link href="/admin">Admin dashboard</Link></div>
+          <div><p className="cf-footer-label">Browse</p><Link href="/calculators">All calculators</Link></div>
           <div><p className="cf-footer-label">Categories</p>{categories.slice(0, 4).map((category) => <Link key={category.slug} href={`/calculators/${category.slug}`}>{category.name}</Link>)}</div>
           <div><p className="cf-footer-label">More tools</p>{categories.slice(4).map((category) => <Link key={category.slug} href={`/calculators/${category.slug}`}>{category.name}</Link>)}</div>
         </div>
