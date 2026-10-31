@@ -63,6 +63,7 @@ export type CalculatorDefinition = {
   howItWorks: string[];
   example: { title: string; inputs: string; result: string };
   faqs: { question: string; answer: string }[];
+  sources?: { label: string; url: string }[];
   seo: { title: string; description: string; h1: string; intro: string };
   related: string[];
   liveRates?: boolean;
@@ -78,6 +79,69 @@ const option = (values: CalculatorValues, key: string, fallback: string) =>
   String(values[key] ?? fallback);
 const round = (value: number, digits = 1) => Number(value.toFixed(digits));
 const ceil = (value: number) => Math.ceil(value);
+
+// Values are from King Arthur Baking's ingredient-weight chart. Each entry
+// preserves the chart's published quantity; grams per cup is normalized from
+// that measured portion using US volume equivalents (16 tbsp, 48 tsp, 8 fl oz,
+// 236.5882365 ml per cup). Preparation and brands remain specific to the chart.
+// Source: https://www.kingarthurbaking.com/learn/ingredient-weight-chart
+const COMMON_CUP_WEIGHTS: { id: string; label: string; grams: number; cups: number }[] = [
+  { id: "all-purpose-flour", label: "All-purpose flour", grams: 120, cups: 1 },
+  { id: "bread-flour", label: "Bread flour", grams: 120, cups: 1 },
+  { id: "whole-wheat-flour", label: "Whole wheat flour", grams: 113, cups: 1 },
+  { id: "almond-flour", label: "Almond flour", grams: 96, cups: 1 },
+  { id: "almond-meal", label: "Almond meal", grams: 84, cups: 1 },
+  { id: "brown-sugar-packed", label: "Brown sugar (packed)", grams: 213, cups: 1 },
+  { id: "granulated-sugar", label: "Granulated white sugar", grams: 198, cups: 1 },
+  { id: "confectioners-sugar", label: "Confectioners' sugar (unsifted)", grams: 113, cups: 1 },
+  { id: "butter", label: "Butter", grams: 113, cups: 0.5 },
+  { id: "cocoa", label: "Unsweetened cocoa", grams: 42, cups: 0.5 },
+  { id: "honey", label: "Honey", grams: 21, cups: 1 / 16 },
+  { id: "peanut-butter", label: "Peanut butter", grams: 135, cups: 0.5 },
+  { id: "oats", label: "Old-fashioned or quick oats", grams: 89, cups: 1 },
+  { id: "granola", label: "Granola", grams: 113, cups: 1 },
+  { id: "chocolate-chips", label: "Chocolate chips", grams: 170, cups: 1 },
+  { id: "cornmeal", label: "Whole cornmeal", grams: 138, cups: 1 },
+  { id: "yellow-cornmeal", label: "Yellow cornmeal (Quaker)", grams: 156, cups: 1 },
+  { id: "cornstarch", label: "Cornstarch", grams: 28, cups: 0.25 },
+  { id: "rice-flour", label: "White rice flour", grams: 142, cups: 1 },
+  { id: "quinoa", label: "Whole quinoa", grams: 177, cups: 1 },
+  { id: "dry-rice", label: "Long-grain rice (dry)", grams: 99, cups: 0.5 },
+  { id: "milk", label: "Fresh milk", grams: 227, cups: 1 },
+  { id: "buttermilk", label: "Buttermilk", grams: 227, cups: 1 },
+  { id: "sour-cream", label: "Sour cream", grams: 227, cups: 1 },
+  { id: "cream-cheese", label: "Cream cheese", grams: 227, cups: 1 },
+  { id: "applesauce", label: "Applesauce", grams: 255, cups: 1 },
+  { id: "corn-syrup", label: "Corn syrup", grams: 312, cups: 1 },
+  { id: "maple-syrup", label: "Maple syrup", grams: 156, cups: 0.5 },
+  { id: "vegetable-oil", label: "Vegetable oil", grams: 198, cups: 1 },
+  { id: "raisins", label: "Raisins (loose)", grams: 149, cups: 1 },
+  { id: "whole-almonds", label: "Whole almonds (unblanched)", grams: 142, cups: 1 },
+  { id: "panko", label: "Japanese panko breadcrumbs", grams: 50, cups: 1 },
+  { id: "coconut-flour", label: "Coconut flour", grams: 128, cups: 1 },
+  { id: "spelt-flour", label: "Spelt flour", grams: 99, cups: 1 },
+];
+const CUP_VOLUME_EQUIVALENTS: Record<string, number> = { cup: 1, tbsp: 1 / 16, tsp: 1 / 48, floz: 1 / 8, ml: 1 / 236.5882365, l: 1000 / 236.5882365 };
+// Equation and activity multipliers are documented at https://reference.medscape.com/calculator/846/mifflin-st-jeor-equation-calculator; the original equation paper is https://pubmed.ncbi.nlm.nih.gov/2305711/.
+const TDEE_ACTIVITY_OPTIONS: FieldOption[] = [
+  { label: "Choose an activity assumption", value: "" },
+  { label: "Sedentary (×1.2)", value: "1.2" },
+  { label: "Lightly active (×1.375)", value: "1.375" },
+  { label: "Moderately active (×1.55)", value: "1.55" },
+  { label: "Active (×1.725)", value: "1.725" },
+  { label: "Very active (×1.9)", value: "1.9" },
+];
+const TDEE_ACTIVITY_LABELS: Record<string, string> = { "1.2": "sedentary", "1.375": "lightly active", "1.55": "moderately active", "1.725": "active", "1.9": "very active" };
+// MET values come from the 2024 Adult Compendium: https://pacompendium.com/walking/; its MET definition is at https://pacompendium.com/.
+const WALKING_MET_OPTIONS: FieldOption[] = [
+  { label: "Very slow stroll, under 2.0 mph (2.3 MET)", value: "2.3" },
+  { label: "Slow, 2.0–2.4 mph (2.8 MET)", value: "2.8" },
+  { label: "2.5 mph on level ground (3.0 MET)", value: "3.0" },
+  { label: "Moderate, 2.8–3.4 mph (3.8 MET)", value: "3.8" },
+  { label: "Brisk, 3.5–3.9 mph (4.8 MET)", value: "4.8" },
+  { label: "Very brisk, 4.0–4.4 mph (5.5 MET)", value: "5.5" },
+  { label: "Very, very brisk, 4.5–4.9 mph (7.0 MET)", value: "7.0" },
+];
 
 const CURRENCIES: FieldOption[] = [
   { label: "US Dollar (USD)", value: "USD" }, { label: "Euro (EUR)", value: "EUR" }, { label: "British Pound (GBP)", value: "GBP" },
@@ -261,6 +325,33 @@ const definitions: CalculatorDefinition[] = [
     related: ["restaurant-food-cost", "catering-food-quantity", "wedding-food"],
   },
   {
+    slug: "cups-to-grams", name: "Cups to Grams Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🥣", description: "Convert a recipe volume to grams using a measured value for the selected ingredient.",
+    fields: [
+      { key: "amount", label: "Amount", type: "number", min: 0, max: 100000, step: 0.01, defaultValue: 1 },
+      { key: "volumeUnit", label: "Volume unit", type: "select", defaultValue: "cup", options: [{ label: "US cups", value: "cup" }, { label: "Tablespoons", value: "tbsp" }, { label: "Teaspoons", value: "tsp" }, { label: "US fluid ounces", value: "floz" }, { label: "Milliliters", value: "ml" }, { label: "Liters", value: "l" }] },
+      { key: "ingredient", label: "Ingredient and preparation", type: "select", defaultValue: "all-purpose-flour", options: COMMON_CUP_WEIGHTS.map(({ id, label }) => ({ label, value: id })) },
+    ],
+    results: [{ key: "grams", label: "Estimated weight", unit: "g", format: "number", estimate: true }, { key: "cupEquivalent", label: "Volume in US cups", unit: "cups", format: "number" }, { key: "gramsPerCup", label: "Reference weight", unit: "g per US cup", format: "number" }],
+    calculate: (v) => {
+      const ingredient = COMMON_CUP_WEIGHTS.find((item) => item.id === option(v, "ingredient", "all-purpose-flour")) ?? COMMON_CUP_WEIGHTS[0];
+      const amount = Math.max(0, n(v, "amount", 1));
+      const cups = amount * (CUP_VOLUME_EQUIVALENTS[option(v, "volumeUnit", "cup")] ?? 1);
+      const gramsPerCup = ingredient.grams / ingredient.cups;
+      return { grams: Math.round(cups * gramsPerCup), cupEquivalent: round(cups, 3), gramsPerCup: Math.round(gramsPerCup) };
+    },
+    howItWorks: ["Choose the ingredient and the preparation that match your recipe; these are ingredient-specific reference weights, not a universal volume-to-weight rule.", "The calculator converts the entered amount to US cups, then multiplies by the published grams-per-cup equivalent. Smaller chart measures are scaled proportionally to a cup.", "The displayed gram result is rounded to the nearest whole gram. For baking precision, weigh the ingredient and follow your recipe's measuring method."],
+    example: { title: "Half a cup of all-purpose flour", inputs: "0.5 US cup, all-purpose flour", result: "About 60 g using the chart reference of 120 g per US cup." },
+    faqs: [
+      { question: "Why does the ingredient matter?", answer: "A cup measures volume, while grams measure mass. Flour, sugar, honey, and other ingredients occupy the same volume but have different weights." },
+      { question: "Are these gram weights universal?", answer: "No. The references come from King Arthur Baking's ingredient chart. Flour brand, packing, sifting, particle size, moisture, and preparation change the result. Match the listed preparation and use a scale when precision matters." },
+      { question: "Which cup and volume conversions are used?", answer: "The calculator uses a US cup: 16 tablespoons, 48 teaspoons, 8 US fluid ounces, or about 236.588 milliliters. A recipe using a metric 250 ml cup may give a different result." },
+      { question: "Can I convert the result back to cups?", answer: "This tool starts with volume and estimates a weight for the selected ingredient. For other recipe scaling and supported unit changes, use Recipe Scaling; for volume or mass alone, use the Volume Converter or Weight Converter." },
+    ],
+    sources: [{ label: "King Arthur Baking, Ingredient Weight Chart", url: "https://www.kingarthurbaking.com/learn/ingredient-weight-chart" }],
+    seo: { title: "Cups to Grams Calculator by Ingredient | CalcForged", description: "Convert US cups, spoons, fluid ounces, milliliters, or liters to grams using ingredient-specific reference weights.", h1: "Cups to grams, by ingredient", intro: "A cup of flour does not weigh the same as a cup of sugar. Choose a listed ingredient, enter a volume, and get a gram estimate based on a published kitchen weight chart. Brand, packing, sifting, and preparation change the result, so treat each value as a reference and weigh ingredients when precision matters." },
+    related: ["recipe-scaling", "volume-converter", "weight-converter"],
+  },
+  {
     slug: "paint", name: "Paint Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▰", description: "Estimate gallons of paint for a room, including doors, windows, and coats.",
     fields: [{ key: "length", label: "Room length", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 12 }, { key: "width", label: "Room width", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 10 }, { key: "height", label: "Wall height", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 8 }, { key: "doors", label: "Doors", type: "number", unit: "doors", min: 0, defaultValue: 1 }, { key: "windows", label: "Windows", type: "number", unit: "windows", min: 0, defaultValue: 2 }, { key: "coats", label: "Coats", type: "number", unit: "coats", min: 1, max: 5, defaultValue: 2 }],
     results: [{ key: "area", label: "Paintable area", unit: "sq ft", format: "number" }, { key: "gallons", label: "Paint to buy", unit: "gal", format: "number", estimate: true }, { key: "sheen", label: "Practical sheen", format: "text" }],
@@ -305,7 +396,37 @@ const definitions: CalculatorDefinition[] = [
     example: { title: "12 × 10 ft rectangle", inputs: "Length 12 ft, width 10 ft", result: "120 sq ft, 13.33 sq yd, or 11.15 sq m." },
     faqs: [{ question: "Which shapes can I calculate?", answer: "Choose a rectangle, square, circle, triangle, trapezoid, or ellipse. Each shape shows the dimensions its formula needs." }, { question: "Can I calculate an irregular outline?", answer: "Split it into simple shapes, calculate each piece separately, add the areas, and subtract any openings. This calculator handles one shape at a time." }, { question: "Does a circle use its radius or diameter?", answer: "Enter the diameter, the full distance across the circle. The formula uses half of it as the radius." }, { question: "Can I enter meters?", answer: "Yes. Select meters and enter every dimension in meters. Results are still provided in square feet, square yards, and square meters." }],
     seo: { title: "Area Calculator for 6 Shapes | CalcForged", description: "Calculate the area of a rectangle, square, circle, triangle, trapezoid, or ellipse in square feet, square yards, and square meters.", h1: "Area calculator for common shapes", intro: "Get the area without swapping formulas. Choose a rectangle, square, circle, triangle, trapezoid, or ellipse, enter dimensions in feet or meters, and see the result in square feet, square yards, and square meters. For an irregular outline, split it into simple shapes, calculate each piece, then add the areas and subtract openings." },
-    related: ["flooring", "concrete", "mulch"],
+    related: ["patio-pavers", "flooring", "concrete"],
+  },
+  {
+    slug: "patio-pavers", name: "Patio Paver Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▦", description: "Estimate patio pavers from dimensions or known area, with an adjustable extra allowance.",
+    fields: [
+      { key: "measureBy", label: "Patio measurement", type: "select", defaultValue: "rectangle", options: [{ label: "Rectangle dimensions", value: "rectangle" }, { label: "Known area", value: "area" }] },
+      { key: "length", label: "Patio length", type: "number", unit: "ft", min: 0.1, max: 100000, step: 0.1, defaultValue: 12, visibleWhen: { key: "measureBy", values: ["rectangle"] } },
+      { key: "width", label: "Patio width", type: "number", unit: "ft", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "measureBy", values: ["rectangle"] } },
+      { key: "knownArea", label: "Patio area", type: "number", unit: "sq ft", min: 0.1, max: 100000000, step: 0.1, defaultValue: 120, visibleWhen: { key: "measureBy", values: ["area"] } },
+      { key: "paverLength", label: "Paver length", type: "number", unit: "in", min: 0.1, max: 48, step: 0.125, defaultValue: 12 },
+      { key: "paverWidth", label: "Paver width", type: "number", unit: "in", min: 0.1, max: 48, step: 0.125, defaultValue: 12 },
+      { key: "allowance", label: "Extra allowance", type: "number", unit: "%", min: 0, max: 50, step: 1, defaultValue: 10, help: "Adjust for your layout, cuts, and breakage; confirm unusual patterns with your supplier or installer." },
+    ],
+    results: [{ key: "area", label: "Patio area", unit: "sq ft", format: "number" }, { key: "coverage", label: "Coverage per paver", unit: "sq ft", format: "number" }, { key: "pavers", label: "Pavers to cover area", unit: "pavers", format: "number" }, { key: "order", label: "Pavers to order", unit: "pavers", format: "number", estimate: true, interpretation: "Includes the extra allowance you selected." }, { key: "extra", label: "Extra pavers", unit: "pavers", format: "number", estimate: true }],
+    calculate: (v) => {
+      const measureBy = option(v, "measureBy", "rectangle");
+      const area = Math.max(0, measureBy === "area" ? n(v, "knownArea", 120) : n(v, "length", 12) * n(v, "width", 10));
+      const paverLength = Math.max(0.1, n(v, "paverLength", 12));
+      const paverWidth = Math.max(0.1, n(v, "paverWidth", 12));
+      const coverage = paverLength * paverWidth / 144;
+      const rawPavers = area / coverage;
+      const pavers = ceil(rawPavers);
+      const allowance = Math.min(50, Math.max(0, n(v, "allowance", 10))) / 100;
+      const order = ceil(rawPavers * (1 + allowance));
+      return { area: round(area, 2), coverage: round(coverage, 3), pavers, order, extra: Math.max(0, order - pavers) };
+    },
+    howItWorks: ["For a rectangle, multiply patio length by width. You can also enter a known area calculated elsewhere, including a combined area for an irregular layout.", "Multiply each paver's face length by its face width in inches, then divide by 144 to get square feet per paver.", "Divide patio area by paver coverage, add your editable allowance, and round up to whole pavers. Joint spacing and pattern-specific cuts are not modeled separately."],
+    example: { title: "12 × 10 ft patio", inputs: "120 sq ft area, 12 × 12 in pavers, 10% extra allowance", result: "120 pavers to cover the area; order 132, including 12 extra." },
+    faqs: [{ question: "Can I use this for an irregular patio?", answer: "Yes. Split the outline into simple shapes with the Area Calculator, add the sections and subtract openings, then enter the total under Known area." }, { question: "Does it account for paver joints?", answer: "It uses the paver's face dimensions and does not model joint spacing separately. Follow your supplier or installer's layout guidance for a precise order." }, { question: "What is the extra allowance for?", answer: "It adds the percentage you choose to cover cuts or breakage. The default 10% is an editable planning starting point, not a guarantee." }, { question: "Does this estimate the base, sand, or edging?", answer: "No. It estimates paver pieces only; base material, bedding sand, edge restraints, labor, and cost are not included." }],
+    seo: { title: "Patio Paver Calculator – Paver Count & Allowance | CalcForged", description: "Estimate how many patio pavers to buy from rectangle dimensions or a known area, paver size, and an adjustable extra allowance.", h1: "Patio paver calculator", intro: "Plan a rectangular patio from its length and width, or enter an area you already calculated. Add paver face dimensions in inches and an editable allowance for cuts or breakage. CalcForged estimates the pieces needed to cover the area and the quantity to order. The calculation does not estimate base material, sand, edging, or labor." },
+    related: ["area", "flooring", "concrete"],
   },
   {
     slug: "flooring", name: "Flooring Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▤", description: "Calculate flooring square footage, waste allowance, boxes, and material cost.",
@@ -627,6 +748,97 @@ const definitions: CalculatorDefinition[] = [
     faqs: [{ question: "Is BMI accurate for everyone?", answer: "No. It doesn't distinguish muscle from fat, so athletes often score high, and it isn't calibrated for children, pregnancy, or adults over 65." }, { question: "What BMI is healthy?", answer: "For most adults, 18.5 to 24.9 is the standard healthy band, but individual health depends on far more than this one number." }, { question: "Why does the healthy range use my weight unit?", answer: "The range is calculated from your height and shown in the same unit you entered, so you can compare it directly with your weight." }, { question: "Should I use BMI or body fat percentage?", answer: "BMI is a quick population-level screen; body composition measures say more about individual risk. Treat BMI as a starting point, not a diagnosis." }],
     seo: { title: "BMI Calculator – Body Mass Index | CalcForged", description: "Calculate Body Mass Index in pounds or kilograms and see the standard weight category.", h1: "BMI calculator", intro: "Body Mass Index is the fastest general screen for whether your weight is in a standard healthy band for your height. Enter your weight and height in whichever units you use — pounds or kilograms, inches or centimeters — and the calculator returns your BMI, the standard category, and the weight range that corresponds to a healthy BMI for someone your height. BMI is a population screening tool, not a diagnosis: it can't tell muscle from fat, so use it as a starting point for a conversation with a healthcare provider." },
     related: ["pregnancy-due-date", "weight-converter", "age"],
+  },
+  {
+    slug: "walking-steps", name: "Walking Steps Calculator", category: "Health", categorySlug: "health", icon: "👟", description: "Estimate walking distance from steps and your measured step length, with an optional MET-based calorie estimate.",
+    fields: [
+      { key: "steps", label: "Step count", type: "number", min: 0, max: 10000000, step: 1, defaultValue: 5000 },
+      { key: "stepLengthMode", label: "Step length", type: "select", defaultValue: "direct", options: [{ label: "Enter a measured step length", value: "direct" }, { label: "Calculate from a measured walk", value: "measured" }] },
+      { key: "stepLength", label: "Distance per step", type: "number", unit: "in or cm", min: 0.01, max: 500, step: 0.01, defaultValue: "", visibleWhen: { key: "stepLengthMode", values: ["direct"] }, help: "One step is one foot placement, not a two-step stride." },
+      { key: "stepUnit", label: "Step-length unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }], visibleWhen: { key: "stepLengthMode", values: ["direct"] } },
+      { key: "calibrationDistance", label: "Measured walking distance", type: "number", unit: "ft or m", min: 0.01, max: 100000, step: 0.01, defaultValue: "", visibleWhen: { key: "stepLengthMode", values: ["measured"] } },
+      { key: "calibrationUnit", label: "Distance unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Meters", value: "m" }], visibleWhen: { key: "stepLengthMode", values: ["measured"] } },
+      { key: "calibrationSteps", label: "Steps counted over that distance", type: "number", min: 1, max: 1000000, step: 1, defaultValue: "", visibleWhen: { key: "stepLengthMode", values: ["measured"] } },
+      { key: "bodyWeight", label: "Body weight (optional, for calories)", type: "number", min: 0, max: 1000, step: 0.1, defaultValue: "" },
+      { key: "weightUnit", label: "Weight unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }] },
+      { key: "walkingMinutes", label: "Walking time (optional, for calories)", type: "number", unit: "minutes", min: 0, max: 100000, step: 1, defaultValue: "" },
+      { key: "walkingIntensity", label: "Closest level-walking pace (for calories)", type: "select", defaultValue: "3.8", options: WALKING_MET_OPTIONS, help: "Choose the 2024 Adult Compendium entry closest to the walk; terrain and personal effort can differ." },
+    ],
+    results: [{ key: "distanceMiles", label: "Estimated distance", format: "text", estimate: true }, { key: "distanceKm", label: "Metric distance", format: "text", estimate: true }, { key: "stepLengthUsed", label: "Step length used", format: "text" }, { key: "calories", label: "Estimated gross calories", format: "text", estimate: true, interpretation: "This optional MET estimate includes energy used at rest during the entered time." }],
+    calculate: (v) => {
+      const steps = Math.max(0, n(v, "steps", 0));
+      const mode = option(v, "stepLengthMode", "direct");
+      let stepLengthMeters = 0;
+      if (mode === "measured") {
+        const measuredDistance = n(v, "calibrationDistance", 0);
+        const measuredSteps = n(v, "calibrationSteps", 0);
+        const meters = option(v, "calibrationUnit", "ft") === "m" ? measuredDistance : measuredDistance * 0.3048;
+        if (measuredDistance > 0 && measuredSteps > 0) stepLengthMeters = meters / measuredSteps;
+      } else {
+        const enteredLength = n(v, "stepLength", 0);
+        stepLengthMeters = option(v, "stepUnit", "in") === "cm" ? enteredLength / 100 : enteredLength * 0.0254;
+      }
+      if (stepLengthMeters <= 0) return { distanceMiles: "Enter a positive step length or a measured distance and step count.", distanceKm: "Enter a positive step length or a measured distance and step count.", stepLengthUsed: "—", calories: "Add a step length before estimating distance." };
+      const distanceMeters = steps * stepLengthMeters;
+      const weight = n(v, "bodyWeight", 0);
+      const minutes = n(v, "walkingMinutes", 0);
+      const weightKg = option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
+      const met = Number(option(v, "walkingIntensity", "3.8"));
+      const calories = weightKg > 0 && minutes > 0 && met > 0 ? `${Math.round(met * weightKg * minutes / 60).toLocaleString("en-US")} kcal` : "Add body weight and walking time for a MET-based estimate.";
+      return { distanceMiles: `${round(distanceMeters / 1609.344, 2)} mi`, distanceKm: `${round(distanceMeters / 1000, 2)} km`, stepLengthUsed: `${round(stepLengthMeters / 0.0254, 1)} in per step (${round(stepLengthMeters * 100, 1)} cm)`, calories };
+    },
+    howItWorks: ["Enter the distance covered by one foot placement, or measure a known path and divide its distance by the steps you counted. Do not enter a two-step stride as a step length.", "Distance equals step count × step length. The calculator converts your input to miles and kilometers using exact length-unit factors.", "Calories are optional: enter body weight, actual walking minutes, and the closest listed level-walking intensity. The 2024 Adult Compendium defines 1 MET as about 1 kcal per kg per hour; this estimate uses MET × kilograms × hours and includes resting energy."],
+    example: { title: "A measured one-mile walk", inputs: "2,112 steps at 30 inches per step", result: "About 1.00 mile (1.61 km). A calorie estimate appears only when body weight and walking time are entered." },
+    faqs: [
+      { question: "How do I find my step length?", answer: "Walk a measured, flat distance at your usual pace and count each foot placement. Divide the distance by that count. For a better personal estimate, repeat the measurement and average the results." },
+      { question: "Is step length the same as stride length?", answer: "No. Step length is the distance for one foot placement. Stride length usually covers two steps, so entering a full stride here would roughly double the distance." },
+      { question: "How are walking calories estimated?", answer: "The optional estimate requires your weight, walking duration, and a selected walking MET value from the 2024 Adult Compendium. It does not multiply steps by a universal calories-per-step factor; actual energy use varies by person and conditions." },
+      { question: "Are the results exact?", answer: "No. Distance depends on the step length you enter or measure. The optional calorie result is a gross population-level estimate, not an individual measurement or medical advice." },
+    ],
+    sources: [{ label: "2024 Adult Compendium of Physical Activities, Walking MET values", url: "https://pacompendium.com/walking/" }, { label: "Compendium of Physical Activities, MET definition and conversion", url: "https://pacompendium.com/" }],
+    seo: { title: "Walking Steps Calculator: Steps to Miles and Kilometers | CalcForged", description: "Estimate walking distance from steps using your measured step length, with an optional sourced MET-based calorie estimate.", h1: "Walking steps to distance calculator", intro: "Turn a step count into an estimated distance using your own step length, or calculate it from a measured walk. Add your body weight, walking time, and a matching Compendium pace only if you want the optional calorie estimate. Step length varies, and the calorie result is a rough gross-energy estimate, not a personal measurement." },
+    related: ["length-converter", "calorie-tdee", "bmi"],
+  },
+  {
+    slug: "calorie-tdee", name: "Calorie and TDEE Calculator", category: "Health", categorySlug: "health", icon: "◉", description: "Estimate resting energy expenditure and total daily energy expenditure with Mifflin–St Jeor.",
+    fields: [
+      { key: "weight", label: "Body weight", type: "number", min: 0.1, max: 1000, step: 0.1, defaultValue: "" },
+      { key: "weightUnit", label: "Weight unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }] },
+      { key: "height", label: "Height", type: "number", min: 0.1, max: 300, step: 0.1, defaultValue: "" },
+      { key: "heightUnit", label: "Height unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters (cm)", value: "cm" }] },
+      { key: "age", label: "Age in years (study sample: 19–78)", type: "number", min: 19, max: 78, step: 1, defaultValue: "" },
+      { key: "equationConstant", label: "Equation constant from the source study", type: "select", defaultValue: "", options: [{ label: "Choose an equation constant", value: "" }, { label: "Female equation (−161)", value: "female" }, { label: "Male equation (+5)", value: "male" }], help: "The original model used two study categories; this constant is not a personalized gender assessment." },
+      { key: "activityFactor", label: "Activity assumption", type: "select", defaultValue: "", options: TDEE_ACTIVITY_OPTIONS, help: "These broad multipliers are assumptions, not a measured activity score." },
+    ],
+    results: [{ key: "resting", label: "Estimated resting energy", format: "text", estimate: true }, { key: "tdee", label: "Estimated total daily energy", format: "text", estimate: true }, { key: "activity", label: "Activity adjustment used", format: "text" }],
+    calculate: (v) => {
+      const weight = n(v, "weight", 0);
+      const height = n(v, "height", 0);
+      const age = n(v, "age", 0);
+      const equation = option(v, "equationConstant", "");
+      const activityFactor = Number(option(v, "activityFactor", ""));
+      if (age > 0 && (age < 19 || age > 78)) return { resting: "The source study's adult sample was ages 19–78; no estimate is shown outside that range.", tdee: "The source study's adult sample was ages 19–78; no estimate is shown outside that range.", activity: "—" };
+      if (weight <= 0 || height <= 0 || age <= 0 || !["male", "female"].includes(equation)) return { resting: "Enter weight, height, age, and the equation constant.", tdee: "Enter those details and choose an activity assumption.", activity: "Choose an activity assumption." };
+      if (!TDEE_ACTIVITY_LABELS[String(activityFactor)]) return { resting: "Complete the inputs to calculate an estimate.", tdee: "Choose an activity assumption to estimate daily energy.", activity: "Choose an activity assumption." };
+      const weightKg = option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
+      const heightCm = option(v, "heightUnit", "in") === "in" ? height * 2.54 : height;
+      const constant = equation === "male" ? 5 : -161;
+      const resting = 10 * weightKg + 6.25 * heightCm - 5 * age + constant;
+      const tdee = resting * activityFactor;
+      const activity = TDEE_ACTIVITY_LABELS[String(activityFactor)];
+      return { resting: `${Math.round(resting).toLocaleString("en-US")} kcal/day`, tdee: `${Math.round(tdee).toLocaleString("en-US")} kcal/day`, activity: `×${activityFactor} (${activity})` };
+    },
+    howItWorks: ["Mifflin–St Jeor estimates resting energy: 10 × weight in kg + 6.25 × height in cm − 5 × age, then add 5 for the male equation or subtract 161 for the female equation.", "To estimate total daily energy expenditure (TDEE), multiply resting energy by the selected activity factor: 1.2, 1.375, 1.55, 1.725, or 1.9.", "US weights and heights are converted to kilograms and centimeters first. Results are rounded to whole kcal/day; the activity factor and equation are broad assumptions, not personal measurements."],
+    example: { title: "70 kg, 175 cm, age 30", inputs: "Male equation (+5), moderately active (×1.55)", result: "About 1,649 kcal/day resting energy and 2,556 kcal/day estimated TDEE." },
+    faqs: [
+      { question: "What equation does this use?", answer: "The calculator uses the Mifflin–St Jeor predictive equation for resting energy expenditure, then multiplies by a selected activity factor to estimate TDEE." },
+      { question: "What do the activity factors mean?", answer: "They are broad labels from a common clinical calculation: sedentary ×1.2, lightly active ×1.375, moderately active ×1.55, active ×1.725, and very active ×1.9. They do not measure your daily activity." },
+      { question: "Is this a calorie target or medical advice?", answer: "No. TDEE is an estimate of energy expenditure, not a prescribed intake, diagnosis, or medically personalized calorie target. Individual needs can differ from an equation estimate; ask a qualified health professional for personal guidance." },
+      { question: "Who was the equation studied on?", answer: "The original study derived the equation from 498 healthy adults ages 19–78. Results can differ for individuals and for people outside that study population." },
+    ],
+    sources: [{ label: "Mifflin et al. (1990), original study on PubMed", url: "https://pubmed.ncbi.nlm.nih.gov/2305711/" }, { label: "Medscape, Mifflin–St Jeor equation and activity factors", url: "https://reference.medscape.com/calculator/846/mifflin-st-jeor-equation-calculator" }],
+    seo: { title: "Calorie and TDEE Calculator: Mifflin–St Jeor | CalcForged", description: "Estimate resting energy and TDEE from Mifflin–St Jeor with clear activity multipliers and unit conversions.", h1: "Calorie and TDEE calculator", intro: "Estimate resting energy with Mifflin–St Jeor, then apply a selected activity factor for a rough TDEE. Choose the source-study equation constant and a broad activity assumption. Results are general estimates, not prescribed calorie targets, diagnoses, or personalized medical guidance." },
+    related: ["bmi", "weight-converter", "walking-steps"],
   },
   {
     slug: "pregnancy-due-date", name: "Pregnancy Due Date Calculator", category: "Health", categorySlug: "health", icon: "🤰", description: "Estimate a due date from your last period or conception date.",
