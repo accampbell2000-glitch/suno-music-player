@@ -10,9 +10,18 @@ import { getSession, signInUrl } from "@/lib/session";
 import { AffiliateProducts } from "@/components/affiliate-products";
 import { LeadMagnetSection } from "@/components/lead-magnet-section";
 import { calculatorDefinitions, calculatorsBySlug } from "@/lib/calculator-definitions";
+import { getAppUrl } from "@/lib/site-url";
 
 export function generateStaticParams() { return calculatorDefinitions.map((definition) => ({ category: definition.categorySlug, slug: definition.slug })); }
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const { slug } = await params; const definition = calculatorsBySlug[slug]; return definition ? { title: definition.seo.title, description: definition.seo.description } : {}; }
+export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata> {
+  const { category, slug } = await params;
+  const definition = calculatorsBySlug[slug];
+  return definition && definition.categorySlug === category ? {
+    title: definition.seo.title,
+    description: definition.seo.description,
+    alternates: { canonical: new URL(`/calculators/${definition.categorySlug}/${definition.slug}`, getAppUrl()).toString() },
+  } : {};
+}
 
 export default async function CalculatorPage({ params }: { params: Promise<{ category: string; slug: string }> }) {
   const { category, slug } = await params; const definition = calculatorsBySlug[slug]; if (!definition || definition.categorySlug !== category) notFound();
