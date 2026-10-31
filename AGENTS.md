@@ -91,3 +91,8 @@ house convention (e.g. `lib/calculator-definitions.ts`). Instead:
 ## Domain
 
 - The site's canonical domain is **https://calcforged.com** (registered Sep 21 via Crevio's registrar, DNS managed). Never hardcode calcforged.crevio.app anywhere — print URLs, emails, OG tags use calcforged.com (canonical/sitemap come from CREVIO_APP_URL automatically).
+
+## Affiliate recommendations
+
+- Every calculator page shows exactly three context-fit Amazon options in the bottom band. When an in-calculator PartnerPick exists, exclude its query so the bottom cards remain alternatives. Keep `affiliateBottomPicks` coverage tests green.
+- Route Amazon searches through `affiliateUrl`, label each one “Paid link,” and show the exact Amazon Associate statement clearly. Use Abracadabra only on relevant party calculators.

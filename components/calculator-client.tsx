@@ -22,9 +22,9 @@ function PartnerPick({ slug }: { slug: string }) {
       <a href={affiliateUrl(pick.query)} target="_blank" rel="sponsored nofollow noopener">
         <strong>{pick.name}</strong>
         <span>{pick.blurb}</span>
-        <em aria-hidden="true">Check current price ↗</em>
+        <em>Paid link · Check current price ↗</em>
       </a>
-      <small>As an Amazon Associate, CalcForged earns from qualifying purchases.</small>
+      <small>As an Amazon Associate I earn from qualifying purchases.</small>
     </div>
   );
 }
@@ -307,7 +307,7 @@ function TireMatchResults({ value }: { value: string }) {
   const linkCount = lines.filter((line) => sizePattern.test(line)).length;
   return (
     <div className="cf-tire-match-results">
-      {linkCount > 0 && <div className="cf-tire-shopping-note"><strong>Shop by tire size</strong><span>Select a size below to search Amazon. Calculated options may not be retailer-verified.</span></div>}
+      {linkCount > 0 && <div className="cf-tire-shopping-note"><strong>Shop by tire size</strong><span>Select a size below to search Amazon (paid link). Calculated options may not be retailer-verified.</span></div>}
       <ul className="cf-tire-match-lines">
         {lines.map((line, index) => {
           const match = sizePattern.exec(line);
@@ -318,7 +318,7 @@ function TireMatchResults({ value }: { value: string }) {
           return <li className="cf-tire-match-row" key={`${label}-${size}-${index}`}><span className="cf-tire-match-label">{label === "Your size" && !isVerified ? "Entered size" : label}: </span><a className={`cf-tire-match-size${isVerified ? "" : " cf-tire-match-unverified"}`} href={affiliateUrl(`${searchSize} tires`)} target="_blank" rel="sponsored nofollow noopener" aria-label={`Search Amazon for tires in size ${size}${isVerified ? "" : ", not retailer-verified"}`}>{size}</a><span className="cf-tire-match-details"> · {details}</span>{!isVerified && <small className="cf-tire-unverified-note">Not in our verified retailer list.</small>}</li>;
         })}
       </ul>
-      {linkCount > 0 && <small className="cf-tire-affiliate-disclosure">As an Amazon Associate, CalcForged earns from qualifying purchases.</small>}
+      {linkCount > 0 && <small className="cf-tire-affiliate-disclosure">As an Amazon Associate I earn from qualifying purchases.</small>}
     </div>
   );
 }

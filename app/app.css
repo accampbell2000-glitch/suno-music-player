@@ -390,11 +390,12 @@
 .cf-affiliate-card { display: grid; grid-template-columns: 1fr auto; align-items: start; column-gap: 18px; padding: 24px 0; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
 .cf-affiliate-card:nth-child(even) { border-left: 1px solid var(--line); padding-left: 24px; }
 .cf-affiliate-card h3 { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
+.cf-affiliate-card h3 .cf-affiliate-paid { margin-left: 5px; color: var(--muted-ink); font-family: 'DM Mono', monospace; font-size: .58rem; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; }
 .cf-affiliate-card p { color: var(--muted-ink); font-size: .8rem; line-height: 1.5; margin-top: 7px; max-width: 330px; }
 .cf-affiliate-card .cf-card-arrow { color: var(--ember); font-size: 1.1rem; transition: transform .18s ease; }
 .cf-affiliate-card:hover h3 { color: var(--ember); }
 .cf-affiliate-card:hover .cf-card-arrow { transform: translate(2px, -2px); }
-.cf-affiliate-disclosure { margin-top: 16px; font-family: 'DM Mono', monospace; font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted-ink); max-width: 520px; }
+.cf-affiliate-disclosure { margin-top: 16px; font-family: 'DM Mono', monospace; font-size: .72rem; line-height: 1.4; color: var(--muted-ink); max-width: 520px; }
 
 /* Lead magnet band (food & event calculators) */
 .cf-leadmagnet { padding-top: 95px; }
@@ -427,7 +428,7 @@
 .cf-partner-strip a span { color: var(--muted-ink); font-size: .74rem; line-height: 1.45; }
 .cf-partner-strip a em { font-style: normal; font-family: 'DM Mono', monospace; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ember); margin-top: 3px; }
 .cf-partner-strip a:hover em { text-decoration: underline; }
-.cf-partner-strip > small { display: block; margin-top: 9px; font-size: .58rem; color: #989b92; }
+.cf-partner-strip > small { display: block; margin-top: 9px; font-size: .72rem; line-height: 1.4; color: var(--muted-ink); }
 
 .cf-abracadabra-pick { border-left: 3px solid var(--ember); }
 .cf-abracadabra-pick a { grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 14px; }
@@ -605,7 +606,7 @@ html.cf-print-mode .cf-print-sheet * { visibility: visible; }
 .cf-tire-match-size:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 .cf-tire-match-details { color: var(--muted-ink); }
 .cf-tire-match-note { margin-top: 8px; color: var(--muted-ink); font-size: .68rem; line-height: 1.45; }
-.cf-tire-affiliate-disclosure { display: block; margin-top: 8px; color: var(--muted-ink); font-family: 'DM Mono', monospace; font-size: .57rem; line-height: 1.35; }
+.cf-tire-affiliate-disclosure { display: block; margin-top: 8px; color: var(--muted-ink); font-family: 'DM Mono', monospace; font-size: .72rem; line-height: 1.4; }
 .cf-tire-shopping-note { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 8px; padding: 8px 10px; border-left: 2px solid var(--ember); background: var(--paper-2); }
 .cf-tire-shopping-note strong { color: var(--ink); font-size: .7rem; }
 .cf-tire-shopping-note span { color: var(--muted-ink); font-size: .68rem; line-height: 1.35; }

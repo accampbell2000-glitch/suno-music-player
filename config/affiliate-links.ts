@@ -1,14 +1,6 @@
-// Affiliate recommendations for the buying-intent calculators.
-//
-// HOW TO EARN FROM THESE LINKS
-// 1. Andrew signs up for Amazon Associates (free, needs the live site URL):
-//    https://affiliate-program.amazon.com — approval usually takes 1–3 days.
-// 2. Put the tracking id (ends in "-20") in AMAZON_TAG below, redeploy, and
-//    every link on this page earns from then on. Keep the tag ONLY here.
-//
-// With no tag set, links still work — they just don't earn yet. The FTC
-// disclosure under the grid switches to the Amazon Associates wording once
-// the tag is configured.
+// Context-fit recommendations for every calculator page.
+// Amazon Associates is configured here; send every Amazon search through affiliateUrl.
+// Bottom bands use three distinct alternatives to the in-calculator pick, with a clear paid-link label and site disclosure.
 
 export const AMAZON_TAG = "calcforged-20";
 
@@ -22,8 +14,8 @@ export function affiliateUrl(query: string): string {
 }
 
 export const affiliateDisclosure: string = AMAZON_TAG
-	? "As an Amazon Associate, CalcForged earns from qualifying purchases made through these links."
-	: "These links point to products we recommend. Commission links may be added later; clicking costs you nothing either way.";
+	? "As an Amazon Associate I earn from qualifying purchases."
+	: "These are product recommendations. Any affiliate relationship is disclosed beside the link.";
 
 export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 	paint: [
@@ -211,10 +203,15 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Cheese knife set", blurb: "Soft-cheese knives, fork-tipped spears, and labels keep the board moving.", query: "cheese knife set with markers" },
 		{ name: "Serving bowls", blurb: "Small bowls for olives, honey, and nuts hold the loose items in place.", query: "small serving bowls set condiment" },
 	],
+	"fuel-mileage": [
+		{ name: "Fuel mileage logbook", blurb: "Record fill-ups and odometer readings alongside your fuel-economy estimate.", query: "vehicle fuel mileage log book" },
+	],
+	"gig-driver-mileage-tracker": [
+		{ name: "Vehicle mileage logbook", blurb: "Keep a paper backup of trip dates, odometer readings, and work miles.", query: "business vehicle mileage logbook" },
+	],
 };
 
-// The single strongest click for each calculator, shown as a compact strip
-// inside the calculator right under the results (the highest-intent moment).
+// A compact partner pick shown inside selected calculators, under the results.
 export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	paint: { name: "Painter's tape", blurb: "Your paint math is done — clean edges are next.", query: "painters tape multi surface" },
 	flooring: { name: "Flooring installation kit", blurb: "Boxes are counted — protect the plank edges while you lay them.", query: "flooring installation kit tapping block" },
@@ -251,4 +248,236 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 	"charcuterie-board": { name: "Wood serving board", blurb: "Amounts planned — a big board is what makes the spread read as one.", query: "large wood charcuterie serving board" },
 	"length-converter": { name: "Tape measure", blurb: "One tape, both unit systems — measure once, convert never.", query: "tape measure double sided metric" },
 	"volume-converter": { name: "Measuring cup set", blurb: "Cups, ounces, and milliliters in one set — the converters' physical cousins.", query: "measuring cup set metric us" },
+	"cups-to-grams": { name: "Digital kitchen scale", blurb: "Weigh ingredients instead of relying on volume when precision matters.", query: "digital kitchen scale grams" },
+	area: { name: "Laser distance measure", blurb: "Measure room dimensions before entering them in the calculator.", query: "laser distance measure indoor" },
+	"patio-pavers": { name: "Rubber paver mallet", blurb: "Adjust pavers while laying out a patio.", query: "rubber paver mallet" },
+	mortgage: { name: "Homebuying document organizer", blurb: "Keep lender estimates, notes, and closing paperwork together.", query: "homebuying document organizer folder" },
+	loan: { name: "Debt payoff planner", blurb: "Track balances and planned payments beside your loan estimate.", query: "debt payoff planner notebook" },
+	"auto-loan-payoff": { name: "Car payment tracker", blurb: "Keep due dates and payoff notes with your vehicle records.", query: "car loan payment tracker notebook" },
+	investment: { name: "Investment journal", blurb: "Record contributions and assumptions alongside your estimates.", query: "investment journal notebook" },
+	savings: { name: "Budget planner", blurb: "Track savings goals and contributions in one place.", query: "budget planner savings goals notebook" },
+	"compound-interest": { name: "Savings and investment journal", blurb: "Record starting balances and contribution assumptions for future comparisons.", query: "savings investment journal notebook" },
+	bmi: { name: "Digital body-weight scale", blurb: "Use your own measured weight as a calculator input.", query: "digital body weight scale" },
+	"walking-steps": { name: "Pedometer", blurb: "Count steps on a walk to compare with the estimate.", query: "pedometer step counter" },
+	"calorie-tdee": { name: "Kitchen food scale", blurb: "For people who track portions, a scale measures ingredients by weight.", query: "digital kitchen food scale grams" },
+	"pregnancy-due-date": { name: "Pregnancy planner", blurb: "Keep appointment dates and questions together for your care team.", query: "pregnancy planner journal appointments" },
+	"currency-converter": { name: "Travel wallet", blurb: "Keep travel cards, cash, and documents organized.", query: "travel wallet passport organizer" },
+	"time-zone": { name: "World time clock", blurb: "Check local times across regions while scheduling or traveling.", query: "world time zone clock" },
+	percentage: { name: "Pocket calculator", blurb: "A handheld calculator for quick checks away from a browser.", query: "pocket calculator percent key" },
+	"weight-converter": { name: "Digital luggage scale", blurb: "Check a bag's weight before heading to the airport.", query: "digital luggage scale" },
+	tip: { name: "Server book", blurb: "Keep order notes, checks, and tip records in one pocket organizer.", query: "server book waiter pad" },
+	age: { name: "Birthday calendar", blurb: "Keep birthdays and family milestones visible through the year.", query: "birthday calendar perpetual" },
+	date: { name: "Daily planner", blurb: "Keep due dates, appointments, and date notes together.", query: "daily planner calendar notebook" },
+	time: { name: "Digital stopwatch", blurb: "Track an elapsed interval alongside time calculations.", query: "digital stopwatch timer" },
+	gpa: { name: "Academic planner", blurb: "Track assignment dates and term grades alongside GPA calculations.", query: "academic planner student semester" },
+	"square-root-cube-root": { name: "Scientific calculator", blurb: "A handheld option for checking roots and other math.", query: "scientific calculator square root cube root" },
+	"sandwich-quantity": { name: "Sandwich serving trays", blurb: "Organize prepared sandwiches for serving or pickup.", query: "sandwich serving trays catering" },
+	"christmas-tree-water": { name: "Christmas tree watering funnel", blurb: "Refill a tree stand with a watering funnel made for holiday trees.", query: "christmas tree watering funnel" },
 };
+
+// Bottom-of-page options complement any in-calculator PartnerPick.
+const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
+	"catering-food-quantity": [
+		{ name: "Buffet serving utensil set", blurb: "Add serving spoons and tongs for a self-service line.", query: "buffet serving utensil set" },
+	],
+	"taco-bar": [
+		{ name: "Taco serving tongs", blurb: "Keep tortillas and toppings easy to reach on the serving line.", query: "taco serving tongs set" },
+	],
+	"restaurant-food-cost": [
+		{ name: "Portion-control scoop set", blurb: "Use consistent scoop sizes when portioning menu items.", query: "restaurant portion control scoop set" },
+		{ name: "Food storage labels", blurb: "Label prepared ingredients and containers in the kitchen.", query: "food storage labels kitchen" },
+	],
+	"recipe-scaling": [
+		{ name: "Large mixing bowl set", blurb: "Give scaled recipes room to mix in batches.", query: "large mixing bowl set stainless steel" },
+		{ name: "Baking conversion chart", blurb: "Keep common kitchen measurements visible while adjusting a recipe.", query: "baking measurement conversion chart magnet" },
+	],
+	"cups-to-grams": [
+		{ name: "Dry measuring cup set", blurb: "Measure dry ingredients by volume for comparison with gram weights.", query: "dry measuring cup set stainless" },
+		{ name: "Stainless measuring spoons", blurb: "Measure smaller recipe amounts across common spoon sizes.", query: "stainless steel measuring spoons set" },
+		{ name: "Baking conversion chart", blurb: "Keep common volume and weight conversions handy in the kitchen.", query: "baking measurement conversion chart magnet" },
+	],
+	area: [
+		{ name: "Tape measure", blurb: "Measure room and project dimensions before entering them here.", query: "metric imperial tape measure" },
+		{ name: "Measuring wheel", blurb: "Measure longer outdoor distances for area estimates.", query: "measuring wheel distance" },
+		{ name: "Grid paper pad", blurb: "Sketch a room or project footprint to keep dimensions organized.", query: "engineering graph paper pad" },
+	],
+	"patio-pavers": [
+		{ name: "Paver edging", blurb: "Use edging to define the outside line of a paver layout.", query: "landscape paver edging spikes" },
+		{ name: "Polymeric jointing sand", blurb: "A jointing material for filling gaps between patio pavers.", query: "polymeric jointing sand pavers" },
+		{ name: "Paver spacers", blurb: "Keep consistent joints while laying out a paver surface.", query: "patio paver spacers" },
+	],
+	mortgage: [
+		{ name: "Financial calculator", blurb: "Compare payment and interest scenarios alongside this estimate.", query: "financial calculator mortgage" },
+		{ name: "Home budget planner", blurb: "Organize expected housing costs and monthly household expenses.", query: "home budget planner monthly expenses" },
+		{ name: "Mortgage amortization workbook", blurb: "Record loan balance and payment scenarios for comparison.", query: "mortgage amortization workbook" },
+	],
+	loan: [
+		{ name: "Financial calculator", blurb: "Run payment and interest calculations away from a browser.", query: "financial calculator loan amortization" },
+		{ name: "Debt payoff worksheet", blurb: "Track balances and planned payments across loans.", query: "debt payoff worksheet planner" },
+		{ name: "Bill-tracking budget binder", blurb: "Keep monthly bills, due dates, and budget notes together.", query: "budget binder bill tracker" },
+	],
+	"auto-loan-payoff": [
+		{ name: "Vehicle expense logbook", blurb: "Keep vehicle costs and maintenance notes in one record.", query: "vehicle expense logbook car maintenance" },
+		{ name: "Auto loan amortization calculator", blurb: "Compare a handheld payment calculation with this payoff estimate.", query: "auto loan amortization calculator" },
+		{ name: "Vehicle document organizer", blurb: "Store registration, insurance, and loan paperwork together.", query: "vehicle document organizer folder" },
+	],
+	investment: [
+		{ name: "Portfolio tracker journal", blurb: "Record balances, contributions, and assumptions for later review.", query: "investment portfolio tracker journal" },
+		{ name: "Financial calculator", blurb: "Check contribution and return scenarios with a handheld tool.", query: "financial calculator investment" },
+		{ name: "Asset allocation workbook", blurb: "Organize portfolio notes and allocation assumptions.", query: "asset allocation workbook investing" },
+	],
+	savings: [
+		{ name: "Savings challenge binder", blurb: "Track deposits toward a savings goal with a paper ledger.", query: "savings challenge binder envelopes" },
+		{ name: "Cash envelope wallet", blurb: "Separate cash categories with a portable envelope organizer.", query: "cash envelope wallet budget" },
+		{ name: "Savings goal tracker", blurb: "Record target amounts and contributions over time.", query: "savings goal tracker notebook" },
+	],
+	"compound-interest": [
+		{ name: "Compound interest workbook", blurb: "Work through contribution and compounding scenarios on paper.", query: "compound interest workbook savings" },
+		{ name: "Financial calculator", blurb: "Check interest and contribution calculations with a handheld tool.", query: "financial calculator compounding interest" },
+		{ name: "Savings goal chart", blurb: "Track deposits and milestones alongside the estimate.", query: "savings goal tracker chart" },
+	],
+	bmi: [
+		{ name: "Height measuring tape", blurb: "Measure height for the calculator's height input.", query: "height measuring tape wall adult" },
+		{ name: "Body measurement journal", blurb: "Keep personal measurement notes together if you choose to track them.", query: "body measurement journal notebook" },
+		{ name: "Body measuring tape", blurb: "A flexible tape for recording body measurements.", query: "body measuring tape measurements" },
+	],
+	"walking-steps": [
+		{ name: "Walking shoes", blurb: "Footwear for walking routes and everyday step-count goals.", query: "walking shoes adults" },
+		{ name: "Reflective walking vest", blurb: "Add visibility for walks near traffic or in low light.", query: "reflective vest walking running" },
+		{ name: "Walking waist pack", blurb: "Carry a phone and small essentials while walking.", query: "walking waist pack phone" },
+	],
+	"calorie-tdee": [
+		{ name: "Meal prep containers", blurb: "Portion meals into containers for weekday storage.", query: "meal prep containers set" },
+		{ name: "Portion-control plates", blurb: "Use marked sections to organize meal portions at serving time.", query: "portion control plate" },
+		{ name: "Food journal", blurb: "Keep meal notes alongside personal estimates if you track them.", query: "food journal meal tracker notebook" },
+	],
+	"pregnancy-due-date": [
+		{ name: "Pregnancy journal", blurb: "Keep questions, appointment notes, and personal milestones together.", query: "pregnancy journal appointment notes" },
+		{ name: "Prenatal appointment notebook", blurb: "Organize questions and notes for prenatal appointments.", query: "prenatal appointment notebook pregnancy" },
+		{ name: "Birth plan organizer", blurb: "Write down preferences and discussion points for your care team.", query: "birth plan organizer notebook" },
+	],
+	"currency-converter": [
+		{ name: "Passport organizer", blurb: "Keep travel documents and cards together on a trip.", query: "travel passport organizer wallet" },
+		{ name: "Travel money belt", blurb: "Carry travel documents and cash close to you while traveling.", query: "travel money belt passport" },
+		{ name: "Pocket currency conversion guide", blurb: "Keep a printed conversion reference handy when traveling.", query: "currency conversion pocket guide travel" },
+	],
+	"time-zone": [
+		{ name: "Dual time-zone clock", blurb: "Display two local times for scheduling across regions.", query: "dual time zone clock" },
+		{ name: "Travel alarm clock", blurb: "Keep a small clock available when working or traveling away from home.", query: "travel alarm clock digital" },
+		{ name: "World time desk clock", blurb: "Check several local times while planning calls across regions.", query: "world time desk clock multiple time zones" },
+	],
+	percentage: [
+		{ name: "Scientific calculator", blurb: "A handheld option for percentage and other math checks.", query: "scientific calculator percent function" },
+		{ name: "Financial calculator", blurb: "Use a dedicated handheld tool for financial percentage calculations.", query: "financial calculator percentage" },
+		{ name: "Math reference cards", blurb: "Keep common formulas and percentage rules nearby for study.", query: "math formula reference cards percentage" },
+	],
+	"weight-converter": [
+		{ name: "Shipping scale", blurb: "Weigh parcels before preparing them for mailing.", query: "digital shipping scale postal" },
+		{ name: "Kitchen scale", blurb: "Measure ingredients by weight in the kitchen.", query: "digital kitchen scale grams ounces" },
+		{ name: "Bathroom scale", blurb: "Measure body weight when you need a physical reading.", query: "digital bathroom scale" },
+	],
+	"length-converter": [
+		{ name: "Metric ruler", blurb: "Measure small items directly in metric units.", query: "metric ruler centimeters inches" },
+		{ name: "Digital caliper", blurb: "Measure small widths and diameters in metric or inch units.", query: "digital caliper metric inch" },
+		{ name: "Measuring wheel", blurb: "Measure longer distances across a floor or outdoor space.", query: "measuring wheel distance" },
+	],
+	"volume-converter": [
+		{ name: "Liquid measuring cup", blurb: "Measure liquid ingredients in common kitchen units.", query: "glass liquid measuring cup ounces milliliters" },
+		{ name: "Measuring spoon set", blurb: "Measure small liquid and dry ingredients by volume.", query: "measuring spoons set stainless" },
+		{ name: "Graduated beaker set", blurb: "Read liquid volumes from marked containers for projects or recipes.", query: "graduated measuring beaker set" },
+	],
+	tip: [
+		{ name: "Server wallet", blurb: "Keep checks and small work essentials organized during a shift.", query: "waiter server wallet check presenter" },
+		{ name: "Waitstaff calculator", blurb: "Use a handheld calculator for tip and bill arithmetic.", query: "pocket calculator tip percentage" },
+		{ name: "Server apron", blurb: "Carry pens and small service supplies during a shift.", query: "waiter server apron pockets" },
+	],
+	age: [
+		{ name: "Perpetual calendar", blurb: "Track birthdays and recurring dates without replacing the calendar each year.", query: "perpetual birthday calendar" },
+		{ name: "Family wall calendar", blurb: "Keep birthdays and family events visible at home.", query: "family wall calendar birthdays" },
+		{ name: "Birthday reminder book", blurb: "Write down birthdays and milestone dates in one place.", query: "birthday reminder book address book" },
+	],
+	date: [
+		{ name: "Desk calendar", blurb: "Keep dates and short reminders visible while working.", query: "desk calendar monthly" },
+		{ name: "Monthly planner pad", blurb: "Lay out deadlines and appointments by month.", query: "monthly planner pad dates" },
+		{ name: "Perpetual date stamp", blurb: "Mark dates on paperwork without writing them by hand.", query: "perpetual date stamp" },
+	],
+	time: [
+		{ name: "Kitchen timer", blurb: "Track a timed interval while you work or prepare food.", query: "digital kitchen timer" },
+		{ name: "Wall clock", blurb: "Keep the current time visible in a workspace.", query: "wall clock easy read" },
+		{ name: "Time log notebook", blurb: "Record start times, end times, and elapsed work periods.", query: "time log notebook work hours" },
+	],
+	gpa: [
+		{ name: "Grade tracker notebook", blurb: "Record course grades and assignment results through a term.", query: "student grade tracker notebook" },
+		{ name: "Graphing calculator", blurb: "A handheld tool for coursework that uses graphing and advanced math.", query: "graphing calculator student" },
+		{ name: "Semester gradebook", blurb: "Organize course names, assignment scores, and term totals.", query: "student semester gradebook planner" },
+	],
+	"square-root-cube-root": [
+		{ name: "Math reference handbook", blurb: "Keep formulas and worked examples nearby for study.", query: "math reference handbook algebra roots" },
+		{ name: "Graph paper notebook", blurb: "Sketch equations and organize math work on a grid.", query: "graph paper notebook math" },
+		{ name: "Geometry tool set", blurb: "Use a ruler, compass, and protractor for math exercises.", query: "geometry set ruler compass protractor" },
+	],
+	"wedding-dessert-table": [
+		{ name: "Cake knife and server set", blurb: "Serve cake and plated desserts at a reception.", query: "wedding cake knife and server set" },
+	],
+	"catering-price-per-person": [
+		{ name: "Portion-control scoop set", blurb: "Use consistent scoop sizes when serving menu portions.", query: "portion control scoop set restaurant" },
+		{ name: "Menu costing workbook", blurb: "Organize ingredient costs and selling prices for menu items.", query: "restaurant menu costing workbook" },
+		{ name: "Food container labels", blurb: "Mark prepared ingredients and storage containers in the kitchen.", query: "food container labels kitchen" },
+	],
+	"appetizers-per-person": [
+		{ name: "Food warming trays", blurb: "Keep prepared appetizers organized for buffet service.", query: "electric food warming tray buffet" },
+	],
+	"yarn-yardage": [
+		{ name: "Knitting needle set", blurb: "Keep a range of needle sizes available for different projects.", query: "knitting needle set interchangeable" },
+	],
+	"balloon-quantity": [
+		{ name: "Assorted latex balloons", blurb: "Choose colors and sizes for the planned arrangement.", query: "latex balloons assorted colors party" },
+	],
+	"fuel-mileage": [
+		{ name: "OBD2 scanner", blurb: "Read vehicle diagnostic data alongside your mileage notes.", query: "OBD2 scanner car" },
+		{ name: "Digital tire pressure gauge", blurb: "Check tire pressure and keep the reading with vehicle records.", query: "digital tire pressure gauge car" },
+	],
+	"gig-driver-mileage-tracker": [
+		{ name: "Phone car mount", blurb: "Keep navigation visible from a mounted phone while driving.", query: "car phone mount dashboard" },
+		{ name: "Insulated delivery bag", blurb: "Carry food orders in a bag made for delivery trips.", query: "insulated delivery bag food" },
+	],
+	"tire-size": [
+		{ name: "Automotive torque wrench", blurb: "Tighten wheel fasteners to the vehicle maker's specified torque.", query: "automotive torque wrench lug nuts" },
+	],
+	"train-scale-converter": [
+		{ name: "Model railroad turnout", blurb: "Add a switching section sized for your model track scale.", query: "model railroad turnout track" },
+	],
+	"miniature-scale-converter": [
+		{ name: "Miniature detail brush set", blurb: "Use fine brushes for small figures and painted details.", query: "miniature detail paint brush set" },
+	],
+	"filament-cost": [
+		{ name: "3D printer nozzle set", blurb: "Keep compatible replacement nozzles available for routine changes.", query: "3d printer brass nozzle set 0.4mm" },
+	],
+	"resin-cost": [
+		{ name: "Silicone work mat", blurb: "Protect a work surface during resin printing cleanup.", query: "silicone mat resin 3d printing" },
+	],
+	"sandwich-quantity": [
+		{ name: "Catering sandwich boxes", blurb: "Pack prepared sandwiches for pickup or delivery.", query: "catering sandwich boxes disposable" },
+		{ name: "Sandwich cutter", blurb: "Cut prepared sandwiches into consistent portions.", query: "commercial sandwich cutter" },
+		{ name: "Serving tongs", blurb: "Set out utensils for self-service sandwich platters.", query: "stainless serving tongs buffet" },
+	],
+	"charcuterie-board": [
+		{ name: "Cheese board labels", blurb: "Mark cheese names and dietary notes on a serving spread.", query: "cheese board labels markers" },
+	],
+	"christmas-tree-water": [
+		{ name: "Christmas tree stand", blurb: "Choose a stand with a reservoir sized for your tree.", query: "christmas tree stand water reservoir" },
+		{ name: "Tree stand water level alarm", blurb: "Get a reminder when the stand's water level needs attention.", query: "christmas tree stand water level alarm" },
+		{ name: "Christmas tree stand mat", blurb: "Place a protective mat under the tree stand to catch drips.", query: "christmas tree stand protective mat" },
+	],
+};
+
+export function affiliateBottomPicks(slug: string): AffiliateProduct[] {
+	const topQuery = affiliateTopPicks[slug]?.query;
+	const picked: AffiliateProduct[] = [];
+	for (const pick of [...(affiliatePicks[slug] ?? []), ...(affiliateBottomAlternatives[slug] ?? [])]) {
+		if (pick.query === topQuery || picked.some((item) => item.query === pick.query)) continue;
+		picked.push(pick);
+		if (picked.length === 3) break;
+	}
+	return picked;
+}
