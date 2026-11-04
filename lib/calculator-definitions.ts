@@ -80,6 +80,84 @@ const option = (values: CalculatorValues, key: string, fallback: string) =>
 const round = (value: number, digits = 1) => Number(value.toFixed(digits));
 const ceil = (value: number) => Math.ceil(value);
 
+const UNIT_PRICE_UNITS: FieldOption[] = [
+  { label: "Weight: ounces (oz)", value: "oz" }, { label: "Weight: pounds (lb)", value: "lb" }, { label: "Weight: grams (g)", value: "g" }, { label: "Weight: kilograms (kg)", value: "kg" },
+  { label: "Volume: US fluid ounces (fl oz)", value: "fl-oz" }, { label: "Volume: US cups", value: "cup" }, { label: "Volume: US pints", value: "pint" }, { label: "Volume: US quarts", value: "quart" }, { label: "Volume: US gallons", value: "gallon" }, { label: "Volume: milliliters (mL)", value: "ml" }, { label: "Volume: liters (L)", value: "l" },
+  { label: "Count: each", value: "each" },
+];
+const UNIT_PRICE_CONVERSIONS: Record<string, { dimension: "weight" | "volume" | "count"; factor: number; base: string }> = {
+  oz: { dimension: "weight", factor: 1, base: "oz" }, lb: { dimension: "weight", factor: 16, base: "oz" }, g: { dimension: "weight", factor: 1 / 28.349523125, base: "oz" }, kg: { dimension: "weight", factor: 1000 / 28.349523125, base: "oz" },
+  "fl-oz": { dimension: "volume", factor: 1, base: "US fl oz" }, cup: { dimension: "volume", factor: 8, base: "US fl oz" }, pint: { dimension: "volume", factor: 16, base: "US fl oz" }, quart: { dimension: "volume", factor: 32, base: "US fl oz" }, gallon: { dimension: "volume", factor: 128, base: "US fl oz" }, ml: { dimension: "volume", factor: 1 / 29.5735295625, base: "US fl oz" }, l: { dimension: "volume", factor: 1000 / 29.5735295625, base: "US fl oz" },
+  each: { dimension: "count", factor: 1, base: "item" },
+};
+const inputNumber = (values: CalculatorValues, key: string): number | null => {
+  const raw = values[key];
+  if ((typeof raw !== "string" && typeof raw !== "number") || (typeof raw === "string" && raw.trim() === "")) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+};
+const optionalInputNumber = (values: CalculatorValues, key: string): number | null => {
+  const raw = values[key];
+  return raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "") ? 0 : inputNumber(values, key);
+};
+const formatUsd = (value: number, digits = 2) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+const invalidUnitPrice = (validation: string): CalculationOutput => ({ validation, unitPriceA: "", unitPriceB: "", lowerPrice: "", difference: "", workings: "" });
+function calculateUnitPrice(values: CalculatorValues): CalculationOutput {
+  const priceA = inputNumber(values, "priceA"); const sizeA = inputNumber(values, "sizeA");
+  const priceB = inputNumber(values, "priceB"); const sizeB = inputNumber(values, "sizeB");
+  if (priceA === null || priceB === null) return invalidUnitPrice("Enter a valid price for both packages.");
+  if (priceA <= 0 || priceB <= 0) return invalidUnitPrice("Both package prices must be greater than $0.");
+  if (sizeA === null || sizeB === null) return invalidUnitPrice("Enter a valid package size for both products.");
+  if (sizeA <= 0 || sizeB <= 0) return invalidUnitPrice("Both package sizes must be greater than 0.");
+  const unitA = UNIT_PRICE_CONVERSIONS[String(values.unitA ?? "oz")];
+  const unitB = UNIT_PRICE_CONVERSIONS[String(values.unitB ?? "oz")];
+  if (!unitA || !unitB) return invalidUnitPrice("Choose a supported package unit for both products.");
+  if (unitA.dimension !== unitB.dimension) return invalidUnitPrice("Cannot compare weight with volume or count. Choose two units of the same dimension.");
+  const quantityA = sizeA * unitA.factor; const quantityB = sizeB * unitB.factor;
+  const unitPriceA = priceA / quantityA; const unitPriceB = priceB / quantityB;
+  if (![quantityA, quantityB, unitPriceA, unitPriceB].every(Number.isFinite)) return invalidUnitPrice("These values are too large to compare. Enter smaller prices and package sizes.");
+  const base = unitA.base;
+  const productA = String(values.productA ?? "").trim() || "Product A"; const productB = String(values.productB ?? "").trim() || "Product B";
+  const tie = Math.abs(unitPriceA - unitPriceB) <= 1e-10 * Math.max(1, Math.abs(unitPriceA), Math.abs(unitPriceB));
+  const difference = Math.abs(unitPriceA - unitPriceB);
+  const lowerPrice = tie ? "Tie - same unit price" : unitPriceA < unitPriceB ? productA : productB;
+  return {
+    validation: `Compared on the same ${unitA.dimension} basis, normalized to ${base}.`,
+    unitPriceA: `${formatUsd(unitPriceA, 4)} / ${base}`,
+    unitPriceB: `${formatUsd(unitPriceB, 4)} / ${base}`,
+    lowerPrice,
+    difference: `${formatUsd(difference, 4)} / ${base}`,
+    workings: `${productA}: ${formatUsd(priceA)} ÷ ${quantityA.toFixed(4)} ${base} = ${formatUsd(unitPriceA, 4)}/${base}.\n${productB}: ${formatUsd(priceB)} ÷ ${quantityB.toFixed(4)} ${base} = ${formatUsd(unitPriceB, 4)}/${base}.\nCompare before display rounding; unit prices are shown to 4 decimal places.`,
+  };
+}
+const invalidEquipmentCost = (validation: string): CalculationOutput => ({ validation, depreciationPerHour: "", fuelPerHour: "", maintenancePerHour: "", overheadPerHour: "", operatorLaborPerHour: "", totalPerHour: "", grossDollarsPerHour: "", marginPercent: "", workings: "" });
+function calculateEquipmentCost(values: CalculatorValues): CalculationOutput {
+  const purchaseCost = inputNumber(values, "purchaseCost"); const resaleValue = inputNumber(values, "resaleValue"); const lifetimeHours = inputNumber(values, "lifetimeHours");
+  const fuelUse = inputNumber(values, "fuelUse"); const fuelPrice = inputNumber(values, "fuelPrice"); const maintenanceCost = inputNumber(values, "maintenanceCost");
+  const annualOverhead = optionalInputNumber(values, "annualOverhead"); const annualHours = optionalInputNumber(values, "annualHours"); const operatorLabor = optionalInputNumber(values, "operatorLabor"); const billingRate = optionalInputNumber(values, "billingRate");
+  if ([purchaseCost, resaleValue, lifetimeHours, fuelUse, fuelPrice, maintenanceCost, annualOverhead, annualHours, operatorLabor, billingRate].some((value) => value === null)) return invalidEquipmentCost("Enter valid numbers for each cost and usage field.");
+  const required = [purchaseCost, resaleValue, lifetimeHours, fuelUse, fuelPrice, maintenanceCost] as number[];
+  if (purchaseCost! <= 0) return invalidEquipmentCost("Purchase or replacement cost must be greater than $0.");
+  if (resaleValue! < 0 || resaleValue! > purchaseCost!) return invalidEquipmentCost("Resale value must be $0 or more and no greater than purchase cost.");
+  if (lifetimeHours! <= 0) return invalidEquipmentCost("Lifetime operating hours must be greater than 0.");
+  const optional = [annualOverhead, annualHours, operatorLabor, billingRate] as number[];
+  if ([...required, ...optional].some((value) => value < 0)) return invalidEquipmentCost("Costs, fuel use, and hours cannot be negative.");
+  if (annualOverhead! > 0 && annualHours! <= 0) return invalidEquipmentCost("Enter annual operating hours above 0 when allocating fixed overhead.");
+  const depreciation = (purchaseCost! - resaleValue!) / lifetimeHours!;
+  const fuel = fuelUse! * fuelPrice!;
+  const overhead = annualOverhead! > 0 ? annualOverhead! / annualHours! : 0;
+  const total = depreciation + fuel + maintenanceCost! + overhead + operatorLabor!;
+  if (![depreciation, fuel, overhead, total].every(Number.isFinite)) return invalidEquipmentCost("These values are too large to calculate. Enter smaller amounts.");
+  const hasBillingRate = billingRate! > 0;
+  const gross = hasBillingRate ? billingRate! - total : 0;
+  const margin = hasBillingRate ? gross / billingRate! * 100 : 0;
+  const overheadLine = annualOverhead! > 0 ? `Annual fixed overhead: ${formatUsd(annualOverhead!)} ÷ ${annualHours!.toLocaleString("en-US")} hr/year = ${formatUsd(overhead)}/hr.` : "Annual fixed overhead: $0.00/hr (not included).";
+  const laborLine = operatorLabor! > 0 ? `Operator labor: entered ${formatUsd(operatorLabor!)}/hr.` : "Operator labor: $0.00/hr (not included).";
+  const billingLine = hasBillingRate ? `Billing rate: ${formatUsd(billingRate!)}/hr - ${formatUsd(total)}/hr cost = ${formatUsd(gross)}/hr gross; ${formatUsd(gross)} ÷ ${formatUsd(billingRate!)} × 100 = ${round(margin, 2)}% margin.` : "Billing rate not entered; gross dollars and margin are hidden.";
+  const workings = [`Depreciation: (${formatUsd(purchaseCost!)} - ${formatUsd(resaleValue!)}) ÷ ${lifetimeHours!.toLocaleString("en-US")} lifetime hours = ${formatUsd(depreciation)}/hr.`, `Fuel: ${fuelUse!.toLocaleString("en-US", { maximumFractionDigits: 4 })} gal/hr × ${formatUsd(fuelPrice!)}/gal = ${formatUsd(fuel)}/hr.`, `Maintenance and repair: entered ${formatUsd(maintenanceCost!)}/hr.`, overheadLine, laborLine, `Total: ${[depreciation, fuel, maintenanceCost!, overhead, operatorLabor!].map((value) => formatUsd(value)).join(" + ")} = ${formatUsd(total)}/hr.`, billingLine, "Dollar outputs round to cents; margin uses the unrounded total."].join("\n");
+  return { validation: "Estimate based on your inputs.", depreciationPerHour: round(depreciation, 2), fuelPerHour: round(fuel, 2), maintenancePerHour: round(maintenanceCost!, 2), overheadPerHour: round(overhead, 2), operatorLaborPerHour: round(operatorLabor!, 2), totalPerHour: round(total, 2), grossDollarsPerHour: hasBillingRate ? round(gross, 2) : "", marginPercent: hasBillingRate ? round(margin, 2) : "", workings };
+}
+
 // Values are from King Arthur Baking's ingredient-weight chart. Each entry
 // preserves the chart's published quantity; grams per cup is normalized from
 // that measured portion using US volume equivalents (16 tbsp, 48 tsp, 8 fl oz,
@@ -1866,6 +1944,59 @@ const definitions: CalculatorDefinition[] = [
     faqs: [{ question: "How much water capacity should a Christmas tree stand have?", answer: "The National Christmas Tree Association recommends stand capacity of about 1 quart per inch of stem diameter. This is a capacity guideline, not a promise of daily water use. Check the stand each day and keep the cut end under water." }, { question: "How do I know if my tree trunk fits the stand?", answer: "Compare the trunk diameter with the stand's rated size range. The National Christmas Tree Association advises against whittling the sides of the trunk because the outer wood takes up water efficiently." }, { question: "How much room should I leave above a Christmas tree?", answer: "Measure from the floor to the ceiling, then subtract the tree height and topper height. Add the clearance you want before deciding whether the tree will fit." }, { question: "Does this apply to an artificial tree?", answer: "No. The water-capacity estimate is for a fresh-cut tree in a reservoir stand. Artificial trees do not need a water reservoir." }],
     seo: { title: "Christmas Tree Water & Stand Size Calculator | CalcForged", description: "Check Christmas tree stand water capacity, trunk fit, and room clearance for a fresh-cut tree.", h1: "Christmas tree water and stand calculator", intro: "A real Christmas tree needs a stand that fits its trunk and holds enough water. Enter the trunk diameter and the stand's usable capacity to compare it with the National Christmas Tree Association's one-quart-per-inch capacity guideline. Add your room height, tree height, topper, and preferred clearance to check whether the tree fits. Check the reservoir daily and keep the cut end submerged; this is a planning check, not a substitute for the stand maker's size rating." },
     related: ["christmas-lights"],
+  },
+  {
+    slug: "unit-price-comparison", name: "Price Per Ounce / Unit Price Comparison Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "$", description: "Compare grocery package prices by weight, volume, or count using the same unit basis.",
+    fields: [
+      { key: "productA", label: "Product A name", type: "text", defaultValue: "Product A" },
+      { key: "priceA", label: "Product A price", type: "number", unit: "$", min: 0, max: 1000000, step: 0.01, defaultValue: 2.49 },
+      { key: "sizeA", label: "Product A package size", type: "number", min: 0, max: 1000000, step: "any", defaultValue: 16 },
+      { key: "unitA", label: "Product A size unit", type: "select", defaultValue: "oz", options: UNIT_PRICE_UNITS, help: "Ounces (oz) measure weight; fluid ounces (fl oz) measure volume." },
+      { key: "productB", label: "Product B name", type: "text", defaultValue: "Product B" },
+      { key: "priceB", label: "Product B price", type: "number", unit: "$", min: 0, max: 1000000, step: 0.01, defaultValue: 3.5 },
+      { key: "sizeB", label: "Product B package size", type: "number", min: 0, max: 1000000, step: "any", defaultValue: 24 },
+      { key: "unitB", label: "Product B size unit", type: "select", defaultValue: "oz", options: UNIT_PRICE_UNITS, help: "Choose a unit with the same dimension as Product A." },
+    ],
+    results: [{ key: "validation", label: "Comparison", format: "text" }, { key: "unitPriceA", label: "Product A unit price", format: "text" }, { key: "unitPriceB", label: "Product B unit price", format: "text" }, { key: "lowerPrice", label: "Lower unit-price option", format: "text" }, { key: "difference", label: "Difference per unit", format: "text" }, { key: "workings", label: "Workings", format: "text" }],
+    calculate: calculateUnitPrice,
+    howItWorks: ["Enter each package's shelf price, size, and printed unit. Use the same price basis for both products.", "Each package is converted to a common basis: weight to ounces, volume to US fluid ounces, and count to items. Weight ounces and fluid ounces are different dimensions; this calculator never estimates ingredient density or converts weight into volume.", "Divide package price by its normalized size. The lower price is selected before rounding; displayed unit rates round to four decimal places."],
+    example: { title: "Two sizes, one price basis", inputs: "Illustrative inputs: $2.49 for 16 oz and $3.50 for 24 oz, both by weight.", result: "Product A: $0.1556/oz. Product B: $0.1458/oz. Product B is lower by $0.0098/oz." },
+    faqs: [{ question: "Is an ounce the same as a fluid ounce?", answer: "No. An ounce (oz) measures weight; a US fluid ounce (fl oz) measures volume. They are not interchangeable. Choose units of the same dimension to compare packages." }, { question: "Which package units can I compare?", answer: "Compare weight with weight, volume with volume, or count with count. Supported weight units convert to pounds, supported US volume units convert to US fluid ounces, and each stays an individual count." }, { question: "How is the lower price chosen?", answer: "The comparison uses the full converted values before rounding. Unit prices are displayed to four decimal places so small differences remain visible." }, { question: "Can it convert cups or fluid ounces into ounces by weight?", answer: "No. That would require a density for the specific product. Use the weight converter or volume converter for conversions within one dimension; neither assumes a product's density." }],
+    seo: { title: "Price Per Ounce and Unit Price Comparison Calculator | CalcForged", description: "Compare grocery package prices by weight, volume, or count. Convert compatible units exactly, see unit prices, and identify the lower-cost package.", h1: "Compare prices by unit", intro: "Two packages can carry different sizes and different units. Enter each price and package size to compare by ounce, US fluid ounce, or item. Weight and volume stay separate, so an ounce by weight is never treated as a fluid ounce. Sample prices are illustrative; replace them with the shelf prices you see." },
+    related: ["weight-converter", "volume-converter"],
+  },
+  {
+    slug: "equipment-operating-cost-per-hour", name: "Equipment Operating Cost Per Hour Calculator", category: "Business", categorySlug: "business", icon: "◷", description: "Estimate equipment cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor.",
+    fields: [
+      { key: "purchaseCost", label: "Purchase or replacement cost", type: "number", unit: "$", min: 0, max: 1000000000, step: 0.01, defaultValue: 25000 },
+      { key: "resaleValue", label: "Expected resale value", type: "number", unit: "$", min: 0, max: 1000000000, step: 0.01, defaultValue: 5000, help: "Expected value at the end of the assumed useful life." },
+      { key: "lifetimeHours", label: "Lifetime operating hours", type: "number", unit: "hr", min: 0, max: 1000000000, step: 1, defaultValue: 5000, help: "Total operating hours expected over the machine's useful life." },
+      { key: "fuelUse", label: "Fuel consumption per hour", type: "number", unit: "gal/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 2, help: "Enter 0 for both fuel fields if the machine has no fuel cost; electricity is not included." },
+      { key: "fuelPrice", label: "Fuel price per gallon", type: "number", unit: "$/gal", min: 0, max: 1000000, step: 0.01, defaultValue: 3.5 },
+      { key: "maintenanceCost", label: "Maintenance and repair cost per hour", type: "number", unit: "$/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 5, help: "Enter your own average maintenance and repair cost per operating hour." },
+      { key: "annualOverhead", label: "Annual fixed overhead (optional)", type: "number", unit: "$/yr", min: 0, max: 1000000000, step: 0.01, defaultValue: 1200, help: "Leave at $0 when you are not allocating annual overhead to this machine." },
+      { key: "annualHours", label: "Annual operating hours (optional)", type: "number", unit: "hr/yr", min: 0, max: 1000000000, step: 1, defaultValue: 600, help: "Required above 0 if annual fixed overhead is greater than $0." },
+      { key: "operatorLabor", label: "Operator labor per hour (optional)", type: "number", unit: "$/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 25, help: "Enter $0 to exclude operator labor." },
+      { key: "billingRate", label: "Billing rate per machine hour (optional)", type: "number", unit: "$/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 65, help: "Enter $0 or leave blank to hide gross-dollar and margin results." },
+    ],
+    results: [
+      { key: "validation", label: "Estimate", format: "text" },
+      { key: "depreciationPerHour", label: "Depreciation cost per hour", format: "currency", estimate: true },
+      { key: "fuelPerHour", label: "Fuel cost per hour", format: "currency", estimate: true },
+      { key: "maintenancePerHour", label: "Maintenance and repair per hour", format: "currency", estimate: true },
+      { key: "overheadPerHour", label: "Fixed overhead per hour", format: "currency", estimate: true },
+      { key: "operatorLaborPerHour", label: "Operator labor per hour", format: "currency", estimate: true },
+      { key: "totalPerHour", label: "Total operating cost per hour", format: "currency", estimate: true },
+      { key: "grossDollarsPerHour", label: "Gross dollars after listed costs per hour", format: "currency", estimate: true, interpretation: "Billing rate - entered hourly costs, before other expenses and taxes." },
+      { key: "marginPercent", label: "Margin after listed costs", format: "percent", estimate: true, interpretation: "(Billing rate - total cost) ÷ billing rate × 100." },
+      { key: "workings", label: "Cost breakdown and formulas", format: "text" },
+    ],
+    calculate: calculateEquipmentCost,
+    howItWorks: ["Depreciation per hour is (purchase or replacement cost - expected resale value) divided by lifetime operating hours.", "Fuel cost per hour is fuel consumed per hour multiplied by fuel price per gallon. Add your maintenance and repair cost per operating hour.", "Optional annual fixed overhead is divided by annual operating hours. Optional operator labor is added per hour; leave optional costs at $0 to exclude them.", "Total operating cost per hour is the sum of the displayed components. If you enter a billing rate, gross dollars per hour equal billing rate minus listed costs; margin is gross dollars divided by billing rate."],
+    example: { title: "Illustrative machine estimate", inputs: "$25,000 cost, $5,000 resale, 5,000 lifetime hours; 2 gal/hr at $3.50/gal; $5/hr maintenance; $1,200 annual overhead over 600 hours; $25/hr labor; $65/hr billing rate.", result: "$43.00 estimated operating cost per hour. After the listed costs, gross dollars are $22.00/hr and margin is 33.85%." },
+    faqs: [{ question: "How is depreciation spread across hours?", answer: "Subtract expected resale value from purchase or replacement cost, then divide the difference by lifetime operating hours. The inputs are your assumptions, not a resale-value forecast." }, { question: "What happens when I leave optional costs out?", answer: "Annual overhead, annual operating hours, operator labor, and billing rate may be left blank or set to $0. Omitted optional costs count as zero. If overhead is greater than $0, annual operating hours must also be greater than 0." }, { question: "What is included in gross dollars and margin?", answer: "Gross dollars per hour are your billing rate minus the costs entered here. Margin is that amount divided by the billing rate. Other expenses, fees, and taxes are not included unless you add them to your own cost inputs." }, { question: "Is this accounting or tax advice?", answer: "No. This is an estimate based on your inputs, not accounting or tax advice. Check your records and consult a qualified professional for accounting or tax treatment." }],
+    seo: { title: "Equipment Operating Cost Per Hour Calculator | CalcForged", description: "Estimate machinery cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor. Add a billing rate to see gross dollars and margin.", h1: "Equipment operating cost per hour", intro: "Price an operating hour from the costs you enter: depreciation, fuel, maintenance and repairs, optional annual overhead, and optional operator labor. Add a billing rate to compare it with the listed hourly cost. Results are estimates based on your inputs, not accounting or tax advice. The prefilled values are illustrative; replace them with your own." },
+    related: ["gig-driver-mileage-tracker", "fuel-mileage"],
   },
 ];
 

@@ -209,6 +209,16 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 	"gig-driver-mileage-tracker": [
 		{ name: "Vehicle mileage logbook", blurb: "Keep a paper backup of trip dates, odometer readings, and work miles.", query: "business vehicle mileage logbook" },
 	],
+	"unit-price-comparison": [
+		{ name: "Digital kitchen scale", blurb: "Weigh ingredients or loose produce when a direct weight check helps.", query: "digital kitchen scale grams ounces" },
+		{ name: "Liquid measuring cup", blurb: "Read liquid quantities in marked volume units when comparing packages.", query: "glass liquid measuring cup ounces milliliters" },
+		{ name: "Dry measuring cup set", blurb: "Measure loose dry goods by volume when checking package quantities.", query: "dry measuring cup set stainless" },
+	],
+	"equipment-operating-cost-per-hour": [
+		{ name: "Engine hour meter", blurb: "Track operating hours to update lifetime and annual-hour estimates.", query: "equipment hour meter engine machinery" },
+		{ name: "Equipment maintenance logbook", blurb: "Keep service and repair notes together as you update hourly maintenance cost.", query: "equipment maintenance log book heavy equipment" },
+		{ name: "Grease gun", blurb: "A maintenance tool for equipment with grease fittings.", query: "manual grease gun tractor equipment" },
+	],
 };
 
 // A compact partner pick shown inside selected calculators, under the results.
