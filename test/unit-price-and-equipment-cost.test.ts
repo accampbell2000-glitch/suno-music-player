@@ -31,6 +31,7 @@ describe("unit price comparison calculator", () => {
     expect(count.unitPriceA).toBe("$0.2500 / item");
     expect(count.unitPriceB).toBe("$0.2500 / item");
     expect(count.lowerPrice).toBe("Tie - same unit price");
+    expect(unitPrice.faqs[1]?.answer).toContain("convert to ounces");
   });
 
   test("rejects zero, negative, invalid, and incompatible package inputs", () => {
