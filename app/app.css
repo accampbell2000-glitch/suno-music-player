@@ -234,7 +234,7 @@
 .cf-tool-card:nth-child(even) { padding-left: 20px; border-left: 1px solid var(--line); }
 .cf-tool-card:hover { background: var(--ember-soft); padding-right: 12px; padding-left: 8px; }
 .cf-tool-card:nth-child(even):hover { padding-left: 28px; }
-.cf-tool-icon { display: grid; place-items: center; background: var(--ink); color: var(--paper); width: 39px; height: 39px; font-size: 1.2rem; }
+.cf-tool-icon { display: grid; place-items: center; background: var(--ink); color: var(--paper); width: 39px; height: 39px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Symbols', sans-serif; font-size: 1.2rem; }
 .cf-tool-icon-small { flex: 0 0 32px; width: 32px; height: 32px; font-size: .9rem; }
 .cf-card-category { font-family: 'DM Mono', monospace; color: var(--ember); font-size: .61rem; text-transform: uppercase; letter-spacing: .1em; margin: 2px 0 10px; }
 .cf-tool-card h3 { font-size: 1.08rem; letter-spacing: -.035em; line-height: 1.2; }
@@ -701,3 +701,25 @@ html.cf-print-mode .cf-print-sheet * { visibility: visible; }
   .cf-quick-keys.is-sci .cf-qkey.is-fn { font-size: .58rem; }
 }
 @media (prefers-reduced-motion: reduce) { .cf-qkey { transition: none; } }
+
+/* Accessible ember for small text on light surfaces. */
+.cf-site { --ember-text: #a44a27; --muted-ink: #5e6660; }
+.cf-eyebrow, .cf-kicker, .cf-card-category, .cf-category-index, .cf-index-heading > span, .cf-admin-badge, .cf-coming span, .cf-empty-number, .cf-breadcrumbs a, .cf-estimate-note, .cf-result sup, .cf-copy-section li span, .cf-example-box strong, .cf-status-off, .cf-admin-note code, .cf-affiliate-card:hover h3, .cf-request-count, .cf-partner-strip a em, .cf-abracadabra-copy em, .cf-header-auth .cf-auth-strong, .cf-save-star:hover, .cf-save-star.is-saved, .cf-save-star.is-saved span[aria-hidden], .cf-deg-toggle.is-deg, .cf-qkey.is-op, .cf-tire-match-size, .cf-hero-discovery .cf-hero-discovery-head p, .cf-header-cta span, .cf-text-link span, .cf-card-arrow, .cf-category-arrow, .cf-hero-all-tools span, .cf-hero-shortcut-arrow, .cf-hero-shortcut:hover strong, .cf-hero-all-tools:hover, .cf-hero-example-label, .cf-hero-example-caption span { color: var(--ember-text); }
+.cf-nav a:hover, .cf-back-link:hover { color: var(--ember-text); }
+.cf-footer a:hover { color: #ffd4c0; }
+.cf-footer-bottom { color: #a8b0aa; }
+.cf-button-dark:hover { background: var(--ember-text); }
+.cf-why { background: var(--ember-text); }
+.cf-why .cf-kicker { color: #fff3ed; }
+.cf-quick-brandmark { background: var(--ember-text); }
+.cf-live-dot, .cf-status, .cf-action-notice { color: #386b47; }
+.cf-quick-result { color: #455541; }
+.cf-qkey.is-fn { color: #344335; }
+.cf-qkey.is-op { color: #7d381d; }
+.cf-site .text-\[var\(--ember\)\] { color: var(--ember-text); }
+.cf-qkey.is-eq { background: linear-gradient(180deg, var(--ember-text) 0%, #9f4522 100%); }
+.cf-qkey.is-eq:hover { background: linear-gradient(180deg, #9f4522 0%, var(--ember-text) 100%); }
+@media print {
+  .cf-print-mark { background: var(--ember-text); }
+  .cf-print-section h2, .cf-print-result > .cf-print-label em, .cf-print-notes h2 { color: var(--ember-text); }
+}

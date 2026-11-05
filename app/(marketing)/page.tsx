@@ -5,7 +5,7 @@ import { QuickCalculators } from "@/components/quick-calculators";
 import { calculatorDefinitions, calculatorsBySlug, categories } from "@/lib/calculator-definitions";
 import { getSession, signInUrl } from "@/lib/session";
 
-export const metadata: Metadata = { title: "CalcForged — Practical calculators. Straight answers.", description: "Fast, free calculators for food planning, home improvement, construction, events, and business decisions." };
+export const metadata: Metadata = { title: "CalcForged: Practical calculators. Straight answers.", description: "Fast, free calculators for food planning, home improvement, construction, events, and business decisions.", alternates: { canonical: "/" } };
 
 export default async function Home() {
   const total = calculatorDefinitions.length;

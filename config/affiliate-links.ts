@@ -17,6 +17,15 @@ export const affiliateDisclosure: string = AMAZON_TAG
 	? "As an Amazon Associate I earn from qualifying purchases."
 	: "These are product recommendations. Any affiliate relationship is disclosed beside the link.";
 
+// CJ banner for flooring and patio-paver visitors. Keep these exact tracking URLs from the supplied creative.
+export const graboAffiliate = {
+	slugs: ["flooring", "patio-pavers"],
+	clickUrl: "https://www.jdoqocy.com/click-101888675-17343710",
+	imageUrl: "https://www.tqlkg.com/image-101888675-17343710",
+	imageAlt: "GRABO portable electric vacuum lifter with accessories. Shop now.",
+	disclosure: "Affiliate link: CalcForged may earn a commission if you purchase through this link.",
+};
+
 export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 	paint: [
 		{ name: "Paint sprayer", blurb: "Faster than a roller for walls and ceilings; worth it above two rooms.", query: "paint sprayer home use" },

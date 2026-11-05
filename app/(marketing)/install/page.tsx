@@ -4,6 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Install CalcForged on Android, iPhone, iPad, or Windows",
   description: "Add CalcForged to your phone's Home Screen or install it as an app in Windows. No app-store download is required.",
+  alternates: { canonical: "/install" },
 };
 
 export default function InstallPage() {

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { categories } from "@/lib/calculator-definitions";
+import { getLegalPages } from "@/lib/data";
 
-export function CalcForgedFooter() {
+export async function CalcForgedFooter() {
+  const legalPageList = await getLegalPages().catch(() => null);
+  const policies = legalPageList?.data ?? [];
   return (
     <footer className="cf-footer">
       <div className="cf-shell cf-footer-grid">
@@ -10,7 +13,7 @@ export function CalcForgedFooter() {
           <p className="cf-footer-note">Practical calculators. Straight answers.</p>
         </div>
         <div className="cf-footer-links">
-          <div><p className="cf-footer-label">Browse</p><Link href="/calculators">All calculators</Link></div>
+          <div><p className="cf-footer-label">Browse</p><Link href="/calculators">All calculators</Link>{policies.length > 0 && <><p className="cf-footer-label">Policies</p>{policies.map((policy) => <Link key={policy.slug} href={`/legal/${policy.slug}`}>{policy.title}</Link>)}</>}</div>
           <div><p className="cf-footer-label">Categories</p>{categories.slice(0, 4).map((category) => <Link key={category.slug} href={`/calculators/${category.slug}`}>{category.name}</Link>)}</div>
           <div><p className="cf-footer-label">More tools</p>{categories.slice(4).map((category) => <Link key={category.slug} href={`/calculators/${category.slug}`}>{category.name}</Link>)}</div>
         </div>

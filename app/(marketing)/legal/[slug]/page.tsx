@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFeature } from "@/config/features";
 import { getAccount, getLegalPage } from "@/lib/data";
+import { getAppUrl } from "@/lib/site-url";
 
 export async function generateMetadata({
 	params,
@@ -18,8 +19,9 @@ export async function generateMetadata({
 			getLegalPage(slug),
 		]);
 		return {
-			title: `${policy.title} — ${account.name}`,
+			title: `${policy.title} | ${account.name}`,
 			description: `${policy.title} for ${account.name}`,
+			alternates: { canonical: new URL(`/legal/${policy.slug}`, getAppUrl()).toString() },
 		};
 	} catch {
 		return { title: "Legal" };

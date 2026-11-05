@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { calculatorDefinitions, categories } from "@/lib/calculator-definitions";
 import { CrevioForm } from "@/components/forms/crevio-form";
 
 // Form provisioned in Crevio ("Calculator Requests") — email required, idea
@@ -9,6 +10,7 @@ const FORM_ID = "form_vKmMapEAr3PNcYwj9RWX346P";
 export const metadata: Metadata = {
 	title: "Request a calculator | CalcForged",
 	description: "Tell us the calculation you keep doing and we'll build the calculator. Free, and you get both cheat sheets while you wait.",
+	alternates: { canonical: "/calculator-requests" },
 };
 
 export default function CalculatorRequestPage() {
@@ -48,12 +50,8 @@ export default function CalculatorRequestPage() {
 					/>
 					<aside className="cf-request-aside">
 						<p className="cf-kicker">Built so far</p>
-						<p className="cf-request-count">26</p>
-						<p>
-							Calculators live today across food and events, home
-							improvement, construction, finance, health, travel, education,
-							and everyday life.
-						</p>
+						<p className="cf-request-count">{calculatorDefinitions.length}</p>
+						<p>Calculators live today across {categories.map((category) => category.name).join(", ")}.</p>
 						<p className="cf-request-promise">
 							We read every request. The ones that help the most people get
 							built first — usually within a couple of weeks.

@@ -1,5 +1,98 @@
-# Starter Landing Page
-> A starter landing page built with Crevio, ready to be customized into your own business website.
+# CalcForged
+> Useful, transparent calculators for everyday decisions.
 
-## Pages
-- [Home](/): Landing page introducing the website.
+## Public pages
+- [Home](https://calcforged.com/)
+- [All calculators](https://calcforged.com/calculators)
+- [Calculator requests](https://calcforged.com/calculator-requests)
+- [Install CalcForged](https://calcforged.com/install)
+
+## Calculator categories
+- [Food & Catering](https://calcforged.com/calculators/food-catering)
+- [Home Improvement](https://calcforged.com/calculators/home-improvement)
+- [Construction](https://calcforged.com/calculators/construction)
+- [Events](https://calcforged.com/calculators/events)
+- [Business](https://calcforged.com/calculators/business)
+- [Hobbies](https://calcforged.com/calculators/hobbies)
+- [Automotive](https://calcforged.com/calculators/automotive)
+- [Everyday Life](https://calcforged.com/calculators/everyday-life)
+- [Finance](https://calcforged.com/calculators/finance)
+- [Health](https://calcforged.com/calculators/health)
+- [Travel](https://calcforged.com/calculators/travel)
+- [Education](https://calcforged.com/calculators/education)
+
+## Calculators
+- [Catering Food Quantity Calculator](https://calcforged.com/calculators/food-catering/catering-food-quantity)
+- [BBQ Meat Calculator](https://calcforged.com/calculators/food-catering/bbq-meat)
+- [Taco Bar Calculator](https://calcforged.com/calculators/food-catering/taco-bar)
+- [Wedding Food Calculator](https://calcforged.com/calculators/events/wedding-food)
+- [Restaurant Food Cost Calculator](https://calcforged.com/calculators/business/restaurant-food-cost)
+- [Recipe Scaling Calculator](https://calcforged.com/calculators/food-catering/recipe-scaling)
+- [Cups to Grams Calculator](https://calcforged.com/calculators/food-catering/cups-to-grams)
+- [Paint Calculator](https://calcforged.com/calculators/home-improvement/paint)
+- [Area Calculator](https://calcforged.com/calculators/home-improvement/area)
+- [Patio Paver Calculator](https://calcforged.com/calculators/home-improvement/patio-pavers)
+- [Flooring Calculator](https://calcforged.com/calculators/home-improvement/flooring)
+- [Concrete Calculator](https://calcforged.com/calculators/construction/concrete)
+- [Mulch Calculator](https://calcforged.com/calculators/home-improvement/mulch)
+- [AC Size Calculator](https://calcforged.com/calculators/home-improvement/ac-size)
+- [Deck Board Calculator](https://calcforged.com/calculators/home-improvement/deck-boards)
+- [Deck Stain Calculator](https://calcforged.com/calculators/home-improvement/deck-stain)
+- [Sod Calculator](https://calcforged.com/calculators/home-improvement/sod)
+- [Rebar Calculator](https://calcforged.com/calculators/construction/rebar)
+- [Gravel Driveway Calculator](https://calcforged.com/calculators/construction/gravel-driveway)
+- [Wallpaper Calculator](https://calcforged.com/calculators/home-improvement/wallpaper)
+- [Mortgage Calculator](https://calcforged.com/calculators/finance/mortgage)
+- [Loan Calculator](https://calcforged.com/calculators/finance/loan)
+- [Auto Loan Cost & Payoff Calculator](https://calcforged.com/calculators/automotive/auto-loan-payoff)
+- [Investment Calculator](https://calcforged.com/calculators/finance/investment)
+- [Savings Calculator](https://calcforged.com/calculators/finance/savings)
+- [Compound Interest Calculator](https://calcforged.com/calculators/finance/compound-interest)
+- [BMI Calculator](https://calcforged.com/calculators/health/bmi)
+- [Walking Steps Calculator](https://calcforged.com/calculators/health/walking-steps)
+- [Calorie and TDEE Calculator](https://calcforged.com/calculators/health/calorie-tdee)
+- [Pregnancy Due Date Calculator](https://calcforged.com/calculators/health/pregnancy-due-date)
+- [Currency Converter](https://calcforged.com/calculators/travel/currency-converter)
+- [Time Zone Calculator](https://calcforged.com/calculators/travel/time-zone)
+- [Percentage Calculator](https://calcforged.com/calculators/everyday-life/percentage)
+- [Weight Converter](https://calcforged.com/calculators/everyday-life/weight-converter)
+- [Length Converter](https://calcforged.com/calculators/everyday-life/length-converter)
+- [Volume Converter](https://calcforged.com/calculators/everyday-life/volume-converter)
+- [Tip Calculator](https://calcforged.com/calculators/everyday-life/tip)
+- [Age Calculator](https://calcforged.com/calculators/everyday-life/age)
+- [Date Calculator](https://calcforged.com/calculators/everyday-life/date)
+- [Time Calculator](https://calcforged.com/calculators/everyday-life/time)
+- [GPA Calculator](https://calcforged.com/calculators/education/gpa)
+- [Square Root & Cube Root Calculator](https://calcforged.com/calculators/education/square-root-cube-root)
+- [Wedding Dessert Table Calculator](https://calcforged.com/calculators/events/wedding-dessert-table)
+- [Catering Price Per Person Calculator](https://calcforged.com/calculators/business/catering-price-per-person)
+- [Appetizers Per Person Calculator](https://calcforged.com/calculators/food-catering/appetizers-per-person)
+- [Yarn Yardage Calculator](https://calcforged.com/calculators/hobbies/yarn-yardage)
+- [Pizza Party Calculator](https://calcforged.com/calculators/food-catering/pizza-party)
+- [Chicken Wings Calculator](https://calcforged.com/calculators/food-catering/chicken-wings)
+- [Party Ice Calculator](https://calcforged.com/calculators/events/party-ice)
+- [Balloon Quantity Calculator](https://calcforged.com/calculators/events/balloon-quantity)
+- [Fuel Mileage Calculator](https://calcforged.com/calculators/automotive/fuel-mileage)
+- [Gig Driver Mileage Tracker](https://calcforged.com/calculators/business/gig-driver-mileage-tracker)
+- [Tire Size Calculator](https://calcforged.com/calculators/automotive/tire-size)
+- [Towing Capacity & Tongue Weight Calculator](https://calcforged.com/calculators/automotive/towing-capacity)
+- [Battery Reserve Capacity & Runtime Calculator](https://calcforged.com/calculators/automotive/battery-runtime)
+- [Model Train Scale Converter](https://calcforged.com/calculators/hobbies/train-scale-converter)
+- [Miniature Scale Converter](https://calcforged.com/calculators/hobbies/miniature-scale-converter)
+- [Filament Cost Calculator](https://calcforged.com/calculators/hobbies/filament-cost)
+- [Resin Print Cost Calculator](https://calcforged.com/calculators/hobbies/resin-cost)
+- [Sandwich Quantity Calculator](https://calcforged.com/calculators/food-catering/sandwich-quantity)
+- [Charcuterie Board Calculator](https://calcforged.com/calculators/food-catering/charcuterie-board)
+- [Christmas Lights Calculator](https://calcforged.com/calculators/everyday-life/christmas-lights)
+- [Christmas Tree Water & Stand Calculator](https://calcforged.com/calculators/everyday-life/christmas-tree-water)
+
+## Policies
+- [Refund Policy](https://calcforged.com/legal/refund-policy)
+- [Privacy Policy](https://calcforged.com/legal/privacy-policy)
+- [Terms of Service](https://calcforged.com/legal/terms-of-service)
+
+## Products
+No active paid products are published on the site currently.
+
+## Contact
+- [Calculator requests](https://calcforged.com/calculator-requests)

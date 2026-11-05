@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calculatorsBySlug, verifiedTireSizes } from "@/lib/calculator-definitions";
 import type { CalculatorDefinition, CalculatorValues, IngredientRow, ResultDefinition } from "@/lib/calculator-definitions";
-import { affiliateTopPicks, affiliateUrl } from "@/config/affiliate-links";
+import { affiliateTopPicks, affiliateUrl, graboAffiliate } from "@/config/affiliate-links";
 
 /**
  * PartnerPick
@@ -14,6 +14,17 @@ import { affiliateTopPicks, affiliateUrl } from "@/config/affiliate-links";
  * disclosure travels with the strip because it's a paid-link context.
  */
 function PartnerPick({ slug }: { slug: string }) {
+  if (graboAffiliate.slugs.includes(slug)) {
+    return (
+      <div className="cf-partner-strip cf-grabo-pick">
+        <p className="cf-kicker">For tile &amp; pavers</p>
+        <a href={graboAffiliate.clickUrl} target="_blank" rel="sponsored nofollow noopener" aria-label="Shop GRABO portable vacuum lifters">
+          <img src={graboAffiliate.imageUrl} width={970} height={250} alt={graboAffiliate.imageAlt} className="w-full h-auto" loading="lazy" />
+        </a>
+        <small>{graboAffiliate.disclosure}</small>
+      </div>
+    );
+  }
   const pick = affiliateTopPicks[slug];
   if (!pick) return null;
   return (
