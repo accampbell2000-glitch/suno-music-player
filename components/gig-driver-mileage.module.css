@@ -51,12 +51,12 @@
 .historyHeader { display: flex; align-items: start; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
 .historyHeader h3 { margin-top: 6px; font-size: 1.15rem; letter-spacing: -.04em; }
 .historyHeader p:last-child { margin-top: 6px; color: var(--muted-ink); font-size: .68rem; line-height: 1.45; }
-.totalStats { display: flex; align-items: center; gap: 11px; text-align: right; }
+.totalStats { display: flex; align-items: center; gap: 11px; min-width: 0; margin: 0; padding: 0; border: 0; text-align: right; }
 .totalStat { min-width: 56px; }
 .totalStat + .totalStat { border-left: 1px solid var(--line); padding-left: 11px; }
 .totalStat strong { display: block; color: var(--gm-green); font-family: 'DM Mono', monospace; font-size: 1.25rem; font-weight: 500; letter-spacing: -.07em; font-variant-numeric: tabular-nums; }
 .totalStat span { color: var(--muted-ink); font-family: 'DM Mono', monospace; font-size: .52rem; letter-spacing: .08em; text-transform: uppercase; }
-.weeklySummary { margin-top: 14px; border-top: 2px solid var(--gm-green); background: var(--gm-green-soft); padding: 14px 15px; }
+.weeklySummary { min-width: 0; margin: 14px 0 0; border: 0; border-top: 2px solid var(--gm-green); background: var(--gm-green-soft); padding: 14px 15px; }
 .weeklySummaryTitle { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #526155; font-family: 'DM Mono', monospace; font-size: .57rem; letter-spacing: .08em; text-transform: uppercase; }
 .weeklySummaryAmount { display: block; margin-top: 7px; color: var(--gm-green); font-family: 'DM Mono', monospace; font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 500; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
 .weeklySummaryNote { margin-top: 5px; color: #526155; font-size: .64rem; line-height: 1.5; }

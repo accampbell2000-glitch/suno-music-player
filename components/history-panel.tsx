@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { calculatorsBySlug } from "@/lib/calculator-definitions";
 
 interface HistoryRow {
+	id: number;
 	slug: string;
 	summary: string | null;
 	inputs: Record<string, string> | null;
@@ -74,11 +75,11 @@ export function HistoryPanel() {
 		<section className="rounded-xl border border-border/60 bg-card p-6">
 			<h2 className="text-sm font-medium text-muted-foreground">Latest 20 · saved automatically</h2>
 			<ol className="mt-4 divide-y divide-border">
-				{rows.map((row, index) => {
+				{rows.map((row) => {
 					const definition = calculatorsBySlug[row.slug];
 					const url = reopenUrl(row);
 					return (
-						<li key={`${row.slug}-${row.at}-${index}`} className="flex items-center justify-between gap-4 py-3">
+						<li key={row.id} className="flex items-center justify-between gap-4 py-3">
 							<div className="min-w-0">
 								<p className="text-sm font-medium">
 									<span className="mr-2" aria-hidden="true">{definition?.icon}</span>

@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const category = categoryBySlug[slug];
   return category ? {
     title: `${category.name} Calculators | CalcForged`,
-    description: `${category.description} Browse CalcForged tools in ${category.name}.`,
+    description: category.seoDescription ?? `${category.description} Browse CalcForged tools in ${category.name}.`,
     alternates: { canonical: new URL(`/calculators/${category.slug}`, getAppUrl()).toString() },
   } : {};
 }

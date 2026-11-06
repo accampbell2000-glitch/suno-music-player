@@ -130,7 +130,7 @@ const pretty = (value: number): string => {
 	return String(rounded);
 };
 
-type Key = { label?: string; push?: string; action?: "equals" | "clear" | "back" | "toggle"; kind?: "op" | "fn" | "wide" | "eq" | "deg" };
+type Key = { id?: string; label?: string; push?: string; action?: "equals" | "clear" | "back" | "toggle"; kind?: "op" | "fn" | "wide" | "eq" | "deg" };
 
 const BASIC_KEYS: Key[] = [
 	{ label: "C", action: "clear", kind: "fn" }, { label: "⌫", action: "back", kind: "fn" }, { label: "%", push: "%", kind: "op" }, { label: "÷", push: "÷", kind: "op" },
@@ -156,12 +156,12 @@ export function QuickCalculators() {
 	}, [deg]);
 
 	const sciKeys: Key[] = [
-		{ label: "C", action: "clear", kind: "fn" }, { label: "⌫", action: "back", kind: "fn" }, { label: "(", push: "(" }, { label: ")", push: ")" }, { label: "÷", push: "÷", kind: "op" },
+		{ label: "C", action: "clear", kind: "fn" }, { label: "⌫", action: "back", kind: "fn" }, { id: "open-paren-first", label: "(", push: "(" }, { id: "close-paren-first", label: ")", push: ")" }, { label: "÷", push: "÷", kind: "op" },
 		{ label: "sin", push: "sin(", kind: "fn" }, { label: "cos", push: "cos(", kind: "fn" }, { label: "tan", push: "tan(", kind: "fn" }, { label: "π", push: "π" }, { label: "×", push: "×", kind: "op" },
 		{ label: "DEG/RAD", action: "clear", kind: "deg" }, { label: "asin", push: "asin(", kind: "fn" }, { label: "log", push: "log(", kind: "fn" }, { label: "ln", push: "ln(", kind: "fn" }, { label: "−", push: "-", kind: "op" },
 		{ label: "√", push: "sqrt(", kind: "fn" }, { label: "x²", push: "^2", kind: "fn" }, { label: "xʸ", push: "^", kind: "fn" }, { label: "e", push: "e" }, { label: "+", push: "+", kind: "op" },
 		{ label: "7", push: "7" }, { label: "8", push: "8" }, { label: "9", push: "9" }, { label: "abs", push: "abs(", kind: "fn" }, { label: "1/x", push: "1÷", kind: "fn" },
-		{ label: "4", push: "4" }, { label: "5", push: "5" }, { label: "6", push: "6" }, { label: "(", push: "(" }, { label: ")", push: ")" },
+		{ label: "4", push: "4" }, { label: "5", push: "5" }, { label: "6", push: "6" }, { id: "open-paren-second", label: "(", push: "(" }, { id: "close-paren-second", label: ")", push: ")" },
 		{ label: "1", push: "1" }, { label: "2", push: "2" }, { label: "3", push: "3" }, { label: "0", push: "0" }, { label: ".", push: "." },
 		{ label: "=", action: "equals", kind: "eq" },
 	];
@@ -174,25 +174,28 @@ export function QuickCalculators() {
 		keys: Key[],
 		isSci: boolean,
 	) => (
-		<div className={`cf-quick-panel ${isSci ? "is-scientific" : "is-basic"}`} role="group" aria-label={`${title} calculator`} tabIndex={0}
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: The focusable calculator group accepts physical-keyboard input.
+		<fieldset className={`cf-quick-panel ${isSci ? "is-scientific" : "is-basic"}`} tabIndex={0}
 			onKeyDown={(event) => {
 				if (event.key === "Enter") { event.preventDefault(); press(setter, state, { action: "equals" }); }
 				else if (event.key === "Escape") { event.preventDefault(); setter(""); }
 				else if (event.key === "Backspace") { event.preventDefault(); setter(state.slice(0, -1)); }
 				else if (/^[0-9.+\-*/()^%]$/.test(event.key)) { event.preventDefault(); setter(state + (event.key === "*" ? "×" : event.key === "/" ? "÷" : event.key)); }
 			}}>
+			<legend className="sr-only">{title} calculator</legend>
 			<div className="cf-quick-head"><div className="cf-quick-brandline"><span className="cf-quick-brandmark" aria-hidden="true">CF</span><span className="cf-quick-brandname">CALCFORGED</span><span className="cf-quick-model">{isSci ? "SCIENTIFIC" : "BASIC"}</span></div></div>
 			<div className="cf-quick-display" aria-live="polite">
 				<span className="cf-quick-expr">{state || "0"}</span>
 				<span className="cf-quick-result">{result !== null && state ? `= ${result}` : "\u00A0"}</span>
 			</div>
 			<div className={`cf-quick-keys ${isSci ? "is-sci" : "is-basic"}`}>
-				{keys.map((key, index) => {
+				{keys.map((key) => {
+					const keyId = key.id ?? `${key.action ?? "insert"}:${key.push ?? key.label ?? "key"}:${key.kind ?? ""}`;
 					const isToggle = key.kind === "deg";
-					return <button key={`${key.label}-${index}`} type="button" className={`cf-qkey${key.kind ? ` is-${key.kind}` : ""}`} aria-label={isToggle ? "Toggle degrees or radians" : undefined} aria-pressed={isToggle ? deg : undefined} onClick={() => (isToggle ? setDeg((d) => !d) : press(setter, state, key))}>{isToggle ? (deg ? "DEG" : "RAD") : key.label}</button>;
+					return <button key={keyId} type="button" className={`cf-qkey${key.kind ? ` is-${key.kind}` : ""}`} aria-label={isToggle ? "Toggle degrees or radians" : undefined} aria-pressed={isToggle ? deg : undefined} onClick={() => (isToggle ? setDeg((d) => !d) : press(setter, state, key))}>{isToggle ? (deg ? "DEG" : "RAD") : key.label}</button>;
 				})}
 			</div>
-		</div>
+		</fieldset>
 	);
 
 	return (

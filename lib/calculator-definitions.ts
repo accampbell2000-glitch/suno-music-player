@@ -1,4 +1,4 @@
-import { TOWING_MAKES, TOWING_MODEL_OPTIONS, lookupTowing, yearRangeLabel } from "./towing-data";
+import { lookupTowing, TOWING_MAKES, TOWING_MODEL_OPTIONS, yearRangeLabel } from "./towing-data";
 
 export type Category =
   | "Food & Catering"
@@ -48,7 +48,7 @@ export type ResultDefinition = {
 };
 
 export type CalculatorValues = Record<string, string | number | IngredientRow[]>;
-export type IngredientRow = { ingredient: string; amount: string; unit: string };
+export type IngredientRow = { id?: string; ingredient: string; amount: string; unit: string };
 export type CalculationOutput = Record<string, string | number>;
 
 export type CalculatorDefinition = {
@@ -137,27 +137,27 @@ function calculateEquipmentCost(values: CalculatorValues): CalculationOutput {
   const purchaseCost = inputNumber(values, "purchaseCost"); const resaleValue = inputNumber(values, "resaleValue"); const lifetimeHours = inputNumber(values, "lifetimeHours");
   const fuelUse = inputNumber(values, "fuelUse"); const fuelPrice = inputNumber(values, "fuelPrice"); const maintenanceCost = inputNumber(values, "maintenanceCost");
   const annualOverhead = optionalInputNumber(values, "annualOverhead"); const annualHours = optionalInputNumber(values, "annualHours"); const operatorLabor = optionalInputNumber(values, "operatorLabor"); const billingRate = optionalInputNumber(values, "billingRate");
-  if ([purchaseCost, resaleValue, lifetimeHours, fuelUse, fuelPrice, maintenanceCost, annualOverhead, annualHours, operatorLabor, billingRate].some((value) => value === null)) return invalidEquipmentCost("Enter valid numbers for each cost and usage field.");
-  const required = [purchaseCost, resaleValue, lifetimeHours, fuelUse, fuelPrice, maintenanceCost] as number[];
-  if (purchaseCost! <= 0) return invalidEquipmentCost("Purchase or replacement cost must be greater than $0.");
-  if (resaleValue! < 0 || resaleValue! > purchaseCost!) return invalidEquipmentCost("Resale value must be $0 or more and no greater than purchase cost.");
-  if (lifetimeHours! <= 0) return invalidEquipmentCost("Lifetime operating hours must be greater than 0.");
-  const optional = [annualOverhead, annualHours, operatorLabor, billingRate] as number[];
+  if (purchaseCost === null || resaleValue === null || lifetimeHours === null || fuelUse === null || fuelPrice === null || maintenanceCost === null || annualOverhead === null || annualHours === null || operatorLabor === null || billingRate === null) return invalidEquipmentCost("Enter valid numbers for each cost and usage field.");
+  const required = [purchaseCost, resaleValue, lifetimeHours, fuelUse, fuelPrice, maintenanceCost];
+  if (purchaseCost <= 0) return invalidEquipmentCost("Purchase or replacement cost must be greater than $0.");
+  if (resaleValue < 0 || resaleValue > purchaseCost) return invalidEquipmentCost("Resale value must be $0 or more and no greater than purchase cost.");
+  if (lifetimeHours <= 0) return invalidEquipmentCost("Lifetime operating hours must be greater than 0.");
+  const optional = [annualOverhead, annualHours, operatorLabor, billingRate];
   if ([...required, ...optional].some((value) => value < 0)) return invalidEquipmentCost("Costs, fuel use, and hours cannot be negative.");
-  if (annualOverhead! > 0 && annualHours! <= 0) return invalidEquipmentCost("Enter annual operating hours above 0 when allocating fixed overhead.");
-  const depreciation = (purchaseCost! - resaleValue!) / lifetimeHours!;
-  const fuel = fuelUse! * fuelPrice!;
-  const overhead = annualOverhead! > 0 ? annualOverhead! / annualHours! : 0;
-  const total = depreciation + fuel + maintenanceCost! + overhead + operatorLabor!;
+  if (annualOverhead > 0 && annualHours <= 0) return invalidEquipmentCost("Enter annual operating hours above 0 when allocating fixed overhead.");
+  const depreciation = (purchaseCost - resaleValue) / lifetimeHours;
+  const fuel = fuelUse * fuelPrice;
+  const overhead = annualOverhead > 0 ? annualOverhead / annualHours : 0;
+  const total = depreciation + fuel + maintenanceCost + overhead + operatorLabor;
   if (![depreciation, fuel, overhead, total].every(Number.isFinite)) return invalidEquipmentCost("These values are too large to calculate. Enter smaller amounts.");
-  const hasBillingRate = billingRate! > 0;
-  const gross = hasBillingRate ? billingRate! - total : 0;
-  const margin = hasBillingRate ? gross / billingRate! * 100 : 0;
-  const overheadLine = annualOverhead! > 0 ? `Annual fixed overhead: ${formatUsd(annualOverhead!)} ÷ ${annualHours!.toLocaleString("en-US")} hr/year = ${formatUsd(overhead)}/hr.` : "Annual fixed overhead: $0.00/hr (not included).";
-  const laborLine = operatorLabor! > 0 ? `Operator labor: entered ${formatUsd(operatorLabor!)}/hr.` : "Operator labor: $0.00/hr (not included).";
-  const billingLine = hasBillingRate ? `Billing rate: ${formatUsd(billingRate!)}/hr - ${formatUsd(total)}/hr cost = ${formatUsd(gross)}/hr gross; ${formatUsd(gross)} ÷ ${formatUsd(billingRate!)} × 100 = ${round(margin, 2)}% margin.` : "Billing rate not entered; gross dollars and margin are hidden.";
-  const workings = [`Depreciation: (${formatUsd(purchaseCost!)} - ${formatUsd(resaleValue!)}) ÷ ${lifetimeHours!.toLocaleString("en-US")} lifetime hours = ${formatUsd(depreciation)}/hr.`, `Fuel: ${fuelUse!.toLocaleString("en-US", { maximumFractionDigits: 4 })} gal/hr × ${formatUsd(fuelPrice!)}/gal = ${formatUsd(fuel)}/hr.`, `Maintenance and repair: entered ${formatUsd(maintenanceCost!)}/hr.`, overheadLine, laborLine, `Total: ${[depreciation, fuel, maintenanceCost!, overhead, operatorLabor!].map((value) => formatUsd(value)).join(" + ")} = ${formatUsd(total)}/hr.`, billingLine, "Dollar outputs round to cents; margin uses the unrounded total."].join("\n");
-  return { validation: "Estimate based on your inputs.", depreciationPerHour: round(depreciation, 2), fuelPerHour: round(fuel, 2), maintenancePerHour: round(maintenanceCost!, 2), overheadPerHour: round(overhead, 2), operatorLaborPerHour: round(operatorLabor!, 2), totalPerHour: round(total, 2), grossDollarsPerHour: hasBillingRate ? round(gross, 2) : "", marginPercent: hasBillingRate ? round(margin, 2) : "", workings };
+  const hasBillingRate = billingRate > 0;
+  const gross = hasBillingRate ? billingRate - total : 0;
+  const margin = hasBillingRate ? gross / billingRate * 100 : 0;
+  const overheadLine = annualOverhead > 0 ? `Annual fixed overhead: ${formatUsd(annualOverhead)} ÷ ${annualHours.toLocaleString("en-US")} hr/year = ${formatUsd(overhead)}/hr.` : "Annual fixed overhead: $0.00/hr (not included).";
+  const laborLine = operatorLabor > 0 ? `Operator labor: entered ${formatUsd(operatorLabor)}/hr.` : "Operator labor: $0.00/hr (not included).";
+  const billingLine = hasBillingRate ? `Billing rate: ${formatUsd(billingRate)}/hr - ${formatUsd(total)}/hr cost = ${formatUsd(gross)}/hr gross; ${formatUsd(gross)} ÷ ${formatUsd(billingRate)} × 100 = ${round(margin, 2)}% margin.` : "Billing rate not entered; gross dollars and margin are hidden.";
+  const workings = [`Depreciation: (${formatUsd(purchaseCost)} - ${formatUsd(resaleValue)}) ÷ ${lifetimeHours.toLocaleString("en-US")} lifetime hours = ${formatUsd(depreciation)}/hr.`, `Fuel: ${fuelUse.toLocaleString("en-US", { maximumFractionDigits: 4 })} gal/hr × ${formatUsd(fuelPrice)}/gal = ${formatUsd(fuel)}/hr.`, `Maintenance and repair: entered ${formatUsd(maintenanceCost)}/hr.`, overheadLine, laborLine, `Total: ${[depreciation, fuel, maintenanceCost, overhead, operatorLabor].map((value) => formatUsd(value)).join(" + ")} = ${formatUsd(total)}/hr.`, billingLine, "Dollar outputs round to cents; margin uses the unrounded total."].join("\n");
+  return { validation: "Estimate based on your inputs.", depreciationPerHour: round(depreciation, 2), fuelPerHour: round(fuel, 2), maintenancePerHour: round(maintenanceCost, 2), overheadPerHour: round(overhead, 2), operatorLaborPerHour: round(operatorLabor, 2), totalPerHour: round(total, 2), grossDollarsPerHour: hasBillingRate ? round(gross, 2) : "", marginPercent: hasBillingRate ? round(margin, 2) : "", workings };
 }
 
 // Values are from King Arthur Baking's ingredient-weight chart. Each entry
@@ -329,12 +329,12 @@ const SOAP_OIL_OPTIONS: FieldOption[] = SOAP_OILS.map((oil) => ({ label: oil.lab
 
 function calculateBoardFeet(v: CalculatorValues): CalculationOutput {
   const thickness = inputNumber(v, "thickness"); const width = inputNumber(v, "width"); const length = inputNumber(v, "length"); const pieces = inputNumber(v, "pieces"); const price = inputNumber(v, "pricePerBoardFoot");
-  if ([thickness, width, length, pieces].some((x) => x === null)) return { validation: "Enter thickness, width, length, and piece count." , perPiece: "", total: "", materialCost: "" };
-  if ([thickness, width, length, pieces].some((x) => (x as number) <= 0) || !Number.isInteger(pieces)) return { validation: "Dimensions and piece count must be greater than zero; piece count must be a whole number.", perPiece: "", total: "", materialCost: "" };
+  if (thickness === null || width === null || length === null || pieces === null) return { validation: "Enter thickness, width, length, and piece count.", perPiece: "", total: "", materialCost: "" };
+  if (thickness <= 0 || width <= 0 || length <= 0 || pieces <= 0 || !Number.isInteger(pieces)) return { validation: "Dimensions and piece count must be greater than zero; piece count must be a whole number.", perPiece: "", total: "", materialCost: "" };
   if (price !== null && price < 0) return { validation: "Price per board foot cannot be negative.", perPiece: "", total: "", materialCost: "" };
-  const lengthInches = length! * (String(v.lengthUnit ?? "ft") === "ft" ? 12 : 1);
-  const perPiece = thickness! * width! * lengthInches / 144;
-  const total = perPiece * pieces!;
+  const lengthInches = length * (String(v.lengthUnit ?? "ft") === "ft" ? 12 : 1);
+  const perPiece = thickness * width * lengthInches / 144;
+  const total = perPiece * pieces;
   if (![perPiece, total].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", perPiece: "", total: "", materialCost: "" };
   return { validation: "", perPiece: round(perPiece, 2), total: round(total, 2), materialCost: price === null ? "" : round(total * price, 2) };
 }
@@ -384,10 +384,10 @@ function calculateSoap(v: CalculatorValues): CalculationOutput {
 
 function calculateAquarium(v: CalculatorValues): CalculationOutput {
   const length = inputNumber(v, "length"); const width = inputNumber(v, "width"); const height = inputNumber(v, "height");
-  if ([length, width, height].some((x) => x === null)) return { validation: "Enter the tank's inside length, width, and height.", gallons: "", liters: "" };
-  if ([length, width, height].some((x) => (x as number) <= 0)) return { validation: "All three inside dimensions must be greater than zero.", gallons: "", liters: "" };
+  if (length === null || width === null || height === null) return { validation: "Enter the tank's inside length, width, and height.", gallons: "", liters: "" };
+  if (length <= 0 || width <= 0 || height <= 0) return { validation: "All three inside dimensions must be greater than zero.", gallons: "", liters: "" };
   const toInches = String(v.dimensionUnit ?? "in") === "cm" ? 1 / 2.54 : 1;
-  const cubicInches = length! * toInches * width! * toInches * height! * toInches;
+  const cubicInches = length * toInches * width * toInches * height * toInches;
   const gallons = cubicInches / 231;
   const liters = gallons * 3.785411784;
   if (![cubicInches, gallons, liters].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", gallons: "", liters: "" };
@@ -396,29 +396,29 @@ function calculateAquarium(v: CalculatorValues): CalculationOutput {
 
 function calculateSourdough(v: CalculatorValues): CalculationOutput {
   const totalFlour = inputNumber(v, "totalFlour"); const hydration = inputNumber(v, "hydration"); const starterPercent = inputNumber(v, "starterPercent"); const starterHydration = inputNumber(v, "starterHydration"); const saltPercent = inputNumber(v, "saltPercent");
-  if ([totalFlour, hydration, starterPercent, starterHydration, saltPercent].some((x) => x === null)) return { validation: "Enter a value for each recipe setting.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  if (totalFlour! <= 0 || hydration! < 0 || starterPercent! < 0 || starterHydration! < 0 || saltPercent! < 0 || hydration! > 500 || starterPercent! > 500 || starterHydration! > 1000 || saltPercent! > 100) return { validation: "Flour must be positive; percentages must be within the listed input ranges.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  const starter = totalFlour! * starterPercent! / 100;
-  const starterFlour = starter / (1 + starterHydration! / 100);
+  if (totalFlour === null || hydration === null || starterPercent === null || starterHydration === null || saltPercent === null) return { validation: "Enter a value for each recipe setting.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  if (totalFlour <= 0 || hydration < 0 || starterPercent < 0 || starterHydration < 0 || saltPercent < 0 || hydration > 500 || starterPercent > 500 || starterHydration > 1000 || saltPercent > 100) return { validation: "Flour must be positive; percentages must be within the listed input ranges.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  const starter = totalFlour * starterPercent / 100;
+  const starterFlour = starter / (1 + starterHydration / 100);
   const starterWater = starter - starterFlour;
-  const flourToAdd = totalFlour! - starterFlour;
-  const targetWater = totalFlour! * hydration! / 100;
+  const flourToAdd = totalFlour - starterFlour;
+  const targetWater = totalFlour * hydration / 100;
   const waterToAdd = targetWater - starterWater;
-  const salt = totalFlour! * saltPercent! / 100;
+  const salt = totalFlour * saltPercent / 100;
   if (flourToAdd < -1e-9) return { validation: "The starter contains more flour than the total-flour target. Lower the starter percentage or increase total flour.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
   if (waterToAdd < -1e-9) return { validation: "The starter already contains more water than this target hydration allows. Raise target hydration or change the starter settings.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  const doughWeight = totalFlour! + targetWater + salt;
+  const doughWeight = totalFlour + targetWater + salt;
   if (![starter, starterFlour, starterWater, flourToAdd, targetWater, waterToAdd, salt, doughWeight].every(Number.isFinite)) return { validation: "These values are too large. Enter smaller amounts.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  return { validation: "", flourToAdd: round(flourToAdd, 1), starter: round(starter, 1), starterBreakdown: `${round(starterFlour, 1)} g flour + ${round(starterWater, 1)} g water`, waterToAdd: round(Math.max(0, waterToAdd), 1), salt: round(salt, 1), doughWeight: round(doughWeight, 1), hydrationResult: round(hydration!, 2) };
+  return { validation: "", flourToAdd: round(flourToAdd, 1), starter: round(starter, 1), starterBreakdown: `${round(starterFlour, 1)} g flour + ${round(starterWater, 1)} g water`, waterToAdd: round(Math.max(0, waterToAdd), 1), salt: round(salt, 1), doughWeight: round(doughWeight, 1), hydrationResult: round(hydration, 2) };
 }
 
 function calculateFirewood(v: CalculatorValues): CalculationOutput {
   const length = inputNumber(v, "length"); const width = inputNumber(v, "width"); const height = inputNumber(v, "height"); const price = inputNumber(v, "pricePerCord");
-  if ([length, width, height].some((x) => x === null)) return { validation: "Enter the stack's length, width, and height.", cubicFeet: "", cords: "", cost: "" };
-  if ([length, width, height].some((x) => (x as number) <= 0)) return { validation: "All stack dimensions must be greater than zero.", cubicFeet: "", cords: "", cost: "" };
+  if (length === null || width === null || height === null) return { validation: "Enter the stack's length, width, and height.", cubicFeet: "", cords: "", cost: "" };
+  if (length <= 0 || width <= 0 || height <= 0) return { validation: "All stack dimensions must be greater than zero.", cubicFeet: "", cords: "", cost: "" };
   if (price !== null && price < 0) return { validation: "Price per cord cannot be negative.", cubicFeet: "", cords: "", cost: "" };
   const toFeet = String(v.dimensionUnit ?? "ft") === "in" ? 1 / 12 : 1;
-  const cubicFeet = length! * toFeet * width! * toFeet * height! * toFeet;
+  const cubicFeet = length * toFeet * width * toFeet * height * toFeet;
   const cords = cubicFeet / 128;
   if (![cubicFeet, cords].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", cubicFeet: "", cords: "", cost: "" };
   return { validation: "", cubicFeet: round(cubicFeet, 2), cords: round(cords, 3), cost: price === null ? "" : round(cords * price, 2) };
@@ -487,7 +487,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["Meal servings are based on the guest count and service style; cocktail-only service gets a small buffer because food is the event.", "Dessert is planned at one serving per guest, with a 25% bump when serving both cake and a dessert table.", "Budget ranges are rough planning estimates and vary widely by city, menu, staffing, rentals, and bar package."],
     example: { title: "100-person buffet wedding", inputs: "Buffet, beer and wine, cake", result: "100 meal servings, 100 dessert servings, and a rough $5,500–$11,000 catering range." },
     faqs: [{ question: "How much wedding food should I order?", answer: "For a plated or buffet meal, start with one meal serving per guest and add a service-style buffer where appropriate." }, { question: "What does the budget estimate include?", answer: "It is a broad food-and-service planning range, not a quote. Ask caterers what staffing, rentals, tax, gratuity, and bar service add." }, { question: "Should I plan dessert for every guest?", answer: "Yes. One serving per guest is a good baseline, with extra if you offer a dessert table alongside cake." }, { question: "Why can wedding catering costs vary so much?", answer: "Region, menu ingredients, staffing, rentals, service format, and bar choices can all materially change the final quote." }],
-    seo: { title: "Wedding Food Calculator – Quantities & Catering Budget | CalcForged", description: "Estimate wedding meal servings, dessert servings, and a rough catering budget range.", h1: "Wedding food calculator", intro: "Wedding food planning has two separate jobs: figuring out how much to serve and setting a realistic budget range before you call caterers. Enter your guest count, meal style, drinks, and dessert plan for a practical estimate. The result is intentionally labeled as a planning range because local labor, menu choices, rentals, tax, and gratuity can move a real quote far beyond a simple per-person formula." },
+    seo: { title: "Wedding Food Calculator – Quantities & Catering Budget | CalcForged", description: "Estimate wedding meal and dessert servings from guest count, meal style, drinks, and dessert plan, plus a rough catering budget before requesting quotes.", h1: "Wedding food calculator", intro: "Wedding food planning has two separate jobs: figuring out how much to serve and setting a realistic budget range before you call caterers. Enter your guest count, meal style, drinks, and dessert plan for a practical estimate. The result is intentionally labeled as a planning range because local labor, menu choices, rentals, tax, and gratuity can move a real quote far beyond a simple per-person formula." },
     related: ["catering-food-quantity", "taco-bar", "restaurant-food-cost"],
   },
   {
@@ -635,7 +635,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["A slab or footing uses length × width × thickness, with thickness converted from inches to feet.", "A round column uses π × radius² × height.", "Cubic feet are divided by 27 to convert to cubic yards, then a 5–10% waste allowance is added for ordering. One 80-pound bag is treated as about 0.6 cubic feet."],
     example: { title: "12 × 10 slab", inputs: "4-inch thickness and 10% waste", result: "40.00 cu ft base volume, about 1.63 cu yd to order, or 74 bags." },
     faqs: [{ question: "How many cubic feet are in a cubic yard?", answer: "One cubic yard contains 27 cubic feet." }, { question: "How much concrete waste should I plan?", answer: "Five to ten percent is a common ordering allowance for uneven subgrade, spillage, and measurement variation." }, { question: "How many 80-pound bags equal a cubic yard?", answer: "Using roughly 0.6 cubic feet per bag, one cubic yard is about 45 bags before waste. Check the product label for exact yield." }, { question: "Can I calculate a round column?", answer: "Yes. Choose Round column and enter diameter and height in feet." }],
-    seo: { title: "Concrete Calculator – Cubic Yards, Bags & Waste | CalcForged", description: "Calculate concrete volume for slabs, footings, and round columns in cubic feet, yards, and bags.", h1: "Concrete calculator", intro: "Concrete is sold by volume, so the most useful estimate converts your dimensions into cubic feet and cubic yards before you order. Choose a rectangular slab or footing, or a round column, then enter your dimensions and waste allowance. The calculator uses standard geometry, converts 27 cubic feet to one cubic yard, and shows an 80-pound bag equivalent using an approximate 0.6 cubic-foot yield. Always compare the result with the yield printed on your specific mix." },
+    seo: { title: "Concrete Calculator – Cubic Yards, Bags & Waste | CalcForged", description: "Estimate concrete for slabs, footings, or round columns in cubic feet and yards. Compare bag equivalents and waste, then check mix yield before ordering.", h1: "Concrete calculator", intro: "Concrete is sold by volume, so the most useful estimate converts your dimensions into cubic feet and cubic yards before you order. Choose a rectangular slab or footing, or a round column, then enter your dimensions and waste allowance. The calculator uses standard geometry, converts 27 cubic feet to one cubic yard, and shows an 80-pound bag equivalent using an approximate 0.6 cubic-foot yield. Always compare the result with the yield printed on your specific mix." },
     related: ["flooring", "paint", "mulch"],
   },
   {
@@ -716,7 +716,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["Deck floor area is length × width; railings add roughly 12 square feet per foot of perimeter, counting both faces of rails and balusters.", "Gallons are area × coats ÷ coverage per gallon, rounded up to whole gallons.", "Most stains cover 150 to 300 square feet per gallon depending on product and wood condition — enter your can's coverage and let it override the default."],
     example: { title: "12 × 16 deck with railings", inputs: "2 coats, 250 sq ft per gallon", result: "About 528 sq ft to stain — 5 gallons, roughly $175 at $35 per gallon." },
     faqs: [{ question: "How much area does a gallon of deck stain cover?", answer: "Most products cover 150 to 300 square feet per gallon per coat; semi-transparent stains on weathered, porous wood land at the low end. The coverage printed on your can beats any default." }, { question: "Do railings really add that much surface?", answer: "Yes. Rails have two faces plus edges, and every baluster has two faces — on a small deck the railing can add as much paintable surface as the floor itself." }, { question: "Should I stain the underside of the deck boards?", answer: "Usually no. Coat the walking surface and the exposed edges; airflow dries the underside, and the wear you are protecting against happens on top." }, { question: "One coat or two?", answer: "Two coats are the norm on bare wood — the first soaks in, the second builds color and protection. A single maintenance coat is common on a deck that was already stained." }],
-    seo: { title: "Deck Stain Calculator – Gallons & Cost | CalcForged", description: "Calculate how much deck stain you need — floor and railings, coats, gallons, and cost estimate.", h1: "Deck stain calculator", intro: "Stain runs out at the worst time — halfway through a deck, with the sun moving and half the boards wet. This calculator works from real surface area instead of deck size: the floor, both faces of the railings when you include them, and your coat count, divided by the coverage on your actual can of stain. Most products cover 150 to 300 square feet per gallon, so the label wins; the result is whole gallons to buy and what they cost." },
+    seo: { title: "Deck Stain Calculator – Gallons & Cost | CalcForged", description: "Estimate deck stain gallons and cost from floor area, railings, coats, and coverage printed on your can. Enter dimensions and price to plan what to buy.", h1: "Deck stain calculator", intro: "Stain runs out at the worst time — halfway through a deck, with the sun moving and half the boards wet. This calculator works from real surface area instead of deck size: the floor, both faces of the railings when you include them, and your coat count, divided by the coverage on your actual can of stain. Most products cover 150 to 300 square feet per gallon, so the label wins; the result is whole gallons to buy and what they cost." },
     related: ["deck-boards", "paint", "concrete"],
   },
   {
@@ -793,7 +793,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["Monthly payment uses the standard amortization formula for a fixed-rate, fixed-term loan.", "Total repaid is the monthly payment multiplied by the number of months.", "Total interest is everything you pay above the amount borrowed; it assumes no extra payments and no fees."],
     example: { title: "$25,000 personal loan", inputs: "8.5% over 60 months", result: "About $512.91 per month and $5,775 total interest." },
     faqs: [{ question: "Does this work for car loans?", answer: "Yes. Any fixed-rate, fixed-term installment loan — personal, auto, or student — uses the same formula." }, { question: "Are origination fees included?", answer: "No. Fees are not interest, but they raise your real cost. Some loans add them to the balance, so you could enter a slightly higher loan amount to account for that." }, { question: "What happens if I pay extra each month?", answer: "Extra payments go straight to principal and shorten the loan, so your actual total interest would be lower than shown." }, { question: "Why does a longer term cost more?", answer: "A longer term lowers the monthly payment but keeps interest accruing for more months, so the total interest grows even at the same rate." }],
-    seo: { title: "Loan Calculator – Monthly Payment & Total Interest | CalcForged", description: "Calculate the monthly payment, total interest, and total repayment cost for any fixed-rate loan.", h1: "Loan calculator", intro: "Before you sign for a personal, auto, or business loan, it helps to see the whole picture: the monthly payment, the total interest, and what the loan really costs end to end. Enter the amount, rate, and term in months and the calculator applies the standard amortization formula lenders use for fixed installment loans. Try a shorter term or a lower rate to see how much interest each change saves, and remember that fees and extra payments are not part of this estimate." },
+    seo: { title: "Loan Calculator – Monthly Payment & Total Interest | CalcForged", description: "Estimate fixed-rate loan payments, total interest, and repayment from your amount, rate, and term. Compare loan terms before committing; fees are not included.", h1: "Loan calculator", intro: "Before you sign for a personal, auto, or business loan, it helps to see the whole picture: the monthly payment, the total interest, and what the loan really costs end to end. Enter the amount, rate, and term in months and the calculator applies the standard amortization formula lenders use for fixed installment loans. Try a shorter term or a lower rate to see how much interest each change saves, and remember that fees and extra payments are not part of this estimate." },
     related: ["mortgage", "compound-interest", "savings"],
   },
   {
@@ -1105,7 +1105,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["Pick the mode first — the same two numbers mean different things in each mode.", "X% of Y multiplies; X as a share of Y divides; percent change divides the difference by the starting value.", "Percent change is negative when the value falls and uses the absolute starting value as its base."],
     example: { title: "Tip on a discount", inputs: "15% of 200", result: "30." },
     faqs: [{ question: "How do I calculate a discount?", answer: "Use X% of Y to get the discount amount, then subtract it from the price. For a $80 item at 25% off, the discount is $20 and the price is $60." }, { question: "How do I add a percentage, like tax or tip?", answer: "Use % change from X to Y in reverse, or simply compute X% of Y and add it. A 15% tip on $60 is $9, so pay $69." }, { question: "Why is my percent change negative?", answer: "The value went down. A drop from 100 to 80 is −20%, calculated against the original 100." }, { question: "What's the difference between percent and percentage points?", answer: "Going from 10% to 15% is a 5 percentage-point rise, but a 50% relative change. This calculator computes the relative change." }],
-    seo: { title: "Percentage Calculator – Discounts, Shares & Change | CalcForged", description: "Calculate X% of Y, one number as a percentage of another, or the percent change between two values.", h1: "Percentage calculator", intro: "Percentages trip people up because the same two numbers can answer three different questions: what is 15% of 200, what share of 200 is 30, and how much did 80 change to become 100. Pick the question, enter two numbers, and get the answer with the exact formula shown beside it. This covers discounts, tax, tips, grade shares, price increases, and the percentage-point versus percent-change distinction that catches so many people out." },
+    seo: { title: "Percentage Calculator – Discounts, Shares & Change | CalcForged", description: "Calculate X% of a number, compare one value as a share of another, or find percent change. Use it for discounts, tax, and tips, with each formula shown.", h1: "Percentage calculator", intro: "Percentages trip people up because the same two numbers can answer three different questions: what is 15% of 200, what share of 200 is 30, and how much did 80 change to become 100. Pick the question, enter two numbers, and get the answer with the exact formula shown beside it. This covers discounts, tax, tips, grade shares, price increases, and the percentage-point versus percent-change distinction that catches so many people out." },
     related: ["tip", "weight-converter", "square-root-cube-root"],
   },
   {
@@ -1327,7 +1327,7 @@ const definitions: CalculatorDefinition[] = [
     howItWorks: ["The square root is the number that, multiplied by itself, gives your input.", "The cube root handles negatives correctly — ∛−27 is −3 — because odd roots of negatives are real.", "The nth root takes any n from 2 to 12; even roots of negative numbers have no real solution and the result says so."],
     example: { title: "144", inputs: "Value 144, n = 4", result: "√144 = 12, ∛144 ≈ 5.24, and the 4th root is ≈ 3.46." },
     faqs: [{ question: "Why is the square root of a negative number impossible?", answer: "No real number times itself is negative, so even roots of negatives have no real solution — they live in complex numbers, which this calculator doesn't show." }, { question: "How do I estimate a square root mentally?", answer: "Find the nearest perfect squares above and below your number and interpolate. √50 sits between 7 (49) and 8 (64), so around 7.07." }, { question: "What is a principal root?", answer: "Every positive number has two square roots, positive and negative. The √ symbol means the positive one — the principal root — and that's what's shown." }, { question: "When would I need an nth root?", answer: "Geometry and finance both use them: side lengths from areas and volumes, and compound-growth back-solving (the 12th root of a 12-year growth factor gives the annual rate)." }],
-    seo: { title: "Square Root Calculator – With Cube & nth Roots | CalcForged", description: "Calculate square roots, cube roots, and any nth root instantly, with a verification check.", h1: "Square root and cube root calculator", intro: "Roots come up everywhere: geometry homework, the Pythagorean theorem, standard deviations, and back-solving growth rates. Enter any number and get the square root and cube root instantly, plus any nth root from 2 to 12 with the n of your choice. Negative numbers are handled correctly — odd roots of negatives are real, even roots are flagged rather than silently wrong — and a check line shows the arithmetic so you can trust the answer at a glance." },
+    seo: { title: "Square Root Calculator – With Cube & nth Roots | CalcForged", description: "Calculate square roots, cube roots, and nth roots from 2 to 12, handle negative numbers, and verify answers with a check line that shows the arithmetic.", h1: "Square root and cube root calculator", intro: "Roots come up everywhere: geometry homework, the Pythagorean theorem, standard deviations, and back-solving growth rates. Enter any number and get the square root and cube root instantly, plus any nth root from 2 to 12 with the n of your choice. Negative numbers are handled correctly — odd roots of negatives are real, even roots are flagged rather than silently wrong — and a check line shows the arithmetic so you can trust the answer at a glance." },
     related: ["gpa", "percentage", "compound-interest"],
   },
   {
@@ -2322,18 +2322,18 @@ function formatFraction(value: number, denominators = [2, 3, 4, 8, 16]) {
   return whole ? `${whole} ${fraction}` : fraction;
 }
 
-export const categories: { name: Category; slug: string; description: string }[] = [
-  { name: "Food & Catering", slug: "food-catering", description: "Plan portions, menus, and recipes with less guesswork." },
+export const categories: { name: Category; slug: string; description: string; seoDescription?: string }[] = [
+  { name: "Food & Catering", slug: "food-catering", description: "Plan portions, menus, and recipes with less guesswork.", seoDescription: "Plan portions for catered meals, BBQ, taco bars, appetizers, pizza, wings, sandwiches, and charcuterie. Scale recipes or convert cups to grams in one place." },
   { name: "Home Improvement", slug: "home-improvement", description: "Get practical material estimates before you start." },
-  { name: "Construction", slug: "construction", description: "Turn dimensions into order-ready quantities." },
-  { name: "Events", slug: "events", description: "Make guest counts and event budgets easier to plan." },
+  { name: "Construction", slug: "construction", description: "Turn dimensions into order-ready quantities.", seoDescription: "Estimate concrete volume, rebar quantities, and driveway gravel with construction calculators. Enter dimensions, check the assumptions, and plan what to order." },
+  { name: "Events", slug: "events", description: "Make guest counts and event budgets easier to plan.", seoDescription: "Plan wedding meals and dessert tables, party ice, or balloon quantities with event calculators. Enter guest counts and event details to get practical estimates." },
   { name: "Business", slug: "business", description: "Check costs, margins, and operating decisions." },
-  { name: "Hobbies", slug: "hobbies", description: "Useful tools for projects and pastimes." },
+  { name: "Hobbies", slug: "hobbies", description: "Useful tools for projects and pastimes.", seoDescription: "Use hobby calculators for model trains, miniatures, yarn, 3D print costs, lumber, soap, aquariums, and firewood. Check sizes, quantities, and project costs." },
   { name: "Automotive", slug: "automotive", description: "Maintenance and ownership planning tools." },
-  { name: "Everyday Life", slug: "everyday-life", description: "Small decisions, answered clearly." },
-  { name: "Finance", slug: "finance", description: "Loans, savings, and money decisions made clear." },
-  { name: "Health", slug: "health", description: "Quick health checks and personal timelines." },
-  { name: "Travel", slug: "travel", description: "Money and time, converted for wherever you're headed." },
+  { name: "Everyday Life", slug: "everyday-life", description: "Small decisions, answered clearly.", seoDescription: "Find calculators for percentages, tips, unit prices, age, dates, time, and conversions, plus Christmas lights and tree stands. Enter values and see the math." },
+  { name: "Finance", slug: "finance", description: "Loans, savings, and money decisions made clear.", seoDescription: "Compare mortgage and loan payments, estimate savings and compound interest, or model an investment. Enter your numbers to see payments, growth, and assumptions." },
+  { name: "Health", slug: "health", description: "Quick health checks and personal timelines.", seoDescription: "Estimate BMI, calories and TDEE, walking steps, or a pregnancy due date with health calculators. Review each result and its assumptions for general planning." },
+  { name: "Travel", slug: "travel", description: "Money and time, converted for wherever you're headed.", seoDescription: "Plan travel with currency and time zone calculators. Convert amounts or compare local times before a trip, meeting, or call. Enter values to see the result." },
   { name: "Education", slug: "education", description: "Grades, roots, and quick academic answers." },
 ];
 

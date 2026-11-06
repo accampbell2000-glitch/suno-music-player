@@ -227,7 +227,7 @@
 .deleteButton:focus-visible,
 .softAction:focus-visible,
 .dangerAction:focus-visible { outline: 3px solid #a84e2a; outline-offset: 2px; }
-.resetConfirm { display: grid; gap: 10px; margin: 0 0 12px; padding: 12px; border: 1px solid #d9bdb4; background: #fcf4f0; }
+.resetConfirm { display: grid; gap: 10px; min-width: 0; margin: 0 0 12px; padding: 12px; border: 1px solid #d9bdb4; background: #fcf4f0; }
 .resetConfirm strong { font-size: .75rem; }
 .resetConfirm p { margin: 4px 0 0; color: var(--fuel-muted); font-size: .66rem; line-height: 1.45; }
 .resetActions { display: flex; gap: 7px; }
@@ -259,7 +259,7 @@
 .deleteButton:hover:not(:disabled) { border-color: #ead7d1; background: #fcf4f0; }
 .editButton:disabled,
 .deleteButton:disabled { cursor: wait; opacity: .5; }
-.entryConfirm { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; padding: 8px 10px; border: 1px solid #e7d1c9; background: #fcf4f0; }
+.entryConfirm { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; margin: 0; padding: 8px 10px; border: 1px solid #e7d1c9; background: #fcf4f0; }
 .entryConfirm span { margin-right: auto; color: var(--fuel-ink); font-size: .67rem; font-weight: 700; }
 .emptyLedger { display: flex; gap: 13px; align-items: start; padding: 18px 0; border-top: 1px solid var(--fuel-line); }
 .emptyLedger span { color: #a84e2a; font-family: "DM Mono", monospace; font-size: .65rem; }

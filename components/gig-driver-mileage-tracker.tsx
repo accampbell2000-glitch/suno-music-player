@@ -425,7 +425,7 @@ export function GigDriverMileageTracker() {
         <aside className={styles.historyPanel} aria-labelledby="gig-mileage-history-heading">
           <div className={styles.historyHeader}>
             <div><p className={styles.mono}>Your recent shifts</p><h3 id="gig-mileage-history-heading">Last 7 days</h3><p>Older trips are removed automatically.</p></div>
-            <div className={styles.totalStats} aria-label="Seven-day mileage and hours totals"><div className={styles.totalStat}><strong>{formatMiles(history?.sevenDayMiles ?? 0)}</strong><span>miles logged</span></div><div className={styles.totalStat}><strong>{rollingTotals.hoursWorked.toFixed(2)}</strong><span>hours logged</span></div></div>
+            <fieldset className={styles.totalStats}><legend className="sr-only">Seven-day mileage and hours totals</legend><div className={styles.totalStat}><strong>{formatMiles(history?.sevenDayMiles ?? 0)}</strong><span>miles logged</span></div><div className={styles.totalStat}><strong>{rollingTotals.hoursWorked.toFixed(2)}</strong><span>hours logged</span></div></fieldset>
           </div>
           {loadError && <p className={styles.loadError} role="alert">{loadError}</p>}
           {loading ? <div className={styles.loading} aria-live="polite"><span className={styles.mono}>Loading your log…</span></div> : history?.records.length ? (
@@ -454,11 +454,12 @@ export function GigDriverMileageTracker() {
               })}
             </ol>
           ) : <div className={styles.emptyHistory}><div><span><Route aria-hidden="true" /></span><strong>{loadError ? "Your log is waiting" : "No trips logged yet"}</strong><p>{loadError ? "Try loading the page again to see your saved trips." : "Save your first shift above. Your mileage stays separate from the fuel log."}</p></div></div>}
-          {!loading && <div className={styles.weeklySummary} aria-label="Seven-day total earned after fuel">
+          {!loading && <fieldset className={styles.weeklySummary}>
+            <legend className="sr-only">Seven-day total earned after fuel</legend>
             <div className={styles.weeklySummaryTitle}><span>7-day rolling total</span><span>Fuel only</span></div>
             <strong className={styles.weeklySummaryAmount}>{rollingTotals.afterFuelShiftCount > 0 ? formatMoney(rollingTotals.afterFuel) : "—"}</strong>
             <p className={styles.weeklySummaryNote}>{rollingTotals.afterFuelShiftCount > 0 ? `After-fuel earnings from ${rollingTotals.afterFuelShiftCount} of ${rollingTotals.shiftCount} saved shifts with earnings and fuel details.` : "Add earnings, MPG, and pump price to a shift to calculate your total after fuel."}</p>
-          </div>}
+          </fieldset>}
         </aside>
       </div>
 

@@ -1,5 +1,3 @@
-type ScannedIngredient = { amount: string; unit: string; ingredient: string };
-
 const SYSTEM_PROMPT = [
   "You extract recipes from photos of recipes (cookbooks, handwritten cards, phone screenshots).",
   "Reply with ONLY minified JSON matching exactly:",
