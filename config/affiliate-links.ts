@@ -98,6 +98,31 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 		{ name: "Yarn winder & swift", blurb: "Winds skeins into pull-cakes; the only yarn upgrade worth making early.", query: "yarn ball winder swift set" },
 		{ name: "Stitch markers & gauge tool", blurb: "Checking gauge before the cast-on is what makes the yardage math land.", query: "stitch markers gauge tool knitting set" },
 	],
+	"board-feet": [
+		{ name: "Tape measure", blurb: "A clear dimension reading keeps the board-foot estimate tied to the actual cut list.", query: "locking tape measure 25 foot" },
+		{ name: "Digital caliper", blurb: "Useful for checking thickness and smaller stock dimensions before calculating volume.", query: "digital caliper woodworking" },
+		{ name: "Wood moisture meter", blurb: "Check lumber moisture as a separate part of material selection and planning.", query: "wood moisture meter pin type" },
+	],
+	soap: [
+		{ name: "Digital scale", blurb: "Weigh oil and lye ingredients by mass rather than relying on volume measures.", query: "digital scale soap making 0.1 gram" },
+		{ name: "Splash goggles and chemical-resistant gloves", blurb: "Protective equipment belongs in the setup before lye is handled.", query: "chemical splash goggles nitrile gloves" },
+		{ name: "HDPE mixing pitcher", blurb: "Look for a clearly identified lye-compatible container and confirm its supplier guidance.", query: "HDPE pitcher chemical resistant" },
+	],
+	"aquarium-volume": [
+		{ name: "Flexible measuring tape", blurb: "Measure the inside dimensions consistently before entering them in the calculator.", query: "flexible measuring tape inches centimeters" },
+		{ name: "Digital caliper", blurb: "Check small inside measurements without mixing up inches and centimeters.", query: "digital caliper measuring tool" },
+		{ name: "Long straightedge ruler", blurb: "A rigid ruler helps transfer inside tank measurements cleanly.", query: "stainless steel ruler 24 inch metric" },
+	],
+	sourdough: [
+		{ name: "Digital kitchen scale", blurb: "A gram scale makes baker's-percentage batches straightforward to weigh.", query: "digital kitchen scale grams bread baking" },
+		{ name: "Dough scraper", blurb: "A bench scraper makes it easier to divide and move dough during mixing.", query: "stainless steel bench dough scraper" },
+		{ name: "Proofing basket", blurb: "A banneton is a reusable shape-supporting basket for the final proof.", query: "sourdough proofing basket banneton" },
+	],
+	firewood: [
+		{ name: "Tape measure", blurb: "Measure the stack's full length, width, and height before converting it to cords.", query: "tape measure 25 foot" },
+		{ name: "Firewood rack", blurb: "A rack keeps a stack arranged while you measure its outside dimensions.", query: "firewood rack outdoor steel" },
+		{ name: "Wood moisture meter", blurb: "Moisture is separate from stack volume; check the meter instructions for your wood.", query: "firewood moisture meter" },
+	],
 	"ac-size": [
 		{ name: "Window air conditioner", blurb: "The standard fix for one room — match the BTU rating to your load.", query: "window air conditioner 12000 btu" },
 		{ name: "Mini-split system", blurb: "Quieter and more efficient than a window unit for rooms you cool daily.", query: "mini split air conditioner heat pump" },

@@ -85,6 +85,11 @@
 - [Charcuterie Board Calculator](https://calcforged.com/calculators/food-catering/charcuterie-board)
 - [Christmas Lights Calculator](https://calcforged.com/calculators/everyday-life/christmas-lights)
 - [Christmas Tree Water & Stand Calculator](https://calcforged.com/calculators/everyday-life/christmas-tree-water)
+- [Board Feet Calculator](https://calcforged.com/calculators/hobbies/board-feet)
+- [Soap Calculator](https://calcforged.com/calculators/hobbies/soap)
+- [Aquarium Volume Calculator](https://calcforged.com/calculators/hobbies/aquarium-volume)
+- [Sourdough Calculator](https://calcforged.com/calculators/food-catering/sourdough)
+- [Firewood Calculator](https://calcforged.com/calculators/hobbies/firewood)
 
 ## Policies
 - [Refund Policy](https://calcforged.com/legal/refund-policy)

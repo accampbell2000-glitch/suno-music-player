@@ -24,6 +24,8 @@ export type FieldDefinition = {
   optionsMap?: Record<string, FieldOption[]>;
   /** Column labels for ingredient-list fields, so editors can be reused for courses, items, and rows that aren't food. */
   ingredientSchema?: { first: string; amount: string; unit: string; name: string; amountPlaceholder?: string; unitPlaceholder?: string; namePlaceholder?: string };
+  ingredientOptions?: FieldOption[];
+  ingredientUnit?: string;
   /** Only show this input when the named field holds one of these values (e.g. bidirectional calculators). */
   visibleWhen?: { key: string; values: string[] };
   unit?: string;
@@ -313,6 +315,114 @@ const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
 // Towing-capacity data lives in lib/towing-data.ts (~year-aware verified
 // table, expanded 2026-09-22). The safety-data comment block at the top of
 // that file documents the verification bar and sources.
+
+const SOAP_OILS = [
+  { id: "olive", label: "Olive oil", naoh: 0.135, koh: 0.190 },
+  { id: "coconut-76", label: "Coconut oil (76°F)", naoh: 0.183, koh: 0.257 },
+  { id: "palm", label: "Palm oil", naoh: 0.142, koh: 0.199 },
+  { id: "castor", label: "Castor oil", naoh: 0.128, koh: 0.180 },
+  { id: "shea", label: "Shea butter", naoh: 0.128, koh: 0.179 },
+  { id: "tallow", label: "Beef tallow", naoh: 0.143, koh: 0.200 },
+  { id: "lard", label: "Lard", naoh: 0.141, koh: 0.198 },
+] as const;
+const SOAP_OIL_OPTIONS: FieldOption[] = SOAP_OILS.map((oil) => ({ label: oil.label, value: oil.id }));
+
+function calculateBoardFeet(v: CalculatorValues): CalculationOutput {
+  const thickness = inputNumber(v, "thickness"); const width = inputNumber(v, "width"); const length = inputNumber(v, "length"); const pieces = inputNumber(v, "pieces"); const price = inputNumber(v, "pricePerBoardFoot");
+  if ([thickness, width, length, pieces].some((x) => x === null)) return { validation: "Enter thickness, width, length, and piece count." , perPiece: "", total: "", materialCost: "" };
+  if ([thickness, width, length, pieces].some((x) => (x as number) <= 0) || !Number.isInteger(pieces)) return { validation: "Dimensions and piece count must be greater than zero; piece count must be a whole number.", perPiece: "", total: "", materialCost: "" };
+  if (price !== null && price < 0) return { validation: "Price per board foot cannot be negative.", perPiece: "", total: "", materialCost: "" };
+  const lengthInches = length! * (String(v.lengthUnit ?? "ft") === "ft" ? 12 : 1);
+  const perPiece = thickness! * width! * lengthInches / 144;
+  const total = perPiece * pieces!;
+  if (![perPiece, total].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", perPiece: "", total: "", materialCost: "" };
+  return { validation: "", perPiece: round(perPiece, 2), total: round(total, 2), materialCost: price === null ? "" : round(total * price, 2) };
+}
+
+function calculateSoap(v: CalculatorValues): CalculationOutput {
+  const rows = Array.isArray(v.oils) ? v.oils : [];
+  const used: { label: string; amount: number; sap: number }[] = [];
+  for (const row of rows) {
+    const oilId = String(row.ingredient ?? "").trim(); const amountText = String(row.amount ?? "").trim();
+    if (!oilId && !amountText) continue;
+    if (!oilId || !amountText) return { validation: "Choose an oil and enter its weight in grams for every filled row.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+    const oil = SOAP_OILS.find((item) => item.id === oilId); const amount = Number(amountText);
+    if (!oil) return { validation: "Choose an oil from the listed reference table.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+    if (!Number.isFinite(amount) || amount <= 0) return { validation: "Each oil weight must be a positive number of grams.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+    const lyeType = String(v.lyeType ?? "naoh");
+    used.push({ label: oil.label, amount, sap: lyeType === "koh" ? oil.koh : oil.naoh });
+  }
+  if (!used.length) return { validation: "Add at least one oil and its weight in grams.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+  const lyeType = String(v.lyeType ?? "naoh");
+  if (lyeType !== "naoh" && lyeType !== "koh") return { validation: "Choose NaOH or KOH.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+  const superfat = inputNumber(v, "superfat");
+  if (superfat === null || superfat < 0 || superfat > 50) return { validation: "Superfat must be between 0% and 50%.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+  const totalOils = used.reduce((sum, item) => sum + item.amount, 0);
+  const baseLye = used.reduce((sum, item) => sum + item.amount * item.sap, 0);
+  const lye = baseLye * (1 - superfat / 100);
+  const waterMode = String(v.waterMode ?? "concentration");
+  let water: number;
+  let concentration: number;
+  if (waterMode === "ratio") {
+    const ratio = inputNumber(v, "waterToLyeRatio");
+    if (ratio === null || ratio <= 0 || ratio > 20) return { validation: "Water-to-lye ratio must be greater than 0 and no more than 20.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+    water = lye * ratio;
+    concentration = lye / (lye + water) * 100;
+  } else {
+    const concentrationInput = inputNumber(v, "lyeConcentration");
+    if (concentrationInput === null || concentrationInput <= 0 || concentrationInput >= 100) return { validation: "Lye concentration must be above 0% and below 100%.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+    concentration = concentrationInput;
+    water = lye * (100 - concentrationInput) / concentrationInput;
+  }
+  if (![totalOils, baseLye, lye, water, concentration].every(Number.isFinite) || lye <= 0 || water < 0) return { validation: "These values are outside the calculator's range. Check the oil weights and settings.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
+  const sapLabel = lyeType.toUpperCase();
+  const detail = used.map((item) => `${item.label}: ${item.amount} g × ${item.sap.toFixed(3)} SAP (${sapLabel}) = ${round(item.amount * item.sap, 2)} g before superfat.`);
+  detail.push(`Total lye before superfat: ${round(baseLye, 2)} g. At ${round(superfat, 2)}% superfat: ${round(baseLye, 2)} × (1 − ${round(superfat, 2)} ÷ 100) = ${round(lye, 2)} g.`);
+  detail.push(`Water: ${waterMode === "ratio" ? `${round(inputNumber(v, "waterToLyeRatio") ?? 0, 3)} × lye weight` : `${round(concentration, 2)}% lye concentration`} = ${round(water, 2)} g.`);
+  return { validation: "Estimate only; assumes 100% lye purity. Verify the complete recipe before making soap.", totalOils: round(totalOils, 2), lyeKind: lyeType === "koh" ? "KOH (potassium hydroxide)" : "NaOH (sodium hydroxide)", lye: round(lye, 2), water: round(water, 2), concentration: round(concentration, 2), workings: detail.join("\n") };
+}
+
+function calculateAquarium(v: CalculatorValues): CalculationOutput {
+  const length = inputNumber(v, "length"); const width = inputNumber(v, "width"); const height = inputNumber(v, "height");
+  if ([length, width, height].some((x) => x === null)) return { validation: "Enter the tank's inside length, width, and height.", gallons: "", liters: "" };
+  if ([length, width, height].some((x) => (x as number) <= 0)) return { validation: "All three inside dimensions must be greater than zero.", gallons: "", liters: "" };
+  const toInches = String(v.dimensionUnit ?? "in") === "cm" ? 1 / 2.54 : 1;
+  const cubicInches = length! * toInches * width! * toInches * height! * toInches;
+  const gallons = cubicInches / 231;
+  const liters = gallons * 3.785411784;
+  if (![cubicInches, gallons, liters].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", gallons: "", liters: "" };
+  return { validation: "", gallons: round(gallons, 2), liters: round(liters, 2) };
+}
+
+function calculateSourdough(v: CalculatorValues): CalculationOutput {
+  const totalFlour = inputNumber(v, "totalFlour"); const hydration = inputNumber(v, "hydration"); const starterPercent = inputNumber(v, "starterPercent"); const starterHydration = inputNumber(v, "starterHydration"); const saltPercent = inputNumber(v, "saltPercent");
+  if ([totalFlour, hydration, starterPercent, starterHydration, saltPercent].some((x) => x === null)) return { validation: "Enter a value for each recipe setting.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  if (totalFlour! <= 0 || hydration! < 0 || starterPercent! < 0 || starterHydration! < 0 || saltPercent! < 0 || hydration! > 500 || starterPercent! > 500 || starterHydration! > 1000 || saltPercent! > 100) return { validation: "Flour must be positive; percentages must be within the listed input ranges.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  const starter = totalFlour! * starterPercent! / 100;
+  const starterFlour = starter / (1 + starterHydration! / 100);
+  const starterWater = starter - starterFlour;
+  const flourToAdd = totalFlour! - starterFlour;
+  const targetWater = totalFlour! * hydration! / 100;
+  const waterToAdd = targetWater - starterWater;
+  const salt = totalFlour! * saltPercent! / 100;
+  if (flourToAdd < -1e-9) return { validation: "The starter contains more flour than the total-flour target. Lower the starter percentage or increase total flour.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  if (waterToAdd < -1e-9) return { validation: "The starter already contains more water than this target hydration allows. Raise target hydration or change the starter settings.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  const doughWeight = totalFlour! + targetWater + salt;
+  if (![starter, starterFlour, starterWater, flourToAdd, targetWater, waterToAdd, salt, doughWeight].every(Number.isFinite)) return { validation: "These values are too large. Enter smaller amounts.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
+  return { validation: "", flourToAdd: round(flourToAdd, 1), starter: round(starter, 1), starterBreakdown: `${round(starterFlour, 1)} g flour + ${round(starterWater, 1)} g water`, waterToAdd: round(Math.max(0, waterToAdd), 1), salt: round(salt, 1), doughWeight: round(doughWeight, 1), hydrationResult: round(hydration!, 2) };
+}
+
+function calculateFirewood(v: CalculatorValues): CalculationOutput {
+  const length = inputNumber(v, "length"); const width = inputNumber(v, "width"); const height = inputNumber(v, "height"); const price = inputNumber(v, "pricePerCord");
+  if ([length, width, height].some((x) => x === null)) return { validation: "Enter the stack's length, width, and height.", cubicFeet: "", cords: "", cost: "" };
+  if ([length, width, height].some((x) => (x as number) <= 0)) return { validation: "All stack dimensions must be greater than zero.", cubicFeet: "", cords: "", cost: "" };
+  if (price !== null && price < 0) return { validation: "Price per cord cannot be negative.", cubicFeet: "", cords: "", cost: "" };
+  const toFeet = String(v.dimensionUnit ?? "ft") === "in" ? 1 / 12 : 1;
+  const cubicFeet = length! * toFeet * width! * toFeet * height! * toFeet;
+  const cords = cubicFeet / 128;
+  if (![cubicFeet, cords].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", cubicFeet: "", cords: "", cost: "" };
+  return { validation: "", cubicFeet: round(cubicFeet, 2), cords: round(cords, 3), cost: price === null ? "" : round(cords * price, 2) };
+}
 
 const definitions: CalculatorDefinition[] = [
   {
@@ -1997,6 +2107,66 @@ const definitions: CalculatorDefinition[] = [
     faqs: [{ question: "How is depreciation spread across hours?", answer: "Subtract expected resale value from purchase or replacement cost, then divide the difference by lifetime operating hours. The inputs are your assumptions, not a resale-value forecast." }, { question: "What happens when I leave optional costs out?", answer: "Annual overhead, annual operating hours, operator labor, and billing rate may be left blank or set to $0. Omitted optional costs count as zero. If overhead is greater than $0, annual operating hours must also be greater than 0." }, { question: "What is included in gross dollars and margin?", answer: "Gross dollars per hour are your billing rate minus the costs entered here. Margin is that amount divided by the billing rate. Other expenses, fees, and taxes are not included unless you add them to your own cost inputs." }, { question: "Is this accounting or tax advice?", answer: "No. This is an estimate based on your inputs, not accounting or tax advice. Check your records and consult a qualified professional for accounting or tax treatment." }],
     seo: { title: "Equipment Operating Cost Per Hour Calculator | CalcForged", description: "Estimate machinery cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor. Add a billing rate to see gross dollars and margin.", h1: "Equipment operating cost per hour", intro: "Price an operating hour from the costs you enter: depreciation, fuel, maintenance and repairs, optional annual overhead, and optional operator labor. Add a billing rate to compare it with the listed hourly cost. Results are estimates based on your inputs, not accounting or tax advice. The prefilled values are illustrative; replace them with your own." },
     related: ["gig-driver-mileage-tracker", "fuel-mileage"],
+  },
+  {
+    slug: "board-feet", name: "Board Feet Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▤", description: "Calculate board-foot volume for lumber pieces, with an optional material-cost estimate.",
+    fields: [{ key: "thickness", label: "Thickness", type: "number", unit: "in", min: 0.01, max: 1000, step: "any", defaultValue: 1.5 }, { key: "width", label: "Width", type: "number", unit: "in", min: 0.01, max: 1000, step: "any", defaultValue: 5.5 }, { key: "length", label: "Length", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 8 }, { key: "lengthUnit", label: "Length unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }] }, { key: "pieces", label: "Identical pieces", type: "number", unit: "pieces", min: 1, max: 1000000, step: 1, defaultValue: 10, help: "Use one set of dimensions for pieces that are the same size." }, { key: "pricePerBoardFoot", label: "Price per board foot (optional)", type: "number", unit: "$ / BF", min: 0, max: 1000000, step: 0.01, help: "Leave blank to skip the material-cost estimate." }],
+    results: [{ key: "validation", label: "Check", format: "text" }, { key: "perPiece", label: "Board feet per piece", unit: "BF", format: "number" }, { key: "total", label: "Total board feet", unit: "BF", format: "number" }, { key: "materialCost", label: "Material cost estimate", format: "currency", estimate: true }],
+    calculate: calculateBoardFeet,
+    howItWorks: ["Enter one set of thickness and width dimensions in inches, then choose whether the piece length is in feet or inches. Use the dimensions relevant to the order; this is geometric volume, not a log-scale estimate.", "One board foot is 144 cubic inches. For one piece, multiply thickness × width × length (all in inches) and divide by 144.", "Multiply board feet per piece by the count of identical pieces. Enter a price per board foot only when you want a material-cost estimate. This is different from a deck-board count, which estimates how many boards cover an area."],
+    example: { title: "Ten matching boards", inputs: "Illustrative dimensions: 1.5 in thick × 5.5 in wide × 8 ft long, quantity 10.", result: "Each piece is 5.5 board feet; the total is 55 board feet." },
+    faqs: [{ question: "What is one board foot?", answer: "A board foot is a volume of 144 cubic inches, such as a piece 1 inch thick, 12 inches wide, and 12 inches long. This calculator applies that definition to the dimensions you enter." }, { question: "Should I use nominal or actual lumber dimensions?", answer: "Use the dimensions that match the basis of your order or quote. The calculator does not convert a nominal label to actual dimensions." }, { question: "How is this different from a deck-board calculator?", answer: "This tool calculates lumber volume in board feet. A deck-board calculator estimates the number of boards needed to cover a deck area." }],
+    sources: [{ label: "Utah State University Forestry Extension — board-foot definition", url: "https://extension.usu.edu/forestry/publications/utah-forest-facts/007-forestry-terms" }],
+    seo: { title: "Board Feet Calculator: Lumber Volume & Cost | CalcForged", description: "Calculate board feet for one or more matching lumber pieces from thickness, width, length, and quantity. Add a price per board foot for an optional cost estimate.", h1: "Board feet calculator", intro: "Estimate lumber volume from the dimensions on your cut list. Enter thickness and width in inches, choose feet or inches for length, and set the number of matching pieces. The calculator uses the standard 144-cubic-inch board-foot unit; it does not estimate log yield or replace a deck-board count." },
+    related: ["deck-boards", "area"],
+  },
+  {
+    slug: "soap", name: "Soap Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "◒", description: "Estimate lye and water for a blend of common soapmaking oils, with a superfat and solution setting.",
+    fields: [{ key: "oils", label: "Oil blend", type: "ingredient-list", ingredientSchema: { first: "Oil blend", amount: "Weight (g)", unit: "", name: "Oil", amountPlaceholder: "500", namePlaceholder: "Choose an oil" }, ingredientOptions: SOAP_OIL_OPTIONS, ingredientUnit: "g", help: "Enter each oil weight in grams. The reference table covers seven common oils and fats." }, { key: "lyeType", label: "Lye type", type: "select", defaultValue: "naoh", options: [{ label: "NaOH (sodium hydroxide)", value: "naoh" }, { label: "KOH (potassium hydroxide)", value: "koh" }], help: "NaOH and KOH use different reference SAP values." }, { key: "superfat", label: "Superfat / lye discount", type: "number", unit: "%", min: 0, max: 50, step: 0.1, defaultValue: 5 }, { key: "waterMode", label: "Water setting", type: "select", defaultValue: "concentration", options: [{ label: "Lye concentration", value: "concentration" }, { label: "Water-to-lye ratio", value: "ratio" }] }, { key: "lyeConcentration", label: "Lye concentration", type: "number", unit: "%", min: 1, max: 99, step: 0.1, defaultValue: 33, visibleWhen: { key: "waterMode", values: ["concentration"] }, help: "Lye weight ÷ (lye weight + water weight)." }, { key: "waterToLyeRatio", label: "Water-to-lye ratio", type: "number", unit: ": 1 lye", min: 0.1, max: 20, step: 0.1, defaultValue: 2, visibleWhen: { key: "waterMode", values: ["ratio"] }, help: "Enter water weight per 1 part lye by weight." }],
+    results: [{ key: "validation", label: "Note", format: "text" }, { key: "totalOils", label: "Total oil blend", unit: "g", format: "number" }, { key: "lyeKind", label: "Lye type", format: "text" }, { key: "lye", label: "Lye required", unit: "g", format: "number" }, { key: "water", label: "Water for solution", unit: "g", format: "number" }, { key: "concentration", label: "Resulting lye concentration", format: "percent" }, { key: "workings", label: "SAP values and calculation", format: "text" }],
+    calculate: calculateSoap,
+    howItWorks: ["Choose each oil from the reference list and enter its weight in grams. The list uses the published NaOH and KOH SAP values shown by SoapCalc; the table is intentionally limited to seven common oils and fats.", "For each oil, multiply its weight by its selected lye-type SAP value and add the results. Apply the superfat discount: base lye × (1 − superfat ÷ 100).", "Set water by lye concentration or by a water-to-lye weight ratio. For concentration, water = lye × (100 − concentration) ÷ concentration. The lye amount assumes 100% lye purity; natural oil batches and supplier lye purity can vary, so independently verify the full formula before making soap."],
+    example: { title: "An illustrative olive-oil batch", inputs: "1,000 g olive oil, NaOH, 5% superfat, and a 33% lye concentration.", result: "Using the listed 0.135 NaOH SAP value: 128.25 g NaOH and about 260.39 g water. The published reference values are rounded; this is a formulation estimate, not a safety certification." },
+    faqs: [{ question: "Are the SAP values exact for every oil?", answer: "No. The selected values are reference values published by SoapCalc, and natural oils can vary by crop and supplier. We show the source and the selected table value in the calculation details; confirm the specific oil and lye information you use." }, { question: "Does this account for lye purity?", answer: "No. It assumes 100% lye purity. Supplier specifications and calculators may use a different purity assumption, especially for potassium hydroxide. Recheck the complete recipe against your supplier's specifications and a trusted soapmaking reference before use." }, { question: "What safety steps should I follow?", answer: "Lye is corrosive. Follow the current safety information for your lye, use protective gloves and eye protection, and work with suitable ventilation. Always add lye to water, never water to lye. This calculator does not certify a recipe as safe." }, { question: "Does this calculator include every soapmaking oil or the liquid-soap process?", answer: "No. It offers a limited list of seven common oils and fats from the linked reference table. It does not accept custom oils, dual-lye recipes, additives, fragrance limits, a lye-purity adjustment, or the separate cooking and dilution stages used in liquid-soap recipes." }],
+    sources: [{ label: "SoapCalc — oil chart and published NaOH/KOH SAP values", url: "https://soapcalc.net/oil-list" }, { label: "SoapCalc — lye calculator and recipe method", url: "https://soapcalc.net/calculator" }, { label: "Handcrafted Soap & Cosmetic Guild — superfatting and lye discount", url: "https://www.soapguild.org/tools-and-resources/resource-center/166/superfatting-lye-discount/" }, { label: "Handcrafted Soap & Cosmetic Guild — beginner cold-process soap guide and lye handling", url: "https://www.soapguild.org/tools-and-resources/resource-center/42/make-cp-soap/" }],
+    seo: { title: "Soap Calculator: Lye, Water & Superfat | CalcForged", description: "Calculate NaOH or KOH for a blend of seven common oils, with adjustable superfat and lye concentration or water-to-lye ratio. Includes SAP sources and safety limits.", h1: "Soap calculator", intro: "Build a simple oil blend and estimate lye and water by weight. Choose NaOH or KOH, set a superfat, and pick lye concentration or water-to-lye ratio. The limited SAP values vary by oil and supplier, and the calculation assumes 100% lye purity. Lye is corrosive: wear gloves and eye protection, use ventilation, and always add lye to water, never water to lye. Verify the complete recipe before use." },
+    related: ["weight-converter", "cups-to-grams"],
+  },
+  {
+    slug: "aquarium-volume", name: "Aquarium Volume Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▱", description: "Estimate the geometric capacity of a rectangular aquarium from inside dimensions, in US gallons and liters.",
+    fields: [{ key: "length", label: "Inside length", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 36 }, { key: "width", label: "Inside width", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 18 }, { key: "height", label: "Inside height", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 18 }, { key: "dimensionUnit", label: "Dimension unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }], help: "Use inside dimensions. Outside measurements include the tank walls." }],
+    results: [{ key: "validation", label: "Check", format: "text" }, { key: "gallons", label: "US gallons", unit: "US gal", format: "number" }, { key: "liters", label: "Liters", unit: "L", format: "number" }],
+    calculate: calculateAquarium,
+    howItWorks: ["Enter inside length, width, and height for a rectangular tank. Convert all three measurements using the same unit.", "Multiply the dimensions to get cubic inches, then divide by 231 cubic inches per US liquid gallon. Convert US gallons to liters using 3.785411784 L per gallon, derived from the exact U.S. customary volume definition and metric units.", "This is the geometric volume of the rectangular space. The actual water amount can be lower because of substrate, equipment, decorations, and the space left below the rim. No livestock, medication, or animal-health advice is included."],
+    example: { title: "A 36 × 18 × 18 inch rectangle", inputs: "Inside dimensions: 36 in × 18 in × 18 in.", result: "About 50.49 US gallons, or 191.14 liters of geometric capacity." },
+    faqs: [{ question: "Should I use inside or outside tank dimensions?", answer: "Use the inside dimensions to estimate the space available within a rectangular tank. Outside dimensions include the glass or acrylic walls and give a larger geometric result." }, { question: "Does this show the actual water volume?", answer: "It shows the geometric capacity of the empty rectangular space. It does not subtract substrate, decorations, equipment, or the unfilled space at the top, so the amount of water in a filled tank can be lower." }, { question: "Does it work for bow-front, cylindrical, or hexagonal tanks?", answer: "No. The formula assumes a rectangular prism. Non-rectangular tanks need a shape-specific formula." }, { question: "Does this recommend stocking or medication amounts?", answer: "No. It only calculates geometric volume from the dimensions you enter." }],
+    sources: [{ label: "NIST Handbook 44, Appendix C — U.S. customary units, including 231 cubic inches per gallon", url: "https://www.nist.gov/document/2026-nist-handbook-44-appendix-c" }, { label: "NIST Guide to the SI, Appendix B.8 — U.S. gallon-to-liter conversion", url: "https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8" }],
+    seo: { title: "Aquarium Volume Calculator: Gallons & Liters | CalcForged", description: "Calculate the geometric volume of a rectangular aquarium from inside dimensions in inches or centimeters. See US gallons and liters, with the assumptions stated clearly.", h1: "Aquarium volume calculator", intro: "Measure the inside length, width, and height of a rectangular tank to estimate its geometric capacity in US gallons and liters. The result is the empty rectangular volume, not the actual water left after substrate, equipment, decorations, or fill level." },
+    related: ["volume-converter", "area"],
+  },
+  {
+    slug: "sourdough", name: "Sourdough Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "⌁", description: "Scale sourdough ingredients by total flour, hydration, starter percentage, starter hydration, and salt.",
+    fields: [{ key: "totalFlour", label: "Total flour (including starter flour)", type: "number", unit: "g", min: 1, max: 1000000, step: "any", defaultValue: 500, help: "This is the complete flour basis. Flour already inside the starter counts toward it." }, { key: "hydration", label: "Target total hydration", type: "number", unit: "%", min: 0, max: 500, step: 0.1, defaultValue: 75, help: "Total water ÷ total flour, including water and flour from the starter." }, { key: "starterPercent", label: "Starter weight as % of total flour", type: "number", unit: "%", min: 0, max: 500, step: 0.1, defaultValue: 20, help: "Starter's full weight divided by total flour weight." }, { key: "starterHydration", label: "Starter hydration", type: "number", unit: "%", min: 0, max: 1000, step: 0.1, defaultValue: 100, help: "Starter water weight ÷ starter flour weight. 100% means equal weights of water and flour." }, { key: "saltPercent", label: "Salt as % of total flour", type: "number", unit: "%", min: 0, max: 100, step: 0.1, defaultValue: 2 }],
+    results: [{ key: "validation", label: "Check", format: "text" }, { key: "flourToAdd", label: "Flour to add", unit: "g", format: "number" }, { key: "starter", label: "Starter to add", unit: "g", format: "number" }, { key: "starterBreakdown", label: "Flour + water inside starter", format: "text" }, { key: "waterToAdd", label: "Water to add", unit: "g", format: "number" }, { key: "salt", label: "Salt to add", unit: "g", format: "number" }, { key: "doughWeight", label: "Total dough weight", unit: "g", format: "number" }, { key: "hydrationResult", label: "Target total hydration", format: "percent" }],
+    calculate: calculateSourdough,
+    howItWorks: ["Enter the target total flour weight. This basis includes the flour already in your starter; the tool then shows how much additional flour to add.", "Starter weight is the entered percentage of total flour. Its hydration splits that weight into starter flour and starter water. Those parts are counted toward total flour and target total water, so the added amounts subtract them.", "Salt is calculated as a percentage of total flour. Overall hydration is total water divided by total flour. All weights are grams; a 100%-hydration starter contains equal weights of flour and water."],
+    example: { title: "500 g total flour, including starter", inputs: "75% total hydration, starter at 20% of total flour and 100% hydration, salt at 2%.", result: "Add 450 g flour, 100 g starter (50 g flour + 50 g water), 325 g water, and 10 g salt. Total dough weight: 885 g." },
+    faqs: [{ question: "Does total flour include the flour in the starter?", answer: "Yes. The input is the total flour for the whole dough, including starter flour. The result separates the flour already in the starter from the flour you still need to add." }, { question: "What does starter percentage mean here?", answer: "It is the full starter weight divided by the total flour weight. Starter hydration then divides that starter weight into flour and water." }, { question: "How is total hydration calculated?", answer: "Total hydration is total water divided by total flour. Both the water and flour carried by the starter count, following the standard sourdough hydration convention." }, { question: "Can the target hydration be lower than the water already in my starter?", answer: "No. The calculator reports a validation message if the starter already contributes more water than the target allows. Raise the target hydration or adjust the starter settings." }],
+    sources: [{ label: "King Arthur Baking — baker's percentage", url: "https://www.kingarthurbaking.com/pro/reference/bakers-percentage" }, { label: "King Arthur Baking — hydration and starter flour/water accounting", url: "https://www.kingarthurbaking.com/blog/2023/01/11/bread-hydration" }],
+    seo: { title: "Sourdough Calculator: Flour, Water, Starter & Salt | CalcForged", description: "Scale sourdough ingredients from total flour, target hydration, starter percentage and hydration, and salt. Starter flour and water are counted in the totals.", h1: "Sourdough calculator", intro: "Scale a sourdough formula in grams without losing track of the starter. Enter total flour (including the flour in your starter), target total hydration, starter weight as a percentage of total flour, starter hydration, and salt percentage. The results separate what is already in the starter from what you still need to add." },
+    related: ["recipe-scaling", "cups-to-grams", "volume-converter"],
+  },
+  {
+    slug: "firewood", name: "Firewood Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▧", description: "Calculate stacked firewood volume in cubic feet and cords, with an optional price estimate.",
+    fields: [{ key: "length", label: "Stack length", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 8 }, { key: "width", label: "Stack width", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 4 }, { key: "height", label: "Stack height", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 4 }, { key: "dimensionUnit", label: "Dimension unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }] }, { key: "pricePerCord", label: "Price per cord (optional)", type: "number", unit: "$ / cord", min: 0, max: 1000000, step: 0.01, help: "Leave blank to skip the cost estimate." }],
+    results: [{ key: "validation", label: "Check", format: "text" }, { key: "cubicFeet", label: "Stacked volume", unit: "cu ft", format: "number" }, { key: "cords", label: "Cord equivalent", unit: "cord", format: "number"}, { key: "cost", label: "Cost estimate", format: "currency", estimate: true }],
+    calculate: calculateFirewood,
+    howItWorks: ["Measure the full stack's length, width, and height in feet or inches. Use consistent units for all three dimensions.", "Multiply the dimensions after converting inches to feet to get stacked cubic feet. One standard cord is 128 stacked cubic feet, so divide the stack volume by 128 to find the cord equivalent.", "A stacked-cord measurement includes the air spaces between pieces; it is not the volume of solid wood alone. Add a price per cord only for an optional estimate. No heating-value or BTU estimate is included."],
+    example: { title: "A full cord-sized stack", inputs: "8 ft long × 4 ft wide × 4 ft high.", result: "128 cubic feet of stacked volume, equal to 1 cord." },
+    faqs: [{ question: "What is one standard cord?", answer: "One standard cord is the volume of a stack 8 feet long, 4 feet high, and 4 feet wide: 128 cubic feet." }, { question: "Does a cord mean 128 cubic feet of solid wood?", answer: "No. The 128 cubic feet describes the stacked pile, including spaces between pieces. Solid-wood volume is lower and varies with the size and shape of the pieces." }, { question: "Can I estimate price?", answer: "Yes. Enter your own quoted price per cord; the calculator multiplies it by the stack's cord equivalent. It does not provide market prices." }, { question: "Does this estimate heat output?", answer: "No. It only estimates stacked volume and cord equivalent. It makes no BTU or heating-performance claim." }],
+    sources: [{ label: "University of Minnesota Extension — standard cord dimensions and stacked volume", url: "https://extension.umn.edu/natural-resources/forestry-and-wildlife/forestry/managing-woodlands/sampling-and-measuring-timber" }],
+    seo: { title: "Firewood Calculator: Cords & Stacked Volume | CalcForged", description: "Calculate stacked firewood volume from length, width, and height. Convert cubic feet to cords and optionally estimate cost from your price per cord.", h1: "Firewood calculator", intro: "Measure a firewood stack and see its volume in cubic feet and standard cord equivalents. The cord result is stacked volume, which includes air spaces between pieces; it is not a solid-wood measurement or a heat-output estimate." },
+    related: ["board-feet", "deck-boards"],
   },
 ];
 
