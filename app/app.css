@@ -382,7 +382,7 @@
 .cf-result-lines li { font-family: 'DM Mono', monospace; font-size: .82rem; line-height: 1.45; letter-spacing: 0; border-bottom: 1px dashed var(--line); padding-bottom: 5px; }
 .cf-result-lines li:last-child { border-bottom: 0; padding-bottom: 0; }
 .cf-result-wide { grid-column: 1 / -1; border-right: 0 !important; }
-.cf-result-text { font-size: 1.02rem; letter-spacing: 0; line-height: 1.5; }
+.cf-result strong.cf-result-text { font-size: .9rem; font-weight: 500; letter-spacing: 0; line-height: 1.5; }
 
 /* Affiliate gear band (buying-intent calculators) */
 .cf-affiliate { padding-top: 95px; }
