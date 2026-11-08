@@ -114,7 +114,7 @@ function evaluate(src: string, deg: boolean): number | null {
 			else if (token.v === "*") values.push(a * b);
 			else if (token.v === "/") { if (b === 0) return null; values.push(a / b); }
 			else if (token.v === "%") { if (b === 0) return null; values.push(a % b); }
-			else if (token.v === "^") values.push(Math.pow(a, b));
+			else if (token.v === "^") values.push(a ** b);
 			else return null;
 		}
 	}

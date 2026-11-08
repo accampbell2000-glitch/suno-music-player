@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { calculatorsBySlug } from "../lib/calculator-definitions";
 
-const area = calculatorsBySlug["area"];
+const area = calculatorsBySlug.area;
 
 describe("area calculator", () => {
   test("calculates a rectangle and reports three area units", () => {

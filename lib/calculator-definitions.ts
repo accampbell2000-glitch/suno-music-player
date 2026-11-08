@@ -430,7 +430,7 @@ const definitions: CalculatorDefinition[] = [
     name: "Catering Food Quantity Calculator",
     category: "Food & Catering",
     categorySlug: "food-catering",
-    icon: "🍽",
+    icon: "◉",
     description: "Estimate how much food to plan for a catered meal without overbuying.",
     fields: [
       { key: "guests", label: "Adult guests", type: "number", unit: "people", min: 1, max: 10000, defaultValue: 50 },
@@ -458,7 +458,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["bbq-meat", "taco-bar", "wedding-food"],
   },
   {
-    slug: "bbq-meat", name: "BBQ Meat Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🔥", description: "Work backward from servings to the raw meat weight you need to buy.",
+    slug: "bbq-meat", name: "BBQ Meat Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◆", description: "Work backward from servings to the raw meat weight you need to buy.",
     fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 10000, defaultValue: 30 }, { key: "meat", label: "Meat selection", type: "select", defaultValue: "brisket", options: [{ label: "Brisket", value: "brisket" }, { label: "Pulled pork", value: "pork" }, { label: "Ribs", value: "ribs" }, { label: "Sausage", value: "sausage" }, { label: "Chicken", value: "chicken" }] }, { key: "serving", label: "Cooked meat per guest", type: "number", unit: "oz", min: 2, max: 24, step: 0.5, defaultValue: 6 }],
     results: [{ key: "raw", label: "Raw meat to buy", unit: "lb", format: "number", estimate: true, interpretation: "Includes the selected cooking yield." }, { key: "cooked", label: "Cooked meat", unit: "lb", format: "number" }, { key: "yield", label: "Expected yield", unit: "%", format: "percent" }],
     calculate: (v) => { const guests = n(v, "guests", 30); const cooked = guests * n(v, "serving", 6) / 16; const meat = option(v, "meat", "brisket"); const yields: Record<string, number> = { brisket: 0.5, pork: 0.575, ribs: 0.525, sausage: 0.8, chicken: 0.675 }; const y = yields[meat] ?? 0.5; return { raw: round(cooked / y), cooked: round(cooked), yield: y }; },
@@ -469,7 +469,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["catering-food-quantity", "taco-bar", "wedding-food"],
   },
   {
-    slug: "taco-bar", name: "Taco Bar Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🌮", description: "Plan tacos, cooked meat, tortillas, toppings, and sides for a crowd.",
+    slug: "taco-bar", name: "Taco Bar Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◒", description: "Plan tacos, cooked meat, tortillas, toppings, and sides for a crowd.",
     fields: [{ key: "adults", label: "Adults", type: "number", unit: "people", min: 0, max: 10000, defaultValue: 25 }, { key: "children", label: "Children", type: "number", unit: "people", min: 0, max: 10000, defaultValue: 10 }, { key: "ozPerTaco", label: "Cooked meat per taco", type: "number", unit: "oz", min: 2, max: 4, step: 0.5, defaultValue: 3 }],
     results: [{ key: "tacos", label: "Tacos", unit: "tacos", format: "number", estimate: true }, { key: "meat", label: "Cooked meat", unit: "lb", format: "number", estimate: true }, { key: "tortillas", label: "Tortillas", unit: "tortillas", format: "number", estimate: true }, { key: "toppings", label: "Topping servings", unit: "servings", format: "number", estimate: true }, { key: "sides", label: "Side servings", unit: "servings", format: "number", estimate: true }],
     calculate: (v) => { const adults = n(v, "adults", 25); const children = n(v, "children", 10); const tacos = adults * 2 + children; const meat = tacos * n(v, "ozPerTaco", 3) / 16; return { tacos: ceil(tacos), meat: round(meat), tortillas: ceil(tacos * 1.2), toppings: ceil((adults + children) * 3), sides: ceil((adults + children) * 0.75) }; },
@@ -480,7 +480,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["catering-food-quantity", "bbq-meat", "wedding-food"],
   },
   {
-    slug: "wedding-food", name: "Wedding Food Calculator", category: "Events", categorySlug: "events", icon: "💍", description: "Estimate wedding food quantities and a rough catering budget range.",
+    slug: "wedding-food", name: "Wedding Food Calculator", category: "Events", categorySlug: "events", icon: "◈", description: "Estimate wedding food quantities and a rough catering budget range.",
     fields: [{ key: "guests", label: "Wedding guests", type: "number", unit: "people", min: 1, max: 5000, defaultValue: 100 }, { key: "style", label: "Meal style", type: "select", defaultValue: "buffet", options: [{ label: "Plated dinner", value: "plated" }, { label: "Buffet", value: "buffet" }, { label: "Cocktail-only", value: "cocktail" }] }, { key: "drinks", label: "Drinks service", type: "select", defaultValue: "beer-wine", options: [{ label: "Non-alcoholic", value: "none" }, { label: "Beer and wine", value: "beer-wine" }, { label: "Full bar", value: "full-bar" }] }, { key: "dessert", label: "Dessert", type: "select", defaultValue: "cake", options: [{ label: "Wedding cake", value: "cake" }, { label: "Dessert table", value: "table" }, { label: "Both", value: "both" }] }],
     results: [{ key: "servings", label: "Meal servings", unit: "servings", format: "number", estimate: true }, { key: "desserts", label: "Dessert servings", unit: "servings", format: "number", estimate: true }, { key: "budgetLow", label: "Catering budget from", unit: "$", format: "currency", estimate: true }, { key: "budgetHigh", label: "Catering budget to", unit: "$", format: "currency", estimate: true }],
     calculate: (v) => { const guests = n(v, "guests", 100); const style = option(v, "style", "buffet"); const factor = style === "cocktail" ? 1.25 : 1; const perPerson = style === "plated" ? [75, 150] : style === "cocktail" ? [45, 95] : [55, 110]; const drinksFactor = option(v, "drinks", "beer-wine") === "full-bar" ? 1.25 : option(v, "drinks", "beer-wine") === "none" ? 0.85 : 1; const dessertFactor = option(v, "dessert", "cake") === "both" ? 1.25 : 1; return { servings: ceil(guests * factor), desserts: ceil(guests * dessertFactor), budgetLow: Math.round(guests * perPerson[0] * drinksFactor), budgetHigh: Math.round(guests * perPerson[1] * drinksFactor) }; },
@@ -513,7 +513,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["restaurant-food-cost", "catering-food-quantity", "wedding-food"],
   },
   {
-    slug: "cups-to-grams", name: "Cups to Grams Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🥣", description: "Convert a recipe volume to grams using a measured value for the selected ingredient.",
+    slug: "cups-to-grams", name: "Cups to Grams Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◉", description: "Convert a recipe volume to grams using a measured value for the selected ingredient.",
     fields: [
       { key: "amount", label: "Amount", type: "number", min: 0, max: 100000, step: 0.01, defaultValue: 1 },
       { key: "volumeUnit", label: "Volume unit", type: "select", defaultValue: "cup", options: [{ label: "US cups", value: "cup" }, { label: "Tablespoons", value: "tbsp" }, { label: "Teaspoons", value: "tsp" }, { label: "US fluid ounces", value: "floz" }, { label: "Milliliters", value: "ml" }, { label: "Liters", value: "l" }] },
@@ -720,7 +720,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["deck-boards", "paint", "concrete"],
   },
   {
-    slug: "sod", name: "Sod Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "🌱", description: "Calculate sod rolls, pallets, and cost for a lawn, with delivery-day waste built in.",
+    slug: "sod", name: "Sod Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▧", description: "Calculate sod rolls, pallets, and cost for a lawn, with delivery-day waste built in.",
     fields: [{ key: "length", label: "Lawn length", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 40 }, { key: "width", label: "Lawn width", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 30 }, { key: "waste", label: "Waste allowance", type: "number", unit: "%", min: 0, max: 20, step: 1, defaultValue: 5 }, { key: "rollSize", label: "Roll size", type: "number", unit: "sq ft", min: 1, step: 0.5, defaultValue: 10 }, { key: "palletSize", label: "Pallet size", type: "number", unit: "sq ft", min: 100, step: 25, defaultValue: 500 }, { key: "price", label: "Price per roll", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 4 }],
     results: [{ key: "orderArea", label: "Order with waste", unit: "sq ft", format: "number", estimate: true }, { key: "rolls", label: "Rolls to order", unit: "rolls", format: "number", estimate: true }, { key: "palletsNote", label: "Pallets", format: "text" }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }],
     calculate: (v) => { const area = n(v, "length", 40) * n(v, "width", 30); const orderArea = area * (1 + n(v, "waste", 5) / 100); const rolls = ceil(orderArea / n(v, "rollSize", 10)); const pallets = ceil(orderArea / n(v, "palletSize", 500)); return { orderArea: round(orderArea), rolls, palletsNote: `About ${pallets} pallet${pallets === 1 ? "" : "s"} at ${n(v, "palletSize", 500)} sq ft — pallets run 400–600 sq ft by farm.`, cost: round(rolls * n(v, "price", 4), 2) }; },
@@ -764,7 +764,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["paint", "flooring"],
   },
   {
-    slug: "mortgage", name: "Mortgage Calculator", category: "Finance", categorySlug: "finance", icon: "🏠", description: "Estimate your monthly mortgage payment, including taxes and insurance.",
+    slug: "mortgage", name: "Mortgage Calculator", category: "Finance", categorySlug: "finance", icon: "▤", description: "Estimate your monthly mortgage payment, including taxes and insurance.",
     fields: [{ key: "homePrice", label: "Home price", type: "number", unit: "$", min: 10000, step: 1000, defaultValue: 400000 }, { key: "downPayment", label: "Down payment", type: "number", unit: "$", min: 0, step: 1000, defaultValue: 80000 }, { key: "rate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 25, step: 0.05, defaultValue: 6.5 }, { key: "term", label: "Loan term", type: "select", defaultValue: "30", options: [{ label: "30 years", value: "30" }, { label: "20 years", value: "20" }, { label: "15 years", value: "15" }, { label: "10 years", value: "10" }] }, { key: "tax", label: "Property tax per year", type: "number", unit: "$", min: 0, step: 100, defaultValue: 3600 }, { key: "insurance", label: "Home insurance per year", type: "number", unit: "$", min: 0, step: 100, defaultValue: 1500 }],
     results: [{ key: "loan", label: "Loan amount", unit: "$", format: "currency" }, { key: "monthlyPI", label: "Principal & interest", unit: "$/mo", format: "currency" }, { key: "monthlyTotal", label: "Estimated total monthly", unit: "$/mo", format: "currency", estimate: true, interpretation: "Principal, interest, property tax, and insurance." }, { key: "totalInterest", label: "Total interest over the loan", unit: "$", format: "currency", estimate: true }],
     calculate: (v) => {
@@ -781,7 +781,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["loan", "compound-interest", "investment"],
   },
   {
-    slug: "loan", name: "Loan Calculator", category: "Finance", categorySlug: "finance", icon: "💵", description: "See the monthly payment, total interest, and payoff cost for any fixed loan.",
+    slug: "loan", name: "Loan Calculator", category: "Finance", categorySlug: "finance", icon: "$", description: "See the monthly payment, total interest, and payoff cost for any fixed loan.",
     fields: [{ key: "amount", label: "Loan amount", type: "number", unit: "$", min: 100, step: 100, defaultValue: 25000 }, { key: "rate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 40, step: 0.05, defaultValue: 8.5 }, { key: "months", label: "Term", type: "number", unit: "months", min: 1, max: 480, defaultValue: 60 }],
     results: [{ key: "monthly", label: "Monthly payment", unit: "$/mo", format: "currency" }, { key: "totalInterest", label: "Total interest", unit: "$", format: "currency", estimate: true }, { key: "totalPaid", label: "Total repaid", unit: "$", format: "currency", estimate: true }, { key: "interestShare", label: "Interest as share of payments", unit: "%", format: "percent" }],
     calculate: (v) => {
@@ -864,7 +864,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["loan", "fuel-mileage", "tire-size"],
   },
   {
-    slug: "investment", name: "Investment Calculator", category: "Finance", categorySlug: "finance", icon: "📈", description: "Project the growth of a one-time investment plus ongoing monthly contributions.",
+    slug: "investment", name: "Investment Calculator", category: "Finance", categorySlug: "finance", icon: "↗", description: "Project the growth of a one-time investment plus ongoing monthly contributions.",
     fields: [{ key: "initial", label: "Starting amount", type: "number", unit: "$", min: 0, step: 100, defaultValue: 10000 }, { key: "monthly", label: "Monthly contribution", type: "number", unit: "$", min: 0, step: 10, defaultValue: 500 }, { key: "returnRate", label: "Expected annual return", type: "number", unit: "%", min: -10, max: 30, step: 0.1, defaultValue: 7 }, { key: "years", label: "Years invested", type: "number", unit: "years", min: 1, max: 60, defaultValue: 20 }],
     results: [{ key: "futureValue", label: "Projected value", unit: "$", format: "currency", estimate: true }, { key: "totalDeposits", label: "Total contributed", unit: "$", format: "currency" }, { key: "growth", label: "Investment growth", unit: "$", format: "currency", estimate: true }],
     calculate: (v) => {
@@ -882,7 +882,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["compound-interest", "savings", "loan"],
   },
   {
-    slug: "savings", name: "Savings Calculator", category: "Finance", categorySlug: "finance", icon: "🎯", description: "Find out when you'll hit a savings goal with your current plan.",
+    slug: "savings", name: "Savings Calculator", category: "Finance", categorySlug: "finance", icon: "◉", description: "Find out when you'll hit a savings goal with your current plan.",
     fields: [{ key: "goal", label: "Savings goal", type: "number", unit: "$", min: 100, step: 100, defaultValue: 20000 }, { key: "current", label: "Current savings", type: "number", unit: "$", min: 0, step: 100, defaultValue: 5000 }, { key: "monthly", label: "Monthly deposit", type: "number", unit: "$", min: 0, step: 10, defaultValue: 400 }, { key: "returnRate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 15, step: 0.1, defaultValue: 4 }],
     results: [{ key: "months", label: "Months to reach goal", unit: "months", format: "number", estimate: true }, { key: "years", label: "That's about", unit: "years", format: "number", estimate: true }, { key: "deposits", label: "You'll have deposited", unit: "$", format: "currency" }, { key: "status", label: "Plan check", format: "text" }],
     calculate: (v) => {
@@ -899,7 +899,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["investment", "compound-interest", "loan"],
   },
   {
-    slug: "compound-interest", name: "Compound Interest Calculator", category: "Finance", categorySlug: "finance", icon: "🪙", description: "Watch principal, interest, and compounding frequency grow a balance over time.",
+    slug: "compound-interest", name: "Compound Interest Calculator", category: "Finance", categorySlug: "finance", icon: "$", description: "Watch principal, interest, and compounding frequency grow a balance over time.",
     fields: [{ key: "principal", label: "Starting principal", type: "number", unit: "$", min: 0, step: 100, defaultValue: 5000 }, { key: "rate", label: "Annual interest rate", type: "number", unit: "%", min: 0, max: 30, step: 0.1, defaultValue: 5 }, { key: "frequency", label: "Compounding frequency", type: "select", defaultValue: "12", options: [{ label: "Daily", value: "365" }, { label: "Monthly", value: "12" }, { label: "Quarterly", value: "4" }, { label: "Annually", value: "1" }] }, { key: "years", label: "Years", type: "number", unit: "years", min: 1, max: 60, defaultValue: 10 }, { key: "monthlyAdd", label: "Additional monthly deposit", type: "number", unit: "$", min: 0, step: 10, defaultValue: 100 }],
     results: [{ key: "futureValue", label: "Final balance", unit: "$", format: "currency", estimate: true }, { key: "deposits", label: "Total deposited", unit: "$", format: "currency" }, { key: "interest", label: "Interest earned", unit: "$", format: "currency", estimate: true }, { key: "apy", label: "Effective annual rate", unit: "%", format: "percent" }],
     calculate: (v) => {
@@ -938,7 +938,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["pregnancy-due-date", "weight-converter", "age"],
   },
   {
-    slug: "walking-steps", name: "Walking Steps Calculator", category: "Health", categorySlug: "health", icon: "👟", description: "Estimate walking distance from steps and your measured step length, with an optional MET-based calorie estimate.",
+    slug: "walking-steps", name: "Walking Steps Calculator", category: "Health", categorySlug: "health", icon: "↗", description: "Estimate walking distance from steps and your measured step length, with an optional MET-based calorie estimate.",
     fields: [
       { key: "steps", label: "Step count", type: "number", min: 0, max: 10000000, step: 1, defaultValue: 5000 },
       { key: "stepLengthMode", label: "Step length", type: "select", defaultValue: "direct", options: [{ label: "Enter a measured step length", value: "direct" }, { label: "Calculate from a measured walk", value: "measured" }] },
@@ -1029,7 +1029,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["bmi", "weight-converter", "walking-steps"],
   },
   {
-    slug: "pregnancy-due-date", name: "Pregnancy Due Date Calculator", category: "Health", categorySlug: "health", icon: "🤰", description: "Estimate a due date from your last period or conception date.",
+    slug: "pregnancy-due-date", name: "Pregnancy Due Date Calculator", category: "Health", categorySlug: "health", icon: "◷", description: "Estimate a due date from your last period or conception date.",
     fields: [{ key: "method", label: "Start from", type: "select", defaultValue: "lmp", options: [{ label: "First day of last period", value: "lmp" }, { label: "Conception date", value: "conception" }] }, { key: "date", label: "Date", type: "text", help: "YYYY-MM-DD" }, { key: "cycle", label: "Average cycle length", type: "number", unit: "days", min: 20, max: 45, defaultValue: 28 }, { key: "asOf", label: "Show progress as of", type: "text", defaultToday: true, help: "Leave blank and today fills in automatically" }],
     results: [{ key: "dueDate", label: "Estimated due date", format: "text", estimate: true }, { key: "conceptionDate", label: "Estimated conception", format: "text", estimate: true }, { key: "progress", label: "Progress on the date above", format: "text", estimate: true }, { key: "trimester", label: "Trimester on that date", format: "text" }],
     calculate: (v) => {
@@ -1041,7 +1041,7 @@ const definitions: CalculatorDefinition[] = [
       const asOf = parseYmd(String(v.asOf ?? ""));
       if (!asOf) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: "—", trimester: "—" };
       const days = Math.floor((asOf.getTime() - start.getTime()) / 86400000);
-      if (days < 0) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: "Cycle day " + (days + 280 > 0 ? Math.max(1, days + 281) : 1), trimester: "—" };
+      if (days < 0) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: `Cycle day ${days + 280 > 0 ? Math.max(1, days + 281) : 1}`, trimester: "—" };
       const weeks = Math.floor(days / 7); const remainder = days % 7;
       const trimester = weeks < 13 ? "First trimester" : weeks < 27 ? "Second trimester" : "Third trimester";
       return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: weeks > 42 ? "Past 42 weeks — speak with your provider" : `${weeks} weeks, ${remainder} days pregnant`, trimester };
@@ -1053,7 +1053,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["bmi", "age", "time-zone"],
   },
   {
-    slug: "currency-converter", name: "Currency Converter", category: "Travel", categorySlug: "travel", icon: "💱", description: "Convert between major world currencies using live exchange rates.",
+    slug: "currency-converter", name: "Currency Converter", category: "Travel", categorySlug: "travel", icon: "⇄", description: "Convert between major world currencies using live exchange rates.",
     liveRates: true,
     fields: [{ key: "amount", label: "Amount", type: "number", min: 0, step: 0.01, defaultValue: 100 }, { key: "from", label: "From currency", type: "select", defaultValue: "USD", options: CURRENCIES }, { key: "to", label: "To currency", type: "select", defaultValue: "EUR", options: CURRENCIES }],
     results: [{ key: "converted", label: "Converted amount", format: "number", estimate: true }, { key: "rate", label: "Exchange rate", format: "text" }, { key: "inverse", label: "Inverse rate", format: "text" }, { key: "source", label: "Rate source", format: "text" }],
@@ -1071,7 +1071,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["time-zone", "tip", "percentage"],
   },
   {
-    slug: "time-zone", name: "Time Zone Calculator", category: "Travel", categorySlug: "travel", icon: "🕐", description: "Convert a time between two cities and see the gap and day shift.",
+    slug: "time-zone", name: "Time Zone Calculator", category: "Travel", categorySlug: "travel", icon: "◷", description: "Convert a time between two cities and see the gap and day shift.",
     fields: [{ key: "date", label: "Date", type: "text", defaultToday: true, help: "YYYY-MM-DD — leave blank for today" }, { key: "time", label: "Time to convert", type: "text", help: "24-hour clock, e.g. 14:30", defaultValue: "14:30" }, { key: "fromZone", label: "From", type: "select", defaultValue: "America/New_York", options: ZONES }, { key: "toZone", label: "To", type: "select", defaultValue: "Asia/Tokyo", options: ZONES }],
     results: [{ key: "converted", label: "Time there", format: "text" }, { key: "difference", label: "Time difference", format: "text" }, { key: "dayShift", label: "Day", format: "text" }],
     calculate: (v) => {
@@ -1126,7 +1126,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["percentage", "bmi", "currency-converter"],
   },
   {
-    slug: "length-converter", name: "Length Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "📏", description: "Convert between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers.",
+    slug: "length-converter", name: "Length Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "⇄", description: "Convert between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers.",
     fields: [{ key: "length", label: "Length", type: "number", min: 0, step: 0.01, defaultValue: 100 }, { key: "from", label: "From unit", type: "select", defaultValue: "ft", options: [{ label: "Inches (in)", value: "in" }, { label: "Feet (ft)", value: "ft" }, { label: "Yards (yd)", value: "yd" }, { label: "Miles (mi)", value: "mi" }, { label: "Millimeters (mm)", value: "mm" }, { label: "Centimeters (cm)", value: "cm" }, { label: "Meters (m)", value: "m" }, { label: "Kilometers (km)", value: "km" }] }, { key: "to", label: "To unit", type: "select", defaultValue: "m", options: [{ label: "Inches (in)", value: "in" }, { label: "Feet (ft)", value: "ft" }, { label: "Yards (yd)", value: "yd" }, { label: "Miles (mi)", value: "mi" }, { label: "Millimeters (mm)", value: "mm" }, { label: "Centimeters (cm)", value: "cm" }, { label: "Meters (m)", value: "m" }, { label: "Kilometers (km)", value: "km" }] }],
     results: [{ key: "converted", label: "Converted length", format: "number" }, { key: "all", label: "In every unit", format: "text" }],
     calculate: (v) => {
@@ -1143,7 +1143,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["weight-converter", "volume-converter", "percentage"],
   },
   {
-    slug: "volume-converter", name: "Volume Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "🥛", description: "Convert between fluid ounces, cups, pints, quarts, gallons, milliliters, liters, and spoon measures.",
+    slug: "volume-converter", name: "Volume Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "◉", description: "Convert between fluid ounces, cups, pints, quarts, gallons, milliliters, liters, and spoon measures.",
     fields: [{ key: "volume", label: "Volume", type: "number", min: 0, step: 0.01, defaultValue: 16 }, { key: "from", label: "From unit", type: "select", defaultValue: "floz", options: [{ label: "Fluid ounces (fl oz)", value: "floz" }, { label: "Cups (c)", value: "c" }, { label: "Pints (pt)", value: "pt" }, { label: "Quarts (qt)", value: "qt" }, { label: "Gallons (gal)", value: "gal" }, { label: "Tablespoons (tbsp)", value: "tbsp" }, { label: "Teaspoons (tsp)", value: "tsp" }, { label: "Milliliters (ml)", value: "ml" }, { label: "Liters (l)", value: "l" }] }, { key: "to", label: "To unit", type: "select", defaultValue: "l", options: [{ label: "Fluid ounces (fl oz)", value: "floz" }, { label: "Cups (c)", value: "c" }, { label: "Pints (pt)", value: "pt" }, { label: "Quarts (qt)", value: "qt" }, { label: "Gallons (gal)", value: "gal" }, { label: "Tablespoons (tbsp)", value: "tbsp" }, { label: "Teaspoons (tsp)", value: "tsp" }, { label: "Milliliters (ml)", value: "ml" }, { label: "Liters (l)", value: "l" }] }],
     results: [{ key: "converted", label: "Converted volume", format: "number" }, { key: "all", label: "In every unit", format: "text" }],
     calculate: (v) => {
@@ -1160,7 +1160,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["weight-converter", "length-converter", "recipe-scaling"],
   },
   {
-    slug: "tip", name: "Tip Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "🧾", description: "Work out the tip, the total, and what each person owes — with optional rounding.",
+    slug: "tip", name: "Tip Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "%", description: "Work out the tip, the total, and what each person owes — with optional rounding.",
     fields: [{ key: "bill", label: "Bill amount", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 85 }, { key: "tipPercent", label: "Tip percentage", type: "number", unit: "%", min: 0, max: 100, step: 1, defaultValue: 18 }, { key: "split", label: "Split between", type: "number", unit: "people", min: 1, max: 100, defaultValue: 1 }, { key: "roundUp", label: "Round each share", type: "select", defaultValue: "no", options: [{ label: "No rounding", value: "no" }, { label: "Round up to whole dollars", value: "yes" }] }],
     results: [{ key: "tip", label: "Tip amount", unit: "$", format: "currency" }, { key: "total", label: "Total with tip", unit: "$", format: "currency" }, { key: "perPerson", label: "Per person", unit: "$", format: "currency" }, { key: "note", label: "Rounding note", format: "text" }],
     calculate: (v) => {
@@ -1179,7 +1179,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["percentage", "currency-converter", "loan"],
   },
   {
-    slug: "age", name: "Age Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "🎂", description: "Find an exact age in years, months, and days — plus the next birthday.",
+    slug: "age", name: "Age Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "◷", description: "Find an exact age in years, months, and days — plus the next birthday.",
     fields: [{ key: "birthDate", label: "Date of birth", type: "text", help: "YYYY-MM-DD" }, { key: "asOf", label: "Age on this date", type: "text", defaultToday: true, help: "Leave blank and today fills in automatically" }],
     results: [{ key: "summary", label: "Exact age", format: "text" }, { key: "totalDays", label: "Total days lived", unit: "days", format: "number", estimate: true }, { key: "nextBirthday", label: "Next birthday in", unit: "days", format: "number" }, { key: "bornOn", label: "Born on a", format: "text" }],
     calculate: (v) => {
@@ -1204,7 +1204,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["pregnancy-due-date", "bmi", "percentage"],
   },
   {
-    slug: "date", name: "Date Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "📆", description: "Count days between dates or add and subtract days, weeks, months, and years.",
+    slug: "date", name: "Date Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "◫", description: "Count days between dates or add and subtract days, weeks, months, and years.",
     fields: [
       { key: "mode", label: "What do you need?", type: "select", defaultValue: "between", options: [{ label: "Days between dates", value: "between" }, { label: "Add or subtract from a date", value: "adjust" }] },
       { key: "startDate", label: "Starting date", type: "text", defaultToday: true, help: "Enter a date as YYYY-MM-DD." },
@@ -1244,7 +1244,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["age", "pregnancy-due-date", "time"],
   },
   {
-    slug: "time", name: "Time Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "🕒", description: "Calculate hours between times, subtract breaks, or add and subtract time across midnight.",
+    slug: "time", name: "Time Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "◷", description: "Calculate hours between times, subtract breaks, or add and subtract time across midnight.",
     fields: [
       { key: "mode", label: "What do you need?", type: "select", defaultValue: "duration", options: [{ label: "Hours between two times", value: "duration" }, { label: "Add or subtract time", value: "adjust" }] },
       { key: "startTime", label: "Starting time", type: "text", defaultValue: "09:00", help: "Use 24-hour time, such as 09:00 or 21:30." },
@@ -1283,7 +1283,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["date", "time-zone", "age"],
   },
   {
-    slug: "gpa", name: "GPA Calculator", category: "Education", categorySlug: "education", icon: "🎓", description: "Calculate your grade point average from course credits and letter grades.",
+    slug: "gpa", name: "GPA Calculator", category: "Education", categorySlug: "education", icon: "#", description: "Calculate your grade point average from course credits and letter grades.",
     fields: [{ key: "courses", label: "Courses", type: "ingredient-list", ingredientSchema: { first: "Courses", amount: "Credit hours", unit: "Grade", name: "Course", amountPlaceholder: "3", unitPlaceholder: "A", namePlaceholder: "Intro to Biology" }, help: "One row per course: credit hours in the amount box and the final grade (A, B+, C− …) in the grade box." }],
     results: [{ key: "gpa", label: "Your GPA", format: "number" }, { key: "credits", label: "Total credits", unit: "credits", format: "number" }, { key: "qualityPoints", label: "Quality points", format: "number" }, { key: "band", label: "Letter equivalent", format: "text" }],
     calculate: (v) => {
@@ -1308,7 +1308,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["square-root-cube-root", "percentage", "age"],
   },
   {
-    slug: "square-root-cube-root", name: "Square Root & Cube Root Calculator", category: "Education", categorySlug: "education", icon: "🔢", description: "Get square roots, cube roots, and any nth root — with the math shown.",
+    slug: "square-root-cube-root", name: "Square Root & Cube Root Calculator", category: "Education", categorySlug: "education", icon: "#", description: "Get square roots, cube roots, and any nth root — with the math shown.",
     fields: [{ key: "value", label: "Number", type: "number", step: "any", defaultValue: 144 }, { key: "n", label: "For nth root, use n", type: "number", unit: "n", min: 2, max: 12, step: 1, defaultValue: 4 }],
     results: [{ key: "sqrt", label: "Square root (√)", format: "number" }, { key: "cbrt", label: "Cube root (∛)", format: "number" }, { key: "nth", label: "nth root", format: "text" }, { key: "check", label: "Check", format: "text" }],
     calculate: (v) => {
@@ -1331,7 +1331,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["gpa", "percentage", "compound-interest"],
   },
   {
-    slug: "wedding-dessert-table", name: "Wedding Dessert Table Calculator", category: "Events", categorySlug: "events", icon: "🍰", description: "Plan dessert pieces, cake slices, and variety for a wedding dessert spread.",
+    slug: "wedding-dessert-table", name: "Wedding Dessert Table Calculator", category: "Events", categorySlug: "events", icon: "◒", description: "Plan dessert pieces, cake slices, and variety for a wedding dessert spread.",
     fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 80 }, { key: "cakePlan", label: "Cake plan", type: "select", defaultValue: "cake-table", options: [{ label: "Dessert table only (no cake)", value: "none" }, { label: "Cake only", value: "cake" }, { label: "Cake + dessert table", value: "cake-table" }] }, { key: "dessertTypes", label: "Dessert types on the table", type: "number", unit: "types", min: 1, max: 12, step: 1, defaultValue: 5 }, { key: "portionStyle", label: "Portion style", type: "select", defaultValue: "mini", options: [{ label: "Mini desserts (2 to 3 bites)", value: "mini" }, { label: "Full servings", value: "full" }] }],
     results: [{ key: "totalPieces", label: "Total dessert pieces", unit: "pieces", format: "number", estimate: true, interpretation: "Cake slices plus table pieces to prepare." }, { key: "tablePieces", label: "Dessert table pieces", unit: "pieces", format: "number", estimate: true }, { key: "perType", label: "Pieces per dessert type", unit: "pieces", format: "number", estimate: true }, { key: "guidance", label: "Serving guidance", format: "text", estimate: true }],
     calculate: (v) => {
@@ -1353,7 +1353,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["wedding-food", "catering-food-quantity", "appetizers-per-person"],
   },
   {
-    slug: "catering-price-per-person", name: "Catering Price Per Person Calculator", category: "Business", categorySlug: "business", icon: "🧾", description: "Set a per-person catering charge from food cost, labor, and your target margin.",
+    slug: "catering-price-per-person", name: "Catering Price Per Person Calculator", category: "Business", categorySlug: "business", icon: "$", description: "Set a per-person catering charge from food cost, labor, and your target margin.",
     fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 5000, defaultValue: 40 }, { key: "serviceStyle", label: "Service style", type: "select", defaultValue: "buffet", options: [{ label: "Plated dinner", value: "plated" }, { label: "Buffet", value: "buffet" }, { label: "Cocktail reception", value: "cocktail" }, { label: "Food stations", value: "stations" }] }, { key: "foodCost", label: "Food cost per person", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 18 }, { key: "pricingBasis", label: "Pricing basis", type: "select", defaultValue: "pct", options: [{ label: "Target food-cost percentage", value: "pct" }, { label: "Labor + overhead added", value: "labor" }] }, { key: "targetPct", label: "Target food-cost percentage", type: "number", unit: "%", min: 5, max: 90, defaultValue: 30 }, { key: "laborCost", label: "Labor + overhead per person", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 15, help: "Used when the pricing basis is labor + overhead." }],
     results: [{ key: "charge", label: "Suggested charge per person", unit: "$", format: "currency", estimate: true }, { key: "quote", label: "Total quote", unit: "$", format: "currency", estimate: true }, { key: "foodPct", label: "Food cost at that price", unit: "%", format: "percent" }, { key: "marketNote", label: "Market range check", format: "text", estimate: true, interpretation: "A sanity check against typical per-guest pricing — not a quote." }],
     calculate: (v) => {
@@ -1376,7 +1376,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["restaurant-food-cost", "wedding-food", "catering-food-quantity"],
   },
   {
-    slug: "appetizers-per-person", name: "Appetizers Per Person Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🥟", description: "Plan appetizer pieces per guest for pre-dinner bites, cocktail hours, or appetizer-only meals.",
+    slug: "appetizers-per-person", name: "Appetizers Per Person Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◒", description: "Plan appetizer pieces per guest for pre-dinner bites, cocktail hours, or appetizer-only meals.",
     fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 40 }, { key: "occasion", label: "Occasion", type: "select", defaultValue: "cocktail", options: [{ label: "Pre-dinner bites (dinner follows)", value: "pre-dinner" }, { label: "Cocktail party (no dinner)", value: "cocktail" }, { label: "Appetizers are the meal", value: "meal" }] }, { key: "hours", label: "Event length", type: "number", unit: "hours", min: 0.5, max: 8, step: 0.5, defaultValue: 2 }, { key: "heavy", label: "Heavy appetites", type: "select", defaultValue: "no", options: [{ label: "No", value: "no" }, { label: "Yes (add about 20%)", value: "yes" }] }],
     results: [{ key: "totalPieces", label: "Total appetizer pieces", unit: "pieces", format: "number", estimate: true }, { key: "perGuest", label: "Pieces per guest", unit: "pieces", format: "number", estimate: true }, { key: "perVariety", label: "Pieces per variety", unit: "pieces", format: "number", estimate: true }, { key: "varietyNote", label: "Variety guidance", format: "text", estimate: true }],
     calculate: (v) => {
@@ -1398,7 +1398,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["catering-food-quantity", "taco-bar", "wedding-dessert-table"],
   },
   {
-    slug: "yarn-yardage", name: "Yarn Yardage Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "🧶", description: "Estimate yarn yardage and skeins for blankets by size and yarn weight.",
+    slug: "yarn-yardage", name: "Yarn Yardage Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "◈", description: "Estimate yarn yardage and skeins for blankets by size and yarn weight.",
     fields: [{ key: "lengthIn", label: "Length", type: "number", unit: "inches", min: 4, max: 200, defaultValue: 60, help: "Common sizes: baby blanket 30×40, throw 50×60, queen 90×100." }, { key: "widthIn", label: "Width", type: "number", unit: "inches", min: 4, max: 200, defaultValue: 50 }, { key: "weight", label: "Yarn weight", type: "select", defaultValue: "4", options: [{ label: "0 — Lace", value: "0" }, { label: "1 — Superfine (sock, fingering)", value: "1" }, { label: "2 — Fine (sport)", value: "2" }, { label: "3 — Light (DK)", value: "3" }, { label: "4 — Medium (worsted)", value: "4" }, { label: "5 — Bulky", value: "5" }, { label: "6 — Super bulky", value: "6" }, { label: "7 — Jumbo", value: "7" }] }, { key: "yardsPerSkein", label: "Yards per skein", type: "number", unit: "yd", min: 10, max: 2000, defaultValue: 220 }, { key: "wastePct", label: "Waste allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 15, help: "For swatching, fringe, and weaving in ends." }],
     results: [{ key: "totalYards", label: "Yarn needed", unit: "yd", format: "number", estimate: true, interpretation: "Before the waste allowance." }, { key: "buyYards", label: "Yards to buy (with allowance)", unit: "yd", format: "number", estimate: true }, { key: "skeins", label: "Skeins to buy", unit: "skeins", format: "number", estimate: true }, { key: "note", label: "Reality check", format: "text", estimate: true }],
     calculate: (v) => {
@@ -1419,7 +1419,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["recipe-scaling", "weight-converter", "percentage"],
   },
   {
-    slug: "pizza-party", name: "Pizza Party Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🍕", description: "Order the right number of pizzas for any crowd, by size and appetite.",
+    slug: "pizza-party", name: "Pizza Party Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◒", description: "Order the right number of pizzas for any crowd, by size and appetite.",
     fields: [
       { key: "adults", label: "Adults", type: "number", unit: "people", min: 0, max: 1000, defaultValue: 20 },
       { key: "children", label: "Children", type: "number", unit: "people", min: 0, max: 1000, defaultValue: 0 },
@@ -1452,7 +1452,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["taco-bar", "appetizers-per-person", "catering-food-quantity"],
   },
   {
-    slug: "chicken-wings", name: "Chicken Wings Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🍗", description: "Turn guests into wing pieces, pounds to buy, and sauce to toss.",
+    slug: "chicken-wings", name: "Chicken Wings Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◆", description: "Turn guests into wing pieces, pounds to buy, and sauce to toss.",
     fields: [
       { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 10 },
       { key: "serving", label: "Serving style", type: "select", defaultValue: "main", options: [{ label: "Appetizer — 6 pieces per guest", value: "appetizer" }, { label: "Main dish — 12 pieces per guest", value: "main" }] },
@@ -1481,7 +1481,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["bbq-meat", "taco-bar", "pizza-party"],
   },
   {
-    slug: "party-ice", name: "Party Ice Calculator", category: "Events", categorySlug: "events", icon: "🧊", description: "Estimate pounds of ice, bags to buy, and cost for drinks and coolers.",
+    slug: "party-ice", name: "Party Ice Calculator", category: "Events", categorySlug: "events", icon: "❄", description: "Estimate pounds of ice, bags to buy, and cost for drinks and coolers.",
     fields: [
       { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 20 },
       { key: "hours", label: "Event length", type: "number", unit: "hours", min: 1, max: 12, step: 0.5, defaultValue: 3 },
@@ -1514,7 +1514,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["wedding-food", "appetizers-per-person", "bbq-meat"],
   },
   {
-    slug: "balloon-quantity", name: "Balloon Quantity Calculator", category: "Events", categorySlug: "events", icon: "🎈", description: "Turn a room or car interior into a balloon count, helium volume, and tank count.",
+    slug: "balloon-quantity", name: "Balloon Quantity Calculator", category: "Events", categorySlug: "events", icon: "◉", description: "Turn a room or car interior into a balloon count, helium volume, and tank count.",
     fields: [
       { key: "whatToFill", label: "What are you filling", type: "select", defaultValue: "room", options: [{ label: "A room", value: "room" }, { label: "A car interior", value: "car" }] },
       { key: "lengthFt", label: "Length", type: "number", unit: "ft", min: 1, max: 120, defaultValue: 12, help: "A typical sedan's usable interior is about a 4 × 5 × 3 ft box — the full cabin measures 110–120 cu ft before seats and console eat most of it. A living room is often 12 × 10 × 8 ft." },
@@ -1548,7 +1548,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["party-ice", "appetizers-per-person", "wedding-dessert-table"],
   },
   {
-    slug: "fuel-mileage", name: "Fuel Mileage Calculator", category: "Automotive", categorySlug: "automotive", icon: "⛽", description: "Calculate miles per gallon and fuel costs, then save the latest five fill-ups to your account.",
+    slug: "fuel-mileage", name: "Fuel Mileage Calculator", category: "Automotive", categorySlug: "automotive", icon: "$", description: "Calculate miles per gallon and fuel costs, then save the latest five fill-ups to your account.",
     fields: [
       { key: "startOdometer", label: "Starting odometer", type: "number", unit: "mi", min: 0, max: 1000000, defaultValue: 0 },
       { key: "endOdometer", label: "Ending odometer", type: "number", unit: "mi", min: 0, max: 1000000, defaultValue: 0 },
@@ -1587,7 +1587,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["fuel-mileage"],
   },
   {
-    slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "🛞", description: "Convert tire sizes and compare alternatives within 3% on the same rim, with diameter and speedometer estimates.",
+    slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "◉", description: "Convert tire sizes and compare alternatives within 3% on the same rim, with diameter and speedometer estimates.",
     fields: [
       { key: "direction", label: "Direction", type: "select", defaultValue: "metric", options: [{ label: "Metric size → inches", value: "metric" }, { label: "Inches → matching sizes", value: "inches" }] },
       { key: "metricWidth", label: "Section width", type: "number", unit: "mm", min: 100, max: 400, defaultValue: 225, help: "First number in 225/65R17.", visibleWhen: { key: "direction", values: ["metric"] } },
@@ -1664,7 +1664,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["weight-converter", "percentage"],
   },
   {
-    slug: "towing-capacity", name: "Towing Capacity & Tongue Weight Calculator", category: "Automotive", categorySlug: "automotive", icon: "🚚", description: "Look up a verified towing capacity and bracket the safe tongue-weight range for your trailer.",
+    slug: "towing-capacity", name: "Towing Capacity & Tongue Weight Calculator", category: "Automotive", categorySlug: "automotive", icon: "↗", description: "Look up a verified towing capacity and bracket the safe tongue-weight range for your trailer.",
     fields: [
       { key: "make", label: "Make", type: "select", defaultValue: "", options: [{ label: "Select a make", value: "" }, ...TOWING_MAKES.map((make) => ({ label: make, value: make }))] },
       { key: "model", label: "Model", type: "select", defaultValue: "", optionsFor: "make", optionsMap: TOWING_MODEL_OPTIONS, help: "The verified models for your make." },
@@ -1707,7 +1707,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["tire-size"],
   },
   {
-    slug: "battery-runtime", name: "Battery Reserve Capacity & Runtime Calculator", category: "Automotive", categorySlug: "automotive", icon: "🔋", description: "Estimate accessory runtime from a battery's reserve-capacity rating and electrical load.",
+    slug: "battery-runtime", name: "Battery Reserve Capacity & Runtime Calculator", category: "Automotive", categorySlug: "automotive", icon: "▱", description: "Estimate accessory runtime from a battery's reserve-capacity rating and electrical load.",
     fields: [
       { key: "reserveCapacity", label: "Battery reserve capacity", type: "number", unit: "minutes", min: 1, max: 600, defaultValue: 120, help: "Find RC on the battery label or manufacturer specification. The standard RC test is 25 amps at 80°F (26.7°C) to 10.5 volts." },
       { key: "loadMode", label: "How do you know the load?", type: "select", defaultValue: "amps", options: [{ label: "Current draw (amps)", value: "amps" }, { label: "Power draw (watts)", value: "watts" }] },
@@ -1742,7 +1742,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["tire-size", "towing-capacity"],
   },
   {
-    slug: "train-scale-converter", name: "Model Train Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🚂", description: "Convert real dimensions to model size — or back — across Z, N, HO, O, G, and more.",
+    slug: "train-scale-converter", name: "Model Train Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "▬", description: "Convert real dimensions to model size — or back — across Z, N, HO, O, G, and more.",
     fields: [
       { key: "dimension", label: "Dimension", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 40 },
       { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Meters", value: "m" }] },
@@ -1773,7 +1773,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["yarn-yardage", "filament-cost"],
   },
   {
-    slug: "miniature-scale-converter", name: "Miniature Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "🎲", description: "Convert real-world heights to 1:50, 1:56, 1:64, and 1:100 miniature scales, or convert a figure back to real size.",
+    slug: "miniature-scale-converter", name: "Miniature Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "◆", description: "Convert real-world heights to 1:50, 1:56, 1:64, and 1:100 miniature scales, or convert a figure back to real size.",
     fields: [
       { key: "height", label: "Height", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 6 },
       { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Millimeters", value: "mm" }] },
@@ -1805,7 +1805,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["train-scale-converter", "filament-cost", "resin-cost"],
   },
   {
-    slug: "filament-cost", name: "Filament Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "🖨", description: "Price a 3D print from slicer weight, spool price, and your failure rate.",
+    slug: "filament-cost", name: "Filament Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▤", description: "Price a 3D print from slicer weight, spool price, and your failure rate.",
     fields: [
       { key: "modelWeight", label: "Model weight", type: "number", unit: "g", min: 1, max: 5000, defaultValue: 50, help: "Read it from your slicer after slicing — it includes supports and multi-color purge." },
       { key: "spoolPrice", label: "Spool price", type: "number", unit: "$", min: 0, step: 0.5, defaultValue: 20 },
@@ -1835,7 +1835,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["resin-cost", "miniature-scale-converter"],
   },
   {
-    slug: "resin-cost", name: "Resin Print Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "🧪", description: "Price a resin print from slicer volume, supports, and bottle cost.",
+    slug: "resin-cost", name: "Resin Print Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "◈", description: "Price a resin print from slicer volume, supports, and bottle cost.",
     fields: [
       { key: "volumeMl", label: "Model volume", type: "number", unit: "ml", min: 0.1, max: 5000, step: "any", defaultValue: 40, help: "From your slicer's resin-usage estimate." },
       { key: "density", label: "Resin density", type: "number", unit: "g/ml", min: 0.8, max: 1.5, step: 0.01, defaultValue: 1.1, help: "Standard resins run about 1.05–1.12 g/ml — check your resin's data sheet." },
@@ -1900,7 +1900,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["catering-food-quantity", "appetizers-per-person", "charcuterie-board"],
   },
   {
-    slug: "charcuterie-board", name: "Charcuterie Board Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "🧀", description: "Turn a guest count into cheese, meat, cracker, and filler amounts for a board that holds.",
+    slug: "charcuterie-board", name: "Charcuterie Board Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◈", description: "Turn a guest count into cheese, meat, cracker, and filler amounts for a board that holds.",
     fields: [
       { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 500, defaultValue: 12 },
       { key: "boardStyle", label: "Role of the board", type: "select", defaultValue: "appetizer", options: [{ label: "Appetizer alongside dinner — 2 oz each of cheese and meat", value: "appetizer" }, { label: "The board IS the meal — 3.5 oz each", value: "meal" }] },
@@ -1943,7 +1943,7 @@ const definitions: CalculatorDefinition[] = [
     related: ["appetizers-per-person", "wedding-dessert-table", "pizza-party"],
   },
   {
-    slug: "christmas-lights", name: "Christmas Lights Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "💡", description: "Estimate strand feet, sets to buy, and outlet load for a Christmas tree or a full roofline outline.",
+    slug: "christmas-lights", name: "Christmas Lights Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "✳", description: "Estimate strand feet, sets to buy, and outlet load for a Christmas tree or a full roofline outline.",
     fields: [
       { key: "mode", label: "Where are you hanging lights?", type: "select", defaultValue: "tree", options: [{ label: "A Christmas tree", value: "tree" }, { label: "Roofline & house outline", value: "roofline" }] },
       { key: "treeHeight", label: "Tree height", type: "number", unit: "ft", min: 2, max: 15, defaultValue: 7, help: "Floor to tip of the tree, not to the star.", visibleWhen: { key: "mode", values: ["tree"] } },
