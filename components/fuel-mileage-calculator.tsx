@@ -3,6 +3,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { AffiliatePick } from "@/components/affiliate-pick";
 import styles from "./fuel-mileage.module.css";
 
 type FuelEntry = {
@@ -874,6 +875,7 @@ export function FuelMileageCalculator() {
 										Print
 									</button>
 								</div>
+								<AffiliatePick slug="fuel-mileage" />
 							</>
 						) : (
 							<div className={styles.emptyResult}>

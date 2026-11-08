@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AffiliatePick } from "@/components/affiliate-pick";
 import { AffiliateProducts } from "@/components/affiliate-products";
 import { CalculatorCard } from "@/components/calculator-card";
 import { CalculatorClient } from "@/components/calculator-client";
@@ -135,6 +136,7 @@ export default async function CalculatorPage({
 				) : (
 					<CalculatorClient slug={definition.slug} />
 				)}
+				{isGigMileageTracker && <AffiliatePick slug={definition.slug} />}
 				<div className="cf-content-grid">
 					<div>
 						<section className="cf-copy-section">

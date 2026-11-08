@@ -15,6 +15,7 @@ describe("calculator affiliate coverage", () => {
 			expect(picks).toHaveLength(3);
 			expect(new Set(picks.map((pick) => pick.query)).size).toBe(3);
 			const topPick = affiliateTopPicks[calculator.slug];
+			expect(topPick).toBeDefined();
 			if (topPick)
 				expect(picks.map((pick) => pick.query)).not.toContain(topPick.query);
 		}

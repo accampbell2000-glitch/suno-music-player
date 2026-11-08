@@ -1237,6 +1237,58 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 		blurb: "Refill a tree stand with a watering funnel made for holiday trees.",
 		query: "christmas tree watering funnel",
 	},
+	"fuel-mileage": {
+		name: "OBD-II fuel economy monitor",
+		blurb:
+			"For vehicles that support it, compare onboard readings with your fill-up-based estimate.",
+		query: "OBD2 fuel economy monitor mpg display",
+	},
+	"gig-driver-mileage-tracker": {
+		name: "GPS mileage logger",
+		blurb: "Keep an additional trip record alongside the miles you save here.",
+		query: "GPS mileage logger business driving",
+	},
+	"battery-runtime": {
+		name: "12V deep-cycle battery",
+		blurb:
+			"Compare voltage, chemistry, and rated capacity when choosing a battery.",
+		query: "12V deep cycle battery",
+	},
+	"unit-price-comparison": {
+		name: "Pantry storage containers",
+		blurb: "Store the larger package you chose after checking its unit price.",
+		query: "airtight pantry storage containers set",
+	},
+	"equipment-operating-cost-per-hour": {
+		name: "Equipment operating logbook",
+		blurb: "Record working hours and fuel notes beside your cost estimates.",
+		query: "equipment operating log book heavy equipment",
+	},
+	"board-feet": {
+		name: "Lumber storage rack",
+		blurb: "Keep measured boards organized while planning your lumber order.",
+		query: "wood lumber storage rack woodworking",
+	},
+	soap: {
+		name: "Soap loaf mold",
+		blurb: "A reusable mold for batches sized in your recipe calculations.",
+		query: "silicone soap loaf mold making",
+	},
+	"aquarium-volume": {
+		name: "Aquarium thermometer",
+		blurb: "Check water temperature separately from the tank-volume estimate.",
+		query: "digital aquarium thermometer",
+	},
+	sourdough: {
+		name: "Dutch oven",
+		blurb: "A covered baking vessel for loaves made from your scaled dough.",
+		query: "dutch oven bread baking",
+	},
+	firewood: {
+		name: "Splitting maul",
+		blurb: "A hand tool for splitting rounds after planning your stack size.",
+		query: "firewood splitting maul",
+	},
 };
 
 // Bottom-of-page options complement any in-calculator PartnerPick.

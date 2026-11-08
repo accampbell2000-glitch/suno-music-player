@@ -2,11 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-	affiliateTopPicks,
-	affiliateUrl,
-	graboAffiliate,
-} from "@/config/affiliate-links";
+import { AffiliatePick } from "@/components/affiliate-pick";
+import { affiliateUrl } from "@/config/affiliate-links";
 import type {
 	CalculatorDefinition,
 	CalculatorValues,
@@ -17,57 +14,6 @@ import {
 	calculatorsBySlug,
 	verifiedTireSizes,
 } from "@/lib/calculator-definitions";
-
-/**
- * PartnerPick
- *
- * Compact commission strip shown inside the calculator directly under the
- * results — the highest-intent moment. One product, one link, tagged in
- * config/affiliate-links.ts. Renders nothing where no pick exists; the
- * disclosure travels with the strip because it's a paid-link context.
- */
-function PartnerPick({ slug }: { slug: string }) {
-	if (graboAffiliate.slugs.includes(slug)) {
-		return (
-			<div className="cf-partner-strip cf-grabo-pick">
-				<p className="cf-kicker">For tile &amp; pavers</p>
-				<a
-					href={graboAffiliate.clickUrl}
-					target="_blank"
-					rel="sponsored nofollow noopener"
-					aria-label="Shop GRABO portable vacuum lifters"
-				>
-					<Image
-						src={graboAffiliate.imageUrl}
-						width={970}
-						height={250}
-						alt={graboAffiliate.imageAlt}
-						className="w-full h-auto"
-						loading="lazy"
-					/>
-				</a>
-				<small>{graboAffiliate.disclosure}</small>
-			</div>
-		);
-	}
-	const pick = affiliateTopPicks[slug];
-	if (!pick) return null;
-	return (
-		<div className="cf-partner-strip">
-			<p className="cf-kicker">Partner pick</p>
-			<a
-				href={affiliateUrl(pick.query)}
-				target="_blank"
-				rel="sponsored nofollow noopener"
-			>
-				<strong>{pick.name}</strong>
-				<span>{pick.blurb}</span>
-				<em>Paid link · Check current price ↗</em>
-			</a>
-			<small>As an Amazon Associate I earn from qualifying purchases.</small>
-		</div>
-	);
-}
 
 const ABRACADABRA_AFFILIATE_URL =
 	"https://www.anrdoezrs.net/click-101888675-17267207";
@@ -620,9 +566,7 @@ export function CalculatorClient({ slug }: { slug: string }) {
 							{notice}
 						</p>
 					)}
-					{definition.slug !== "tire-size" && (
-						<PartnerPick slug={definition.slug} />
-					)}
+					<AffiliatePick slug={definition.slug} />
 					<AbracadabraPartyPick slug={definition.slug} />
 				</div>
 			</div>
