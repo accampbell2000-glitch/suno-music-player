@@ -1,4 +1,8 @@
-import { affiliateBottomPicks, affiliateUrl, affiliateDisclosure } from "@/config/affiliate-links";
+import {
+	affiliateBottomPicks,
+	affiliateDisclosure,
+	affiliateUrl,
+} from "@/config/affiliate-links";
 
 /**
  * AffiliateProducts
@@ -20,10 +24,20 @@ export function AffiliateProducts({ slug }: { slug: string }) {
 			</div>
 			<div className="cf-affiliate-grid">
 				{picks.map((pick) => (
-					<a key={pick.name} className="cf-affiliate-card" href={affiliateUrl(pick.query)} target="_blank" rel="sponsored nofollow noopener">
-						<h3>{pick.name} <span className="cf-affiliate-paid">(paid link)</span></h3>
+					<a
+						key={pick.name}
+						className="cf-affiliate-card"
+						href={affiliateUrl(pick.query)}
+						target="_blank"
+						rel="sponsored nofollow noopener"
+					>
+						<h3>
+							{pick.name} <span className="cf-affiliate-paid">(paid link)</span>
+						</h3>
 						<p>{pick.blurb}</p>
-						<span className="cf-card-arrow" aria-hidden="true">↗</span>
+						<span className="cf-card-arrow" aria-hidden="true">
+							↗
+						</span>
 					</a>
 				))}
 			</div>

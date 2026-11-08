@@ -1,6 +1,14 @@
 "use client";
 
-import { CalculatorIcon, HistoryIcon, HomeIcon, LifeBuoyIcon, StarIcon, StoreIcon, UserIcon } from "lucide-react";
+import {
+	CalculatorIcon,
+	HistoryIcon,
+	HomeIcon,
+	LifeBuoyIcon,
+	StarIcon,
+	StoreIcon,
+	UserIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { NavUser } from "@/components/dashboard/nav-user";
 import {
@@ -34,13 +42,19 @@ export function AppSidebar({
 	...props
 }: AppSidebarProps) {
 	const { isMobile, setOpenMobile } = useSidebar();
-	const closeMobileSidebar = () => { if (isMobile) setOpenMobile(false); };
+	const closeMobileSidebar = () => {
+		if (isMobile) setOpenMobile(false);
+	};
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton size="lg" render={<Link href="/dashboard" />} onClick={closeMobileSidebar}>
+						<SidebarMenuButton
+							size="lg"
+							render={<Link href="/dashboard" />}
+							onClick={closeMobileSidebar}
+						>
 							<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 								<StoreIcon className="size-4" />
 							</div>
@@ -58,7 +72,7 @@ export function AppSidebar({
 								<SidebarMenuButton
 									tooltip="Home"
 									render={<Link href="/" />}
-										onClick={closeMobileSidebar}
+									onClick={closeMobileSidebar}
 								>
 									<HomeIcon />
 									<span>Home</span>
@@ -68,7 +82,7 @@ export function AppSidebar({
 								<SidebarMenuButton
 									tooltip="Calculators"
 									render={<Link href="/calculators" />}
-										onClick={closeMobileSidebar}
+									onClick={closeMobileSidebar}
 								>
 									<CalculatorIcon />
 									<span>Calculators</span>
@@ -78,7 +92,7 @@ export function AppSidebar({
 								<SidebarMenuButton
 									tooltip="My toolkit"
 									render={<Link href="/dashboard/toolkit" />}
-										onClick={closeMobileSidebar}
+									onClick={closeMobileSidebar}
 								>
 									<StarIcon />
 									<span>My toolkit</span>
@@ -88,7 +102,7 @@ export function AppSidebar({
 								<SidebarMenuButton
 									tooltip="History"
 									render={<Link href="/dashboard/history" />}
-										onClick={closeMobileSidebar}
+									onClick={closeMobileSidebar}
 								>
 									<HistoryIcon />
 									<span>History</span>
@@ -98,7 +112,7 @@ export function AppSidebar({
 								<SidebarMenuButton
 									tooltip="My area"
 									render={<Link href="/dashboard" />}
-										onClick={closeMobileSidebar}
+									onClick={closeMobileSidebar}
 								>
 									<UserIcon />
 									<span>My area</span>

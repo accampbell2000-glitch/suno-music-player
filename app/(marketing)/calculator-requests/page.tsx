@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { calculatorDefinitions, categories } from "@/lib/calculator-definitions";
 import { CrevioForm } from "@/components/forms/crevio-form";
+import {
+	calculatorDefinitions,
+	categories,
+} from "@/lib/calculator-definitions";
 
 // Form provisioned in Crevio ("Calculator Requests") — email required, idea
 // required, optional area select. Requests land as leads with the idea text.
@@ -9,7 +12,8 @@ const FORM_ID = "form_vKmMapEAr3PNcYwj9RWX346P";
 
 export const metadata: Metadata = {
 	title: "Request a calculator | CalcForged",
-	description: "Tell us the calculation you keep doing and we'll build the calculator. Free, and you get both cheat sheets while you wait.",
+	description:
+		"Tell us the calculation you keep doing and we'll build the calculator. Free, and you get both cheat sheets while you wait.",
 	alternates: { canonical: "/calculator-requests" },
 };
 
@@ -19,7 +23,9 @@ export default function CalculatorRequestPage() {
 			<div className="cf-shell">
 				<div className="cf-page-intro">
 					<p className="cf-kicker">Calculator requests</p>
-					<h1>What should we <em>build next?</em></h1>
+					<h1>
+						What should we <em>build next?</em>
+					</h1>
 					<p>
 						Tell us the calculation you keep doing in your head — the one you
 						always end up searching for. If it helps more than one person,
@@ -38,10 +44,18 @@ export default function CalculatorRequestPage() {
 								<p className="cf-kicker">While you wait</p>
 								<p>Both printable cheat sheets are yours — no waiting:</p>
 								<div className="cf-request-reward-links">
-									<Link className="cf-button-dark" href="/downloads/catering-cheat-sheet.pdf" download>
+									<Link
+										className="cf-button-dark"
+										href="/downloads/catering-cheat-sheet.pdf"
+										download
+									>
 										Catering cheat sheet
 									</Link>
-									<Link className="cf-button-dark" href="/downloads/home-improvement-cheat-sheet.pdf" download>
+									<Link
+										className="cf-button-dark"
+										href="/downloads/home-improvement-cheat-sheet.pdf"
+										download
+									>
 										Home improvement cheat sheet
 									</Link>
 								</div>
@@ -51,7 +65,10 @@ export default function CalculatorRequestPage() {
 					<aside className="cf-request-aside">
 						<p className="cf-kicker">Built so far</p>
 						<p className="cf-request-count">{calculatorDefinitions.length}</p>
-						<p>Calculators live today across {categories.map((category) => category.name).join(", ")}.</p>
+						<p>
+							Calculators live today across{" "}
+							{categories.map((category) => category.name).join(", ")}.
+						</p>
 						<p className="cf-request-promise">
 							We read every request. The ones that help the most people get
 							built first — usually within a couple of weeks.

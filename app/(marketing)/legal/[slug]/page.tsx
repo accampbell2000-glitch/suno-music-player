@@ -21,7 +21,9 @@ export async function generateMetadata({
 		return {
 			title: `${policy.title} | ${account.name}`,
 			description: `${policy.title} for ${account.name}`,
-			alternates: { canonical: new URL(`/legal/${policy.slug}`, getAppUrl()).toString() },
+			alternates: {
+				canonical: new URL(`/legal/${policy.slug}`, getAppUrl()).toString(),
+			},
 		};
 	} catch {
 		return { title: "Legal" };

@@ -12,8 +12,8 @@ export default function ToolkitPage() {
 			<div>
 				<h1 className="text-2xl font-semibold">My toolkit</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
-					The calculators you save show up here, on any device you sign in
-					from. Star a calculator anywhere on the site and it pins itself.
+					The calculators you save show up here, on any device you sign in from.
+					Star a calculator anywhere on the site and it pins itself.
 				</p>
 			</div>
 			<ToolkitPanel />

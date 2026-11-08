@@ -18,7 +18,11 @@ export function HistoryPanel() {
 	useEffect(() => {
 		let alive = true;
 		fetch("/api/history")
-			.then((res) => (res.ok ? (res.json() as Promise<{ ok?: boolean; rows?: HistoryRow[] }>) : null))
+			.then((res) =>
+				res.ok
+					? (res.json() as Promise<{ ok?: boolean; rows?: HistoryRow[] }>)
+					: null,
+			)
 			.then((data) => {
 				if (alive && data?.ok) setRows(data.rows ?? []);
 			})
@@ -30,7 +34,10 @@ export function HistoryPanel() {
 		};
 	}, []);
 
-	if (rows === null) return <p className="text-sm text-muted-foreground">Loading your history…</p>;
+	if (rows === null)
+		return (
+			<p className="text-sm text-muted-foreground">Loading your history…</p>
+		);
 
 	if (rows.length === 0) {
 		return (
@@ -50,7 +57,8 @@ export function HistoryPanel() {
 		const params = new URLSearchParams();
 		if (row.inputs) {
 			Object.entries(row.inputs).forEach(([key, value]) => {
-				if (value !== "" && value !== null && value !== undefined) params.set(key, String(value));
+				if (value !== "" && value !== null && value !== undefined)
+					params.set(key, String(value));
 			});
 		}
 		const query = params.toString();
@@ -62,10 +70,16 @@ export function HistoryPanel() {
 		if (!definition) return "";
 		if (!row.inputs) return row.summary ?? "";
 		return definition.fields
-			.filter((field) => field.type !== "ingredient-list" && row.inputs?.[field.key] !== undefined)
+			.filter(
+				(field) =>
+					field.type !== "ingredient-list" &&
+					row.inputs?.[field.key] !== undefined,
+			)
 			.map((field) => {
 				const raw = String(row.inputs?.[field.key]);
-				const option = field.options?.find((candidate) => candidate.value === raw);
+				const option = field.options?.find(
+					(candidate) => candidate.value === raw,
+				);
 				return `${field.label}: ${option ? option.label : raw}`;
 			})
 			.join(" · ");
@@ -73,25 +87,46 @@ export function HistoryPanel() {
 
 	return (
 		<section className="rounded-xl border border-border/60 bg-card p-6">
-			<h2 className="text-sm font-medium text-muted-foreground">Latest 20 · saved automatically</h2>
+			<h2 className="text-sm font-medium text-muted-foreground">
+				Latest 20 · saved automatically
+			</h2>
 			<ol className="mt-4 divide-y divide-border">
 				{rows.map((row) => {
 					const definition = calculatorsBySlug[row.slug];
 					const url = reopenUrl(row);
 					return (
-						<li key={row.id} className="flex items-center justify-between gap-4 py-3">
+						<li
+							key={row.id}
+							className="flex items-center justify-between gap-4 py-3"
+						>
 							<div className="min-w-0">
 								<p className="text-sm font-medium">
-									<span className="mr-2" aria-hidden="true">{definition?.icon}</span>
+									<span className="mr-2" aria-hidden="true">
+										{definition?.icon}
+									</span>
 									{definition?.name ?? row.slug}
 								</p>
-								<p className="mt-0.5 truncate text-sm text-muted-foreground">{describe(row)}</p>
+								<p className="mt-0.5 truncate text-sm text-muted-foreground">
+									{describe(row)}
+								</p>
 								<p className="mt-0.5 text-xs text-muted-foreground">
-									{new Date(row.at.includes("T") ? row.at : `${row.at.replace(" ", "T")}Z`).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+									{new Date(
+										row.at.includes("T")
+											? row.at
+											: `${row.at.replace(" ", "T")}Z`,
+									).toLocaleString(undefined, {
+										month: "short",
+										day: "numeric",
+										hour: "numeric",
+										minute: "2-digit",
+									})}
 								</p>
 							</div>
 							{url && (
-								<Link href={url} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
+								<Link
+									href={url}
+									className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
+								>
 									Reopen
 								</Link>
 							)}

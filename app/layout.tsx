@@ -11,7 +11,11 @@ export async function generateMetadata(): Promise<Metadata> {
 		// Render the site-wide opengraph-image as a full-width card on X.
 		// Per-route pages can override this (e.g. a text-only post → "summary").
 		twitter: { card: "summary_large_image" },
-		appleWebApp: { capable: true, title: "CalcForged", statusBarStyle: "default" },
+		appleWebApp: {
+			capable: true,
+			title: "CalcForged",
+			statusBarStyle: "default",
+		},
 	};
 }
 
@@ -33,8 +37,14 @@ export default function RootLayout({
 				<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 				<link rel="icon" href="/icon.ico" type="image/x-icon" />
 				<link rel="apple-touch-icon" href="/apple-icon.png" />
-				<meta name="google-site-verification" content="rRPekh3qANNXS8C6xYH_RkgCgTFQSI6ez_DHPX23b5I" />
-				<meta name="google-site-verification" content="2sKVkWBNqHc5JcNEd27TlKnH2aHwwGoIxFkUh9FT9Zo" />
+				<meta
+					name="google-site-verification"
+					content="rRPekh3qANNXS8C6xYH_RkgCgTFQSI6ez_DHPX23b5I"
+				/>
+				<meta
+					name="google-site-verification"
+					content="2sKVkWBNqHc5JcNEd27TlKnH2aHwwGoIxFkUh9FT9Zo"
+				/>
 			</head>
 			<body>{children}</body>
 		</html>

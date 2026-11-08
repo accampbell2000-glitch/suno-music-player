@@ -1,163 +1,339 @@
-import { lookupTowing, TOWING_MAKES, TOWING_MODEL_OPTIONS, yearRangeLabel } from "./towing-data";
+import {
+	lookupTowing,
+	TOWING_MAKES,
+	TOWING_MODEL_OPTIONS,
+	yearRangeLabel,
+} from "./towing-data";
 
 export type Category =
-  | "Food & Catering"
-  | "Home Improvement"
-  | "Construction"
-  | "Events"
-  | "Business"
-  | "Hobbies"
-  | "Automotive"
-  | "Everyday Life"
-  | "Finance"
-  | "Health"
-  | "Travel"
-  | "Education";
+	| "Food & Catering"
+	| "Home Improvement"
+	| "Construction"
+	| "Events"
+	| "Business"
+	| "Hobbies"
+	| "Automotive"
+	| "Everyday Life"
+	| "Finance"
+	| "Health"
+	| "Travel"
+	| "Education";
 
 export type FieldOption = { label: string; value: string };
 export type FieldDefinition = {
-  key: string;
-  label: string;
-  type: "number" | "select" | "text" | "ingredient-list";
-  /** Dependent dropdown: the key of another select field whose value picks the option set from `optionsMap`. */
-  optionsFor?: string;
-  optionsMap?: Record<string, FieldOption[]>;
-  /** Column labels for ingredient-list fields, so editors can be reused for courses, items, and rows that aren't food. */
-  ingredientSchema?: { first: string; amount: string; unit: string; name: string; amountPlaceholder?: string; unitPlaceholder?: string; namePlaceholder?: string };
-  ingredientOptions?: FieldOption[];
-  ingredientUnit?: string;
-  /** Only show this input when the named field holds one of these values (e.g. bidirectional calculators). */
-  visibleWhen?: { key: string; values: string[] };
-  unit?: string;
-  min?: number;
-  max?: number;
-  step?: number | "any";
-  defaultValue?: string | number;
-  options?: FieldOption[];
-  help?: string;
-  defaultToday?: boolean;
+	key: string;
+	label: string;
+	type: "number" | "select" | "text" | "ingredient-list";
+	/** Dependent dropdown: the key of another select field whose value picks the option set from `optionsMap`. */
+	optionsFor?: string;
+	optionsMap?: Record<string, FieldOption[]>;
+	/** Column labels for ingredient-list fields, so editors can be reused for courses, items, and rows that aren't food. */
+	ingredientSchema?: {
+		first: string;
+		amount: string;
+		unit: string;
+		name: string;
+		amountPlaceholder?: string;
+		unitPlaceholder?: string;
+		namePlaceholder?: string;
+	};
+	ingredientOptions?: FieldOption[];
+	ingredientUnit?: string;
+	/** Only show this input when the named field holds one of these values (e.g. bidirectional calculators). */
+	visibleWhen?: { key: string; values: string[] };
+	unit?: string;
+	min?: number;
+	max?: number;
+	step?: number | "any";
+	defaultValue?: string | number;
+	options?: FieldOption[];
+	help?: string;
+	defaultToday?: boolean;
 };
 
 export type ResultDefinition = {
-  key: string;
-  label: string;
-  unit?: string;
-  format?: "number" | "currency" | "percent" | "text";
-  estimate?: boolean;
-  interpretation?: string;
+	key: string;
+	label: string;
+	unit?: string;
+	format?: "number" | "currency" | "percent" | "text";
+	estimate?: boolean;
+	interpretation?: string;
 };
 
-export type CalculatorValues = Record<string, string | number | IngredientRow[]>;
-export type IngredientRow = { id?: string; ingredient: string; amount: string; unit: string };
+export type CalculatorValues = Record<
+	string,
+	string | number | IngredientRow[]
+>;
+export type IngredientRow = {
+	id?: string;
+	ingredient: string;
+	amount: string;
+	unit: string;
+};
 export type CalculationOutput = Record<string, string | number>;
 
 export type CalculatorDefinition = {
-  slug: string;
-  name: string;
-  category: Category;
-  categorySlug: string;
-  description: string;
-  icon: string;
-  fields: FieldDefinition[];
-  results: ResultDefinition[];
-  calculate: (values: CalculatorValues) => CalculationOutput;
-  photoScan?: boolean;
-  howItWorks: string[];
-  example: { title: string; inputs: string; result: string };
-  faqs: { question: string; answer: string }[];
-  sources?: { label: string; url: string }[];
-  seo: { title: string; description: string; h1: string; intro: string };
-  related: string[];
-  liveRates?: boolean;
+	slug: string;
+	name: string;
+	category: Category;
+	categorySlug: string;
+	description: string;
+	icon: string;
+	fields: FieldDefinition[];
+	results: ResultDefinition[];
+	calculate: (values: CalculatorValues) => CalculationOutput;
+	photoScan?: boolean;
+	howItWorks: string[];
+	example: { title: string; inputs: string; result: string };
+	faqs: { question: string; answer: string }[];
+	sources?: { label: string; url: string }[];
+	seo: { title: string; description: string; h1: string; intro: string };
+	related: string[];
+	liveRates?: boolean;
 };
 
 const n = (values: CalculatorValues, key: string, fallback = 0) => {
-  const raw = values[key];
-  if (raw === undefined || raw === null || raw === "") return fallback;
-  const num = Number(raw);
-  return Number.isFinite(num) ? num : fallback;
+	const raw = values[key];
+	if (raw === undefined || raw === null || raw === "") return fallback;
+	const num = Number(raw);
+	return Number.isFinite(num) ? num : fallback;
 };
 const option = (values: CalculatorValues, key: string, fallback: string) =>
-  String(values[key] ?? fallback);
+	String(values[key] ?? fallback);
 const round = (value: number, digits = 1) => Number(value.toFixed(digits));
 const ceil = (value: number) => Math.ceil(value);
 
 const UNIT_PRICE_UNITS: FieldOption[] = [
-  { label: "Weight: ounces (oz)", value: "oz" }, { label: "Weight: pounds (lb)", value: "lb" }, { label: "Weight: grams (g)", value: "g" }, { label: "Weight: kilograms (kg)", value: "kg" },
-  { label: "Volume: US fluid ounces (fl oz)", value: "fl-oz" }, { label: "Volume: US cups", value: "cup" }, { label: "Volume: US pints", value: "pint" }, { label: "Volume: US quarts", value: "quart" }, { label: "Volume: US gallons", value: "gallon" }, { label: "Volume: milliliters (mL)", value: "ml" }, { label: "Volume: liters (L)", value: "l" },
-  { label: "Count: each", value: "each" },
+	{ label: "Weight: ounces (oz)", value: "oz" },
+	{ label: "Weight: pounds (lb)", value: "lb" },
+	{ label: "Weight: grams (g)", value: "g" },
+	{ label: "Weight: kilograms (kg)", value: "kg" },
+	{ label: "Volume: US fluid ounces (fl oz)", value: "fl-oz" },
+	{ label: "Volume: US cups", value: "cup" },
+	{ label: "Volume: US pints", value: "pint" },
+	{ label: "Volume: US quarts", value: "quart" },
+	{ label: "Volume: US gallons", value: "gallon" },
+	{ label: "Volume: milliliters (mL)", value: "ml" },
+	{ label: "Volume: liters (L)", value: "l" },
+	{ label: "Count: each", value: "each" },
 ];
-const UNIT_PRICE_CONVERSIONS: Record<string, { dimension: "weight" | "volume" | "count"; factor: number; base: string }> = {
-  oz: { dimension: "weight", factor: 1, base: "oz" }, lb: { dimension: "weight", factor: 16, base: "oz" }, g: { dimension: "weight", factor: 1 / 28.349523125, base: "oz" }, kg: { dimension: "weight", factor: 1000 / 28.349523125, base: "oz" },
-  "fl-oz": { dimension: "volume", factor: 1, base: "US fl oz" }, cup: { dimension: "volume", factor: 8, base: "US fl oz" }, pint: { dimension: "volume", factor: 16, base: "US fl oz" }, quart: { dimension: "volume", factor: 32, base: "US fl oz" }, gallon: { dimension: "volume", factor: 128, base: "US fl oz" }, ml: { dimension: "volume", factor: 1 / 29.5735295625, base: "US fl oz" }, l: { dimension: "volume", factor: 1000 / 29.5735295625, base: "US fl oz" },
-  each: { dimension: "count", factor: 1, base: "item" },
+const UNIT_PRICE_CONVERSIONS: Record<
+	string,
+	{ dimension: "weight" | "volume" | "count"; factor: number; base: string }
+> = {
+	oz: { dimension: "weight", factor: 1, base: "oz" },
+	lb: { dimension: "weight", factor: 16, base: "oz" },
+	g: { dimension: "weight", factor: 1 / 28.349523125, base: "oz" },
+	kg: { dimension: "weight", factor: 1000 / 28.349523125, base: "oz" },
+	"fl-oz": { dimension: "volume", factor: 1, base: "US fl oz" },
+	cup: { dimension: "volume", factor: 8, base: "US fl oz" },
+	pint: { dimension: "volume", factor: 16, base: "US fl oz" },
+	quart: { dimension: "volume", factor: 32, base: "US fl oz" },
+	gallon: { dimension: "volume", factor: 128, base: "US fl oz" },
+	ml: { dimension: "volume", factor: 1 / 29.5735295625, base: "US fl oz" },
+	l: { dimension: "volume", factor: 1000 / 29.5735295625, base: "US fl oz" },
+	each: { dimension: "count", factor: 1, base: "item" },
 };
 const inputNumber = (values: CalculatorValues, key: string): number | null => {
-  const raw = values[key];
-  if ((typeof raw !== "string" && typeof raw !== "number") || (typeof raw === "string" && raw.trim() === "")) return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
+	const raw = values[key];
+	if (
+		(typeof raw !== "string" && typeof raw !== "number") ||
+		(typeof raw === "string" && raw.trim() === "")
+	)
+		return null;
+	const value = Number(raw);
+	return Number.isFinite(value) ? value : null;
 };
-const optionalInputNumber = (values: CalculatorValues, key: string): number | null => {
-  const raw = values[key];
-  return raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "") ? 0 : inputNumber(values, key);
+const optionalInputNumber = (
+	values: CalculatorValues,
+	key: string,
+): number | null => {
+	const raw = values[key];
+	return raw === undefined ||
+		raw === null ||
+		(typeof raw === "string" && raw.trim() === "")
+		? 0
+		: inputNumber(values, key);
 };
-const formatUsd = (value: number, digits = 2) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
-const invalidUnitPrice = (validation: string): CalculationOutput => ({ validation, unitPriceA: "", unitPriceB: "", lowerPrice: "", difference: "", workings: "" });
+const formatUsd = (value: number, digits = 2) =>
+	new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		minimumFractionDigits: digits,
+		maximumFractionDigits: digits,
+	}).format(value);
+const invalidUnitPrice = (validation: string): CalculationOutput => ({
+	validation,
+	unitPriceA: "",
+	unitPriceB: "",
+	lowerPrice: "",
+	difference: "",
+	workings: "",
+});
 function calculateUnitPrice(values: CalculatorValues): CalculationOutput {
-  const priceA = inputNumber(values, "priceA"); const sizeA = inputNumber(values, "sizeA");
-  const priceB = inputNumber(values, "priceB"); const sizeB = inputNumber(values, "sizeB");
-  if (priceA === null || priceB === null) return invalidUnitPrice("Enter a valid price for both packages.");
-  if (priceA <= 0 || priceB <= 0) return invalidUnitPrice("Both package prices must be greater than $0.");
-  if (sizeA === null || sizeB === null) return invalidUnitPrice("Enter a valid package size for both products.");
-  if (sizeA <= 0 || sizeB <= 0) return invalidUnitPrice("Both package sizes must be greater than 0.");
-  const unitA = UNIT_PRICE_CONVERSIONS[String(values.unitA ?? "oz")];
-  const unitB = UNIT_PRICE_CONVERSIONS[String(values.unitB ?? "oz")];
-  if (!unitA || !unitB) return invalidUnitPrice("Choose a supported package unit for both products.");
-  if (unitA.dimension !== unitB.dimension) return invalidUnitPrice("Cannot compare weight with volume or count. Choose two units of the same dimension.");
-  const quantityA = sizeA * unitA.factor; const quantityB = sizeB * unitB.factor;
-  const unitPriceA = priceA / quantityA; const unitPriceB = priceB / quantityB;
-  if (![quantityA, quantityB, unitPriceA, unitPriceB].every(Number.isFinite)) return invalidUnitPrice("These values are too large to compare. Enter smaller prices and package sizes.");
-  const base = unitA.base;
-  const productA = String(values.productA ?? "").trim() || "Product A"; const productB = String(values.productB ?? "").trim() || "Product B";
-  const tie = Math.abs(unitPriceA - unitPriceB) <= 1e-10 * Math.max(1, Math.abs(unitPriceA), Math.abs(unitPriceB));
-  const difference = Math.abs(unitPriceA - unitPriceB);
-  const lowerPrice = tie ? "Tie - same unit price" : unitPriceA < unitPriceB ? productA : productB;
-  return {
-    validation: `Compared on the same ${unitA.dimension} basis, normalized to ${base}.`,
-    unitPriceA: `${formatUsd(unitPriceA, 4)} / ${base}`,
-    unitPriceB: `${formatUsd(unitPriceB, 4)} / ${base}`,
-    lowerPrice,
-    difference: `${formatUsd(difference, 4)} / ${base}`,
-    workings: `${productA}: ${formatUsd(priceA)} ÷ ${quantityA.toFixed(4)} ${base} = ${formatUsd(unitPriceA, 4)}/${base}.\n${productB}: ${formatUsd(priceB)} ÷ ${quantityB.toFixed(4)} ${base} = ${formatUsd(unitPriceB, 4)}/${base}.\nCompare before display rounding; unit prices are shown to 4 decimal places.`,
-  };
+	const priceA = inputNumber(values, "priceA");
+	const sizeA = inputNumber(values, "sizeA");
+	const priceB = inputNumber(values, "priceB");
+	const sizeB = inputNumber(values, "sizeB");
+	if (priceA === null || priceB === null)
+		return invalidUnitPrice("Enter a valid price for both packages.");
+	if (priceA <= 0 || priceB <= 0)
+		return invalidUnitPrice("Both package prices must be greater than $0.");
+	if (sizeA === null || sizeB === null)
+		return invalidUnitPrice("Enter a valid package size for both products.");
+	if (sizeA <= 0 || sizeB <= 0)
+		return invalidUnitPrice("Both package sizes must be greater than 0.");
+	const unitA = UNIT_PRICE_CONVERSIONS[String(values.unitA ?? "oz")];
+	const unitB = UNIT_PRICE_CONVERSIONS[String(values.unitB ?? "oz")];
+	if (!unitA || !unitB)
+		return invalidUnitPrice(
+			"Choose a supported package unit for both products.",
+		);
+	if (unitA.dimension !== unitB.dimension)
+		return invalidUnitPrice(
+			"Cannot compare weight with volume or count. Choose two units of the same dimension.",
+		);
+	const quantityA = sizeA * unitA.factor;
+	const quantityB = sizeB * unitB.factor;
+	const unitPriceA = priceA / quantityA;
+	const unitPriceB = priceB / quantityB;
+	if (![quantityA, quantityB, unitPriceA, unitPriceB].every(Number.isFinite))
+		return invalidUnitPrice(
+			"These values are too large to compare. Enter smaller prices and package sizes.",
+		);
+	const base = unitA.base;
+	const productA = String(values.productA ?? "").trim() || "Product A";
+	const productB = String(values.productB ?? "").trim() || "Product B";
+	const tie =
+		Math.abs(unitPriceA - unitPriceB) <=
+		1e-10 * Math.max(1, Math.abs(unitPriceA), Math.abs(unitPriceB));
+	const difference = Math.abs(unitPriceA - unitPriceB);
+	const lowerPrice = tie
+		? "Tie - same unit price"
+		: unitPriceA < unitPriceB
+			? productA
+			: productB;
+	return {
+		validation: `Compared on the same ${unitA.dimension} basis, normalized to ${base}.`,
+		unitPriceA: `${formatUsd(unitPriceA, 4)} / ${base}`,
+		unitPriceB: `${formatUsd(unitPriceB, 4)} / ${base}`,
+		lowerPrice,
+		difference: `${formatUsd(difference, 4)} / ${base}`,
+		workings: `${productA}: ${formatUsd(priceA)} ÷ ${quantityA.toFixed(4)} ${base} = ${formatUsd(unitPriceA, 4)}/${base}.\n${productB}: ${formatUsd(priceB)} ÷ ${quantityB.toFixed(4)} ${base} = ${formatUsd(unitPriceB, 4)}/${base}.\nCompare before display rounding; unit prices are shown to 4 decimal places.`,
+	};
 }
-const invalidEquipmentCost = (validation: string): CalculationOutput => ({ validation, depreciationPerHour: "", fuelPerHour: "", maintenancePerHour: "", overheadPerHour: "", operatorLaborPerHour: "", totalPerHour: "", grossDollarsPerHour: "", marginPercent: "", workings: "" });
+const invalidEquipmentCost = (validation: string): CalculationOutput => ({
+	validation,
+	depreciationPerHour: "",
+	fuelPerHour: "",
+	maintenancePerHour: "",
+	overheadPerHour: "",
+	operatorLaborPerHour: "",
+	totalPerHour: "",
+	grossDollarsPerHour: "",
+	marginPercent: "",
+	workings: "",
+});
 function calculateEquipmentCost(values: CalculatorValues): CalculationOutput {
-  const purchaseCost = inputNumber(values, "purchaseCost"); const resaleValue = inputNumber(values, "resaleValue"); const lifetimeHours = inputNumber(values, "lifetimeHours");
-  const fuelUse = inputNumber(values, "fuelUse"); const fuelPrice = inputNumber(values, "fuelPrice"); const maintenanceCost = inputNumber(values, "maintenanceCost");
-  const annualOverhead = optionalInputNumber(values, "annualOverhead"); const annualHours = optionalInputNumber(values, "annualHours"); const operatorLabor = optionalInputNumber(values, "operatorLabor"); const billingRate = optionalInputNumber(values, "billingRate");
-  if (purchaseCost === null || resaleValue === null || lifetimeHours === null || fuelUse === null || fuelPrice === null || maintenanceCost === null || annualOverhead === null || annualHours === null || operatorLabor === null || billingRate === null) return invalidEquipmentCost("Enter valid numbers for each cost and usage field.");
-  const required = [purchaseCost, resaleValue, lifetimeHours, fuelUse, fuelPrice, maintenanceCost];
-  if (purchaseCost <= 0) return invalidEquipmentCost("Purchase or replacement cost must be greater than $0.");
-  if (resaleValue < 0 || resaleValue > purchaseCost) return invalidEquipmentCost("Resale value must be $0 or more and no greater than purchase cost.");
-  if (lifetimeHours <= 0) return invalidEquipmentCost("Lifetime operating hours must be greater than 0.");
-  const optional = [annualOverhead, annualHours, operatorLabor, billingRate];
-  if ([...required, ...optional].some((value) => value < 0)) return invalidEquipmentCost("Costs, fuel use, and hours cannot be negative.");
-  if (annualOverhead > 0 && annualHours <= 0) return invalidEquipmentCost("Enter annual operating hours above 0 when allocating fixed overhead.");
-  const depreciation = (purchaseCost - resaleValue) / lifetimeHours;
-  const fuel = fuelUse * fuelPrice;
-  const overhead = annualOverhead > 0 ? annualOverhead / annualHours : 0;
-  const total = depreciation + fuel + maintenanceCost + overhead + operatorLabor;
-  if (![depreciation, fuel, overhead, total].every(Number.isFinite)) return invalidEquipmentCost("These values are too large to calculate. Enter smaller amounts.");
-  const hasBillingRate = billingRate > 0;
-  const gross = hasBillingRate ? billingRate - total : 0;
-  const margin = hasBillingRate ? gross / billingRate * 100 : 0;
-  const overheadLine = annualOverhead > 0 ? `Annual fixed overhead: ${formatUsd(annualOverhead)} ÷ ${annualHours.toLocaleString("en-US")} hr/year = ${formatUsd(overhead)}/hr.` : "Annual fixed overhead: $0.00/hr (not included).";
-  const laborLine = operatorLabor > 0 ? `Operator labor: entered ${formatUsd(operatorLabor)}/hr.` : "Operator labor: $0.00/hr (not included).";
-  const billingLine = hasBillingRate ? `Billing rate: ${formatUsd(billingRate)}/hr - ${formatUsd(total)}/hr cost = ${formatUsd(gross)}/hr gross; ${formatUsd(gross)} ÷ ${formatUsd(billingRate)} × 100 = ${round(margin, 2)}% margin.` : "Billing rate not entered; gross dollars and margin are hidden.";
-  const workings = [`Depreciation: (${formatUsd(purchaseCost)} - ${formatUsd(resaleValue)}) ÷ ${lifetimeHours.toLocaleString("en-US")} lifetime hours = ${formatUsd(depreciation)}/hr.`, `Fuel: ${fuelUse.toLocaleString("en-US", { maximumFractionDigits: 4 })} gal/hr × ${formatUsd(fuelPrice)}/gal = ${formatUsd(fuel)}/hr.`, `Maintenance and repair: entered ${formatUsd(maintenanceCost)}/hr.`, overheadLine, laborLine, `Total: ${[depreciation, fuel, maintenanceCost, overhead, operatorLabor].map((value) => formatUsd(value)).join(" + ")} = ${formatUsd(total)}/hr.`, billingLine, "Dollar outputs round to cents; margin uses the unrounded total."].join("\n");
-  return { validation: "Estimate based on your inputs.", depreciationPerHour: round(depreciation, 2), fuelPerHour: round(fuel, 2), maintenancePerHour: round(maintenanceCost, 2), overheadPerHour: round(overhead, 2), operatorLaborPerHour: round(operatorLabor, 2), totalPerHour: round(total, 2), grossDollarsPerHour: hasBillingRate ? round(gross, 2) : "", marginPercent: hasBillingRate ? round(margin, 2) : "", workings };
+	const purchaseCost = inputNumber(values, "purchaseCost");
+	const resaleValue = inputNumber(values, "resaleValue");
+	const lifetimeHours = inputNumber(values, "lifetimeHours");
+	const fuelUse = inputNumber(values, "fuelUse");
+	const fuelPrice = inputNumber(values, "fuelPrice");
+	const maintenanceCost = inputNumber(values, "maintenanceCost");
+	const annualOverhead = optionalInputNumber(values, "annualOverhead");
+	const annualHours = optionalInputNumber(values, "annualHours");
+	const operatorLabor = optionalInputNumber(values, "operatorLabor");
+	const billingRate = optionalInputNumber(values, "billingRate");
+	if (
+		purchaseCost === null ||
+		resaleValue === null ||
+		lifetimeHours === null ||
+		fuelUse === null ||
+		fuelPrice === null ||
+		maintenanceCost === null ||
+		annualOverhead === null ||
+		annualHours === null ||
+		operatorLabor === null ||
+		billingRate === null
+	)
+		return invalidEquipmentCost(
+			"Enter valid numbers for each cost and usage field.",
+		);
+	const required = [
+		purchaseCost,
+		resaleValue,
+		lifetimeHours,
+		fuelUse,
+		fuelPrice,
+		maintenanceCost,
+	];
+	if (purchaseCost <= 0)
+		return invalidEquipmentCost(
+			"Purchase or replacement cost must be greater than $0.",
+		);
+	if (resaleValue < 0 || resaleValue > purchaseCost)
+		return invalidEquipmentCost(
+			"Resale value must be $0 or more and no greater than purchase cost.",
+		);
+	if (lifetimeHours <= 0)
+		return invalidEquipmentCost(
+			"Lifetime operating hours must be greater than 0.",
+		);
+	const optional = [annualOverhead, annualHours, operatorLabor, billingRate];
+	if ([...required, ...optional].some((value) => value < 0))
+		return invalidEquipmentCost(
+			"Costs, fuel use, and hours cannot be negative.",
+		);
+	if (annualOverhead > 0 && annualHours <= 0)
+		return invalidEquipmentCost(
+			"Enter annual operating hours above 0 when allocating fixed overhead.",
+		);
+	const depreciation = (purchaseCost - resaleValue) / lifetimeHours;
+	const fuel = fuelUse * fuelPrice;
+	const overhead = annualOverhead > 0 ? annualOverhead / annualHours : 0;
+	const total =
+		depreciation + fuel + maintenanceCost + overhead + operatorLabor;
+	if (![depreciation, fuel, overhead, total].every(Number.isFinite))
+		return invalidEquipmentCost(
+			"These values are too large to calculate. Enter smaller amounts.",
+		);
+	const hasBillingRate = billingRate > 0;
+	const gross = hasBillingRate ? billingRate - total : 0;
+	const margin = hasBillingRate ? (gross / billingRate) * 100 : 0;
+	const overheadLine =
+		annualOverhead > 0
+			? `Annual fixed overhead: ${formatUsd(annualOverhead)} ÷ ${annualHours.toLocaleString("en-US")} hr/year = ${formatUsd(overhead)}/hr.`
+			: "Annual fixed overhead: $0.00/hr (not included).";
+	const laborLine =
+		operatorLabor > 0
+			? `Operator labor: entered ${formatUsd(operatorLabor)}/hr.`
+			: "Operator labor: $0.00/hr (not included).";
+	const billingLine = hasBillingRate
+		? `Billing rate: ${formatUsd(billingRate)}/hr - ${formatUsd(total)}/hr cost = ${formatUsd(gross)}/hr gross; ${formatUsd(gross)} ÷ ${formatUsd(billingRate)} × 100 = ${round(margin, 2)}% margin.`
+		: "Billing rate not entered; gross dollars and margin are hidden.";
+	const workings = [
+		`Depreciation: (${formatUsd(purchaseCost)} - ${formatUsd(resaleValue)}) ÷ ${lifetimeHours.toLocaleString("en-US")} lifetime hours = ${formatUsd(depreciation)}/hr.`,
+		`Fuel: ${fuelUse.toLocaleString("en-US", { maximumFractionDigits: 4 })} gal/hr × ${formatUsd(fuelPrice)}/gal = ${formatUsd(fuel)}/hr.`,
+		`Maintenance and repair: entered ${formatUsd(maintenanceCost)}/hr.`,
+		overheadLine,
+		laborLine,
+		`Total: ${[depreciation, fuel, maintenanceCost, overhead, operatorLabor].map((value) => formatUsd(value)).join(" + ")} = ${formatUsd(total)}/hr.`,
+		billingLine,
+		"Dollar outputs round to cents; margin uses the unrounded total.",
+	].join("\n");
+	return {
+		validation: "Estimate based on your inputs.",
+		depreciationPerHour: round(depreciation, 2),
+		fuelPerHour: round(fuel, 2),
+		maintenancePerHour: round(maintenanceCost, 2),
+		overheadPerHour: round(overhead, 2),
+		operatorLaborPerHour: round(operatorLabor, 2),
+		totalPerHour: round(total, 2),
+		grossDollarsPerHour: hasBillingRate ? round(gross, 2) : "",
+		marginPercent: hasBillingRate ? round(margin, 2) : "",
+		workings,
+	};
 }
 
 // Values are from King Arthur Baking's ingredient-weight chart. Each entry
@@ -165,151 +341,368 @@ function calculateEquipmentCost(values: CalculatorValues): CalculationOutput {
 // that measured portion using US volume equivalents (16 tbsp, 48 tsp, 8 fl oz,
 // 236.5882365 ml per cup). Preparation and brands remain specific to the chart.
 // Source: https://www.kingarthurbaking.com/learn/ingredient-weight-chart
-const COMMON_CUP_WEIGHTS: { id: string; label: string; grams: number; cups: number }[] = [
-  { id: "all-purpose-flour", label: "All-purpose flour", grams: 120, cups: 1 },
-  { id: "bread-flour", label: "Bread flour", grams: 120, cups: 1 },
-  { id: "whole-wheat-flour", label: "Whole wheat flour", grams: 113, cups: 1 },
-  { id: "almond-flour", label: "Almond flour", grams: 96, cups: 1 },
-  { id: "almond-meal", label: "Almond meal", grams: 84, cups: 1 },
-  { id: "brown-sugar-packed", label: "Brown sugar (packed)", grams: 213, cups: 1 },
-  { id: "granulated-sugar", label: "Granulated white sugar", grams: 198, cups: 1 },
-  { id: "confectioners-sugar", label: "Confectioners' sugar (unsifted)", grams: 113, cups: 1 },
-  { id: "butter", label: "Butter", grams: 113, cups: 0.5 },
-  { id: "cocoa", label: "Unsweetened cocoa", grams: 42, cups: 0.5 },
-  { id: "honey", label: "Honey", grams: 21, cups: 1 / 16 },
-  { id: "peanut-butter", label: "Peanut butter", grams: 135, cups: 0.5 },
-  { id: "oats", label: "Old-fashioned or quick oats", grams: 89, cups: 1 },
-  { id: "granola", label: "Granola", grams: 113, cups: 1 },
-  { id: "chocolate-chips", label: "Chocolate chips", grams: 170, cups: 1 },
-  { id: "cornmeal", label: "Whole cornmeal", grams: 138, cups: 1 },
-  { id: "yellow-cornmeal", label: "Yellow cornmeal (Quaker)", grams: 156, cups: 1 },
-  { id: "cornstarch", label: "Cornstarch", grams: 28, cups: 0.25 },
-  { id: "rice-flour", label: "White rice flour", grams: 142, cups: 1 },
-  { id: "quinoa", label: "Whole quinoa", grams: 177, cups: 1 },
-  { id: "dry-rice", label: "Long-grain rice (dry)", grams: 99, cups: 0.5 },
-  { id: "milk", label: "Fresh milk", grams: 227, cups: 1 },
-  { id: "buttermilk", label: "Buttermilk", grams: 227, cups: 1 },
-  { id: "sour-cream", label: "Sour cream", grams: 227, cups: 1 },
-  { id: "cream-cheese", label: "Cream cheese", grams: 227, cups: 1 },
-  { id: "applesauce", label: "Applesauce", grams: 255, cups: 1 },
-  { id: "corn-syrup", label: "Corn syrup", grams: 312, cups: 1 },
-  { id: "maple-syrup", label: "Maple syrup", grams: 156, cups: 0.5 },
-  { id: "vegetable-oil", label: "Vegetable oil", grams: 198, cups: 1 },
-  { id: "raisins", label: "Raisins (loose)", grams: 149, cups: 1 },
-  { id: "whole-almonds", label: "Whole almonds (unblanched)", grams: 142, cups: 1 },
-  { id: "panko", label: "Japanese panko breadcrumbs", grams: 50, cups: 1 },
-  { id: "coconut-flour", label: "Coconut flour", grams: 128, cups: 1 },
-  { id: "spelt-flour", label: "Spelt flour", grams: 99, cups: 1 },
+const COMMON_CUP_WEIGHTS: {
+	id: string;
+	label: string;
+	grams: number;
+	cups: number;
+}[] = [
+	{ id: "all-purpose-flour", label: "All-purpose flour", grams: 120, cups: 1 },
+	{ id: "bread-flour", label: "Bread flour", grams: 120, cups: 1 },
+	{ id: "whole-wheat-flour", label: "Whole wheat flour", grams: 113, cups: 1 },
+	{ id: "almond-flour", label: "Almond flour", grams: 96, cups: 1 },
+	{ id: "almond-meal", label: "Almond meal", grams: 84, cups: 1 },
+	{
+		id: "brown-sugar-packed",
+		label: "Brown sugar (packed)",
+		grams: 213,
+		cups: 1,
+	},
+	{
+		id: "granulated-sugar",
+		label: "Granulated white sugar",
+		grams: 198,
+		cups: 1,
+	},
+	{
+		id: "confectioners-sugar",
+		label: "Confectioners' sugar (unsifted)",
+		grams: 113,
+		cups: 1,
+	},
+	{ id: "butter", label: "Butter", grams: 113, cups: 0.5 },
+	{ id: "cocoa", label: "Unsweetened cocoa", grams: 42, cups: 0.5 },
+	{ id: "honey", label: "Honey", grams: 21, cups: 1 / 16 },
+	{ id: "peanut-butter", label: "Peanut butter", grams: 135, cups: 0.5 },
+	{ id: "oats", label: "Old-fashioned or quick oats", grams: 89, cups: 1 },
+	{ id: "granola", label: "Granola", grams: 113, cups: 1 },
+	{ id: "chocolate-chips", label: "Chocolate chips", grams: 170, cups: 1 },
+	{ id: "cornmeal", label: "Whole cornmeal", grams: 138, cups: 1 },
+	{
+		id: "yellow-cornmeal",
+		label: "Yellow cornmeal (Quaker)",
+		grams: 156,
+		cups: 1,
+	},
+	{ id: "cornstarch", label: "Cornstarch", grams: 28, cups: 0.25 },
+	{ id: "rice-flour", label: "White rice flour", grams: 142, cups: 1 },
+	{ id: "quinoa", label: "Whole quinoa", grams: 177, cups: 1 },
+	{ id: "dry-rice", label: "Long-grain rice (dry)", grams: 99, cups: 0.5 },
+	{ id: "milk", label: "Fresh milk", grams: 227, cups: 1 },
+	{ id: "buttermilk", label: "Buttermilk", grams: 227, cups: 1 },
+	{ id: "sour-cream", label: "Sour cream", grams: 227, cups: 1 },
+	{ id: "cream-cheese", label: "Cream cheese", grams: 227, cups: 1 },
+	{ id: "applesauce", label: "Applesauce", grams: 255, cups: 1 },
+	{ id: "corn-syrup", label: "Corn syrup", grams: 312, cups: 1 },
+	{ id: "maple-syrup", label: "Maple syrup", grams: 156, cups: 0.5 },
+	{ id: "vegetable-oil", label: "Vegetable oil", grams: 198, cups: 1 },
+	{ id: "raisins", label: "Raisins (loose)", grams: 149, cups: 1 },
+	{
+		id: "whole-almonds",
+		label: "Whole almonds (unblanched)",
+		grams: 142,
+		cups: 1,
+	},
+	{ id: "panko", label: "Japanese panko breadcrumbs", grams: 50, cups: 1 },
+	{ id: "coconut-flour", label: "Coconut flour", grams: 128, cups: 1 },
+	{ id: "spelt-flour", label: "Spelt flour", grams: 99, cups: 1 },
 ];
-const CUP_VOLUME_EQUIVALENTS: Record<string, number> = { cup: 1, tbsp: 1 / 16, tsp: 1 / 48, floz: 1 / 8, ml: 1 / 236.5882365, l: 1000 / 236.5882365 };
+const CUP_VOLUME_EQUIVALENTS: Record<string, number> = {
+	cup: 1,
+	tbsp: 1 / 16,
+	tsp: 1 / 48,
+	floz: 1 / 8,
+	ml: 1 / 236.5882365,
+	l: 1000 / 236.5882365,
+};
 // Equation and activity multipliers are documented at https://reference.medscape.com/calculator/846/mifflin-st-jeor-equation-calculator; the original equation paper is https://pubmed.ncbi.nlm.nih.gov/2305711/.
 const TDEE_ACTIVITY_OPTIONS: FieldOption[] = [
-  { label: "Choose an activity assumption", value: "" },
-  { label: "Sedentary (×1.2)", value: "1.2" },
-  { label: "Lightly active (×1.375)", value: "1.375" },
-  { label: "Moderately active (×1.55)", value: "1.55" },
-  { label: "Active (×1.725)", value: "1.725" },
-  { label: "Very active (×1.9)", value: "1.9" },
+	{ label: "Choose an activity assumption", value: "" },
+	{ label: "Sedentary (×1.2)", value: "1.2" },
+	{ label: "Lightly active (×1.375)", value: "1.375" },
+	{ label: "Moderately active (×1.55)", value: "1.55" },
+	{ label: "Active (×1.725)", value: "1.725" },
+	{ label: "Very active (×1.9)", value: "1.9" },
 ];
-const TDEE_ACTIVITY_LABELS: Record<string, string> = { "1.2": "sedentary", "1.375": "lightly active", "1.55": "moderately active", "1.725": "active", "1.9": "very active" };
+const TDEE_ACTIVITY_LABELS: Record<string, string> = {
+	"1.2": "sedentary",
+	"1.375": "lightly active",
+	"1.55": "moderately active",
+	"1.725": "active",
+	"1.9": "very active",
+};
 // MET values come from the 2024 Adult Compendium: https://pacompendium.com/walking/; its MET definition is at https://pacompendium.com/.
 const WALKING_MET_OPTIONS: FieldOption[] = [
-  { label: "Very slow stroll, under 2.0 mph (2.3 MET)", value: "2.3" },
-  { label: "Slow, 2.0–2.4 mph (2.8 MET)", value: "2.8" },
-  { label: "2.5 mph on level ground (3.0 MET)", value: "3.0" },
-  { label: "Moderate, 2.8–3.4 mph (3.8 MET)", value: "3.8" },
-  { label: "Brisk, 3.5–3.9 mph (4.8 MET)", value: "4.8" },
-  { label: "Very brisk, 4.0–4.4 mph (5.5 MET)", value: "5.5" },
-  { label: "Very, very brisk, 4.5–4.9 mph (7.0 MET)", value: "7.0" },
+	{ label: "Very slow stroll, under 2.0 mph (2.3 MET)", value: "2.3" },
+	{ label: "Slow, 2.0–2.4 mph (2.8 MET)", value: "2.8" },
+	{ label: "2.5 mph on level ground (3.0 MET)", value: "3.0" },
+	{ label: "Moderate, 2.8–3.4 mph (3.8 MET)", value: "3.8" },
+	{ label: "Brisk, 3.5–3.9 mph (4.8 MET)", value: "4.8" },
+	{ label: "Very brisk, 4.0–4.4 mph (5.5 MET)", value: "5.5" },
+	{ label: "Very, very brisk, 4.5–4.9 mph (7.0 MET)", value: "7.0" },
 ];
 
 const CURRENCIES: FieldOption[] = [
-  { label: "US Dollar (USD)", value: "USD" }, { label: "Euro (EUR)", value: "EUR" }, { label: "British Pound (GBP)", value: "GBP" },
-  { label: "Japanese Yen (JPY)", value: "JPY" }, { label: "Canadian Dollar (CAD)", value: "CAD" }, { label: "Australian Dollar (AUD)", value: "AUD" },
-  { label: "Swiss Franc (CHF)", value: "CHF" }, { label: "Chinese Yuan (CNY)", value: "CNY" }, { label: "Mexican Peso (MXN)", value: "MXN" }, { label: "Indian Rupee (INR)", value: "INR" },
+	{ label: "US Dollar (USD)", value: "USD" },
+	{ label: "Euro (EUR)", value: "EUR" },
+	{ label: "British Pound (GBP)", value: "GBP" },
+	{ label: "Japanese Yen (JPY)", value: "JPY" },
+	{ label: "Canadian Dollar (CAD)", value: "CAD" },
+	{ label: "Australian Dollar (AUD)", value: "AUD" },
+	{ label: "Swiss Franc (CHF)", value: "CHF" },
+	{ label: "Chinese Yuan (CNY)", value: "CNY" },
+	{ label: "Mexican Peso (MXN)", value: "MXN" },
+	{ label: "Indian Rupee (INR)", value: "INR" },
 ];
-const FALLBACK_RATES: Record<string, number> = { USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.5, CAD: 1.37, AUD: 1.52, CHF: 0.88, CNY: 7.2, MXN: 17.9, INR: 83.5 };
+const FALLBACK_RATES: Record<string, number> = {
+	USD: 1,
+	EUR: 0.92,
+	GBP: 0.79,
+	JPY: 149.5,
+	CAD: 1.37,
+	AUD: 1.52,
+	CHF: 0.88,
+	CNY: 7.2,
+	MXN: 17.9,
+	INR: 83.5,
+};
 
 const ZONES: FieldOption[] = [
-  { label: "New York · Eastern", value: "America/New_York" }, { label: "Chicago · Central", value: "America/Chicago" },
-  { label: "Denver · Mountain", value: "America/Denver" }, { label: "Phoenix · Mountain (no DST)", value: "America/Phoenix" },
-  { label: "Los Angeles · Pacific", value: "America/Los_Angeles" }, { label: "Anchorage · Alaska", value: "America/Anchorage" },
-  { label: "Honolulu · Hawaii", value: "Pacific/Honolulu" }, { label: "São Paulo", value: "America/Sao_Paulo" },
-  { label: "London", value: "Europe/London" }, { label: "Paris", value: "Europe/Paris" }, { label: "Berlin", value: "Europe/Berlin" },
-  { label: "Moscow", value: "Europe/Moscow" }, { label: "Dubai", value: "Asia/Dubai" }, { label: "Mumbai", value: "Asia/Kolkata" },
-  { label: "Singapore", value: "Asia/Singapore" }, { label: "Tokyo", value: "Asia/Tokyo" }, { label: "Sydney", value: "Australia/Sydney" },
-  { label: "Auckland", value: "Pacific/Auckland" }, { label: "UTC", value: "UTC" },
+	{ label: "New York · Eastern", value: "America/New_York" },
+	{ label: "Chicago · Central", value: "America/Chicago" },
+	{ label: "Denver · Mountain", value: "America/Denver" },
+	{ label: "Phoenix · Mountain (no DST)", value: "America/Phoenix" },
+	{ label: "Los Angeles · Pacific", value: "America/Los_Angeles" },
+	{ label: "Anchorage · Alaska", value: "America/Anchorage" },
+	{ label: "Honolulu · Hawaii", value: "Pacific/Honolulu" },
+	{ label: "São Paulo", value: "America/Sao_Paulo" },
+	{ label: "London", value: "Europe/London" },
+	{ label: "Paris", value: "Europe/Paris" },
+	{ label: "Berlin", value: "Europe/Berlin" },
+	{ label: "Moscow", value: "Europe/Moscow" },
+	{ label: "Dubai", value: "Asia/Dubai" },
+	{ label: "Mumbai", value: "Asia/Kolkata" },
+	{ label: "Singapore", value: "Asia/Singapore" },
+	{ label: "Tokyo", value: "Asia/Tokyo" },
+	{ label: "Sydney", value: "Australia/Sydney" },
+	{ label: "Auckland", value: "Pacific/Auckland" },
+	{ label: "UTC", value: "UTC" },
 ];
 
 const parseYmd = (value: string) => {
-  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(value ?? "").trim());
-  if (!match) return null;
-  const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  const date = new Date(Date.UTC(y, m - 1, d));
-  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d ? date : null;
+	const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(
+		String(value ?? "").trim(),
+	);
+	if (!match) return null;
+	const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])];
+	const date = new Date(Date.UTC(y, m - 1, d));
+	return date.getUTCFullYear() === y &&
+		date.getUTCMonth() === m - 1 &&
+		date.getUTCDate() === d
+		? date
+		: null;
 };
-const addDaysUtc = (date: Date, days: number) => new Date(date.getTime() + days * 86400000);
-const fmtDate = (date: Date) => date.toLocaleDateString("en-US", { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" });
+const addDaysUtc = (date: Date, days: number) =>
+	new Date(date.getTime() + days * 86400000);
+const fmtDate = (date: Date) =>
+	date.toLocaleDateString("en-US", {
+		timeZone: "UTC",
+		month: "long",
+		day: "numeric",
+		year: "numeric",
+	});
 
 const tzOffsetMs = (date: Date, timeZone: string) => {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone, hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(date);
-  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
-  return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second")) - date.getTime();
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone,
+		hour12: false,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+	}).formatToParts(date);
+	const get = (type: string) =>
+		Number(parts.find((part) => part.type === type)?.value ?? "0");
+	return (
+		Date.UTC(
+			get("year"),
+			get("month") - 1,
+			get("day"),
+			get("hour") % 24,
+			get("minute"),
+			get("second"),
+		) - date.getTime()
+	);
 };
 const zonedToUtc = (dateStr: string, timeStr: string, timeZone: string) => {
-  const date = parseYmd(dateStr);
-  if (!date) return null;
-  const [h, m] = String(timeStr ?? "").trim().split(":").map(Number);
-  if (!Number.isFinite(h) || h < 0 || h > 23 || (Number.isFinite(m) && (m < 0 || m > 59))) return null;
-  const naive = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), h, Number.isFinite(m) ? m : 0);
-  let guess = new Date(naive - tzOffsetMs(new Date(naive), timeZone));
-  guess = new Date(naive - tzOffsetMs(guess, timeZone));
-  return guess;
+	const date = parseYmd(dateStr);
+	if (!date) return null;
+	const [h, m] = String(timeStr ?? "")
+		.trim()
+		.split(":")
+		.map(Number);
+	if (
+		!Number.isFinite(h) ||
+		h < 0 ||
+		h > 23 ||
+		(Number.isFinite(m) && (m < 0 || m > 59))
+	)
+		return null;
+	const naive = Date.UTC(
+		date.getUTCFullYear(),
+		date.getUTCMonth(),
+		date.getUTCDate(),
+		h,
+		Number.isFinite(m) ? m : 0,
+	);
+	let guess = new Date(naive - tzOffsetMs(new Date(naive), timeZone));
+	guess = new Date(naive - tzOffsetMs(guess, timeZone));
+	return guess;
 };
-const zoneStamp = (date: Date, timeZone: string) => new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
+const zoneStamp = (date: Date, timeZone: string) =>
+	new Intl.DateTimeFormat("en-US", {
+		timeZone,
+		weekday: "short",
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	}).format(date);
 const zoneDiffLabel = (fromZone: string, toZone: string, at: Date) => {
-  const minutes = Math.round((tzOffsetMs(at, toZone) - tzOffsetMs(at, fromZone)) / 60000);
-  const sign = minutes < 0 ? "−" : "+";
-  const abs = Math.abs(minutes);
-  const hours = Math.floor(abs / 60);
-  const mins = abs % 60;
-  return `${sign}${hours} hr${mins ? ` ${mins} min` : ""}`;
+	const minutes = Math.round(
+		(tzOffsetMs(at, toZone) - tzOffsetMs(at, fromZone)) / 60000,
+	);
+	const sign = minutes < 0 ? "−" : "+";
+	const abs = Math.abs(minutes);
+	const hours = Math.floor(abs / 60);
+	const mins = abs % 60;
+	return `${sign}${hours} hr${mins ? ` ${mins} min` : ""}`;
 };
 
-const GPA_POINTS: Record<string, number> = { "A+": 4, A: 4, "A-": 3.7, "B+": 3.3, B: 3, "B-": 2.7, "C+": 2.3, C: 2, "C-": 1.7, "D+": 1.3, D: 1, "D-": 0.7, F: 0 };
+const GPA_POINTS: Record<string, number> = {
+	"A+": 4,
+	A: 4,
+	"A-": 3.7,
+	"B+": 3.3,
+	B: 3,
+	"B-": 2.7,
+	"C+": 2.3,
+	C: 2,
+	"C-": 1.7,
+	"D+": 1.3,
+	D: 1,
+	"D-": 0.7,
+	F: 0,
+};
 
 // Curated from current U.S. retailer product listings checked October 11, 2026.
 // This snapshot is intentionally narrower than every possible size and should be refreshed periodically.
 export const verifiedTireSizes = new Set<string>([
-  "185/60R15", "185/65R14", "185/65R15", "195/65R15", "205/55R16", "205/60R16", "205/65R15",
-  "215/60R17", "215/70R15", "215/70R17", "215/75R15", "215/75R16",
-  "225/45R17", "225/50R18", "225/55R17", "225/55R19", "225/60R16", "225/65R17", "225/70R16",
-  "235/40R19", "235/50R17", "235/50R19", "235/55R19", "235/60R17", "235/60R18", "235/65R17", "235/65R18", "235/70R16", "235/75R15", "235/75R17", "235/80R17",
-  "245/40R19", "245/60R17", "245/60R18", "245/65R17", "245/70R16", "245/70R17", "245/75R16",
-  "255/40R18", "255/65R16", "265/35R20", "265/65R17", "265/70R17",
-  "275/55R20", "275/60R20", "275/65R18", "275/65R20", "275/70R18",
-  "285/50R20", "285/70R17", "285/70R18", "285/75R16", "295/70R18", "305/70R17", "305/70R18", "315/70R17",
-  "33×12.50R17", "35×12.50R17", "37×12.50R17",
+	"185/60R15",
+	"185/65R14",
+	"185/65R15",
+	"195/65R15",
+	"205/55R16",
+	"205/60R16",
+	"205/65R15",
+	"215/60R17",
+	"215/70R15",
+	"215/70R17",
+	"215/75R15",
+	"215/75R16",
+	"225/45R17",
+	"225/50R18",
+	"225/55R17",
+	"225/55R19",
+	"225/60R16",
+	"225/65R17",
+	"225/70R16",
+	"235/40R19",
+	"235/50R17",
+	"235/50R19",
+	"235/55R19",
+	"235/60R17",
+	"235/60R18",
+	"235/65R17",
+	"235/65R18",
+	"235/70R16",
+	"235/75R15",
+	"235/75R17",
+	"235/80R17",
+	"245/40R19",
+	"245/60R17",
+	"245/60R18",
+	"245/65R17",
+	"245/70R16",
+	"245/70R17",
+	"245/75R16",
+	"255/40R18",
+	"255/65R16",
+	"265/35R20",
+	"265/65R17",
+	"265/70R17",
+	"275/55R20",
+	"275/60R20",
+	"275/65R18",
+	"275/65R20",
+	"275/70R18",
+	"285/50R20",
+	"285/70R17",
+	"285/70R18",
+	"285/75R16",
+	"295/70R18",
+	"305/70R17",
+	"305/70R18",
+	"315/70R17",
+	"33×12.50R17",
+	"35×12.50R17",
+	"37×12.50R17",
 ]);
 
-type TireSizeCandidate = { size: string; diameter: number; width: number; pct: number; revs: number; verified: boolean };
+type TireSizeCandidate = {
+	size: string;
+	diameter: number;
+	width: number;
+	pct: number;
+	revs: number;
+	verified: boolean;
+};
 
-function selectTireSizeCandidates(candidates: TireSizeCandidate[], minimumCount: number, compare: (a: TireSizeCandidate, b: TireSizeCandidate) => number) {
-  const sorted = [...candidates].sort(compare);
-  const verified = sorted.filter((candidate) => candidate.verified);
-  const calculated = sorted.filter((candidate) => !candidate.verified).slice(0, Math.max(0, minimumCount - verified.length));
-  return [...verified, ...calculated];
+function selectTireSizeCandidates(
+	candidates: TireSizeCandidate[],
+	minimumCount: number,
+	compare: (a: TireSizeCandidate, b: TireSizeCandidate) => number,
+) {
+	const sorted = [...candidates].sort(compare);
+	const verified = sorted.filter((candidate) => candidate.verified);
+	const calculated = sorted
+		.filter((candidate) => !candidate.verified)
+		.slice(0, Math.max(0, minimumCount - verified.length));
+	return [...verified, ...calculated];
 }
 
 // Standard LT flotation tire sizes (height × width × rim, inches) offered by
 // the major truck-tire makers. Nominal width; actual measured width runs
 // about 0.1–0.3 in narrower depending on the wheel.
 const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
-  { d: 30, w: 9.50, rim: 15 }, { d: 31, w: 10.50, rim: 15 }, { d: 32, w: 11.50, rim: 15 },
-  { d: 33, w: 12.50, rim: 15 }, { d: 33, w: 12.50, rim: 17 }, { d: 33, w: 12.50, rim: 18 }, { d: 33, w: 12.50, rim: 20 },
-  { d: 34, w: 10.50, rim: 17 }, { d: 34, w: 11.50, rim: 17 },
-  { d: 35, w: 12.50, rim: 15 }, { d: 35, w: 12.50, rim: 17 }, { d: 35, w: 12.50, rim: 18 }, { d: 35, w: 12.50, rim: 20 },
-  { d: 37, w: 12.50, rim: 17 }, { d: 37, w: 12.50, rim: 20 }, { d: 37, w: 13.50, rim: 20 },
+	{ d: 30, w: 9.5, rim: 15 },
+	{ d: 31, w: 10.5, rim: 15 },
+	{ d: 32, w: 11.5, rim: 15 },
+	{ d: 33, w: 12.5, rim: 15 },
+	{ d: 33, w: 12.5, rim: 17 },
+	{ d: 33, w: 12.5, rim: 18 },
+	{ d: 33, w: 12.5, rim: 20 },
+	{ d: 34, w: 10.5, rim: 17 },
+	{ d: 34, w: 11.5, rim: 17 },
+	{ d: 35, w: 12.5, rim: 15 },
+	{ d: 35, w: 12.5, rim: 17 },
+	{ d: 35, w: 12.5, rim: 18 },
+	{ d: 35, w: 12.5, rim: 20 },
+	{ d: 37, w: 12.5, rim: 17 },
+	{ d: 37, w: 12.5, rim: 20 },
+	{ d: 37, w: 13.5, rim: 20 },
 ];
 
 // Towing-capacity data lives in lib/towing-data.ts (~year-aware verified
@@ -317,2026 +710,11373 @@ const FLOTATION_SIZES: { d: number; w: number; rim: number }[] = [
 // that file documents the verification bar and sources.
 
 const SOAP_OILS = [
-  { id: "olive", label: "Olive oil", naoh: 0.135, koh: 0.190 },
-  { id: "coconut-76", label: "Coconut oil (76°F)", naoh: 0.183, koh: 0.257 },
-  { id: "palm", label: "Palm oil", naoh: 0.142, koh: 0.199 },
-  { id: "castor", label: "Castor oil", naoh: 0.128, koh: 0.180 },
-  { id: "shea", label: "Shea butter", naoh: 0.128, koh: 0.179 },
-  { id: "tallow", label: "Beef tallow", naoh: 0.143, koh: 0.200 },
-  { id: "lard", label: "Lard", naoh: 0.141, koh: 0.198 },
+	{ id: "olive", label: "Olive oil", naoh: 0.135, koh: 0.19 },
+	{ id: "coconut-76", label: "Coconut oil (76°F)", naoh: 0.183, koh: 0.257 },
+	{ id: "palm", label: "Palm oil", naoh: 0.142, koh: 0.199 },
+	{ id: "castor", label: "Castor oil", naoh: 0.128, koh: 0.18 },
+	{ id: "shea", label: "Shea butter", naoh: 0.128, koh: 0.179 },
+	{ id: "tallow", label: "Beef tallow", naoh: 0.143, koh: 0.2 },
+	{ id: "lard", label: "Lard", naoh: 0.141, koh: 0.198 },
 ] as const;
-const SOAP_OIL_OPTIONS: FieldOption[] = SOAP_OILS.map((oil) => ({ label: oil.label, value: oil.id }));
+const SOAP_OIL_OPTIONS: FieldOption[] = SOAP_OILS.map((oil) => ({
+	label: oil.label,
+	value: oil.id,
+}));
 
 function calculateBoardFeet(v: CalculatorValues): CalculationOutput {
-  const thickness = inputNumber(v, "thickness"); const width = inputNumber(v, "width"); const length = inputNumber(v, "length"); const pieces = inputNumber(v, "pieces"); const price = inputNumber(v, "pricePerBoardFoot");
-  if (thickness === null || width === null || length === null || pieces === null) return { validation: "Enter thickness, width, length, and piece count.", perPiece: "", total: "", materialCost: "" };
-  if (thickness <= 0 || width <= 0 || length <= 0 || pieces <= 0 || !Number.isInteger(pieces)) return { validation: "Dimensions and piece count must be greater than zero; piece count must be a whole number.", perPiece: "", total: "", materialCost: "" };
-  if (price !== null && price < 0) return { validation: "Price per board foot cannot be negative.", perPiece: "", total: "", materialCost: "" };
-  const lengthInches = length * (String(v.lengthUnit ?? "ft") === "ft" ? 12 : 1);
-  const perPiece = thickness * width * lengthInches / 144;
-  const total = perPiece * pieces;
-  if (![perPiece, total].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", perPiece: "", total: "", materialCost: "" };
-  return { validation: "", perPiece: round(perPiece, 2), total: round(total, 2), materialCost: price === null ? "" : round(total * price, 2) };
+	const thickness = inputNumber(v, "thickness");
+	const width = inputNumber(v, "width");
+	const length = inputNumber(v, "length");
+	const pieces = inputNumber(v, "pieces");
+	const price = inputNumber(v, "pricePerBoardFoot");
+	if (
+		thickness === null ||
+		width === null ||
+		length === null ||
+		pieces === null
+	)
+		return {
+			validation: "Enter thickness, width, length, and piece count.",
+			perPiece: "",
+			total: "",
+			materialCost: "",
+		};
+	if (
+		thickness <= 0 ||
+		width <= 0 ||
+		length <= 0 ||
+		pieces <= 0 ||
+		!Number.isInteger(pieces)
+	)
+		return {
+			validation:
+				"Dimensions and piece count must be greater than zero; piece count must be a whole number.",
+			perPiece: "",
+			total: "",
+			materialCost: "",
+		};
+	if (price !== null && price < 0)
+		return {
+			validation: "Price per board foot cannot be negative.",
+			perPiece: "",
+			total: "",
+			materialCost: "",
+		};
+	const lengthInches =
+		length * (String(v.lengthUnit ?? "ft") === "ft" ? 12 : 1);
+	const perPiece = (thickness * width * lengthInches) / 144;
+	const total = perPiece * pieces;
+	if (![perPiece, total].every(Number.isFinite))
+		return {
+			validation: "These dimensions are too large. Enter smaller measurements.",
+			perPiece: "",
+			total: "",
+			materialCost: "",
+		};
+	return {
+		validation: "",
+		perPiece: round(perPiece, 2),
+		total: round(total, 2),
+		materialCost: price === null ? "" : round(total * price, 2),
+	};
 }
 
 function calculateSoap(v: CalculatorValues): CalculationOutput {
-  const rows = Array.isArray(v.oils) ? v.oils : [];
-  const used: { label: string; amount: number; sap: number }[] = [];
-  for (const row of rows) {
-    const oilId = String(row.ingredient ?? "").trim(); const amountText = String(row.amount ?? "").trim();
-    if (!oilId && !amountText) continue;
-    if (!oilId || !amountText) return { validation: "Choose an oil and enter its weight in grams for every filled row.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-    const oil = SOAP_OILS.find((item) => item.id === oilId); const amount = Number(amountText);
-    if (!oil) return { validation: "Choose an oil from the listed reference table.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-    if (!Number.isFinite(amount) || amount <= 0) return { validation: "Each oil weight must be a positive number of grams.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-    const lyeType = String(v.lyeType ?? "naoh");
-    used.push({ label: oil.label, amount, sap: lyeType === "koh" ? oil.koh : oil.naoh });
-  }
-  if (!used.length) return { validation: "Add at least one oil and its weight in grams.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-  const lyeType = String(v.lyeType ?? "naoh");
-  if (lyeType !== "naoh" && lyeType !== "koh") return { validation: "Choose NaOH or KOH.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-  const superfat = inputNumber(v, "superfat");
-  if (superfat === null || superfat < 0 || superfat > 50) return { validation: "Superfat must be between 0% and 50%.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-  const totalOils = used.reduce((sum, item) => sum + item.amount, 0);
-  const baseLye = used.reduce((sum, item) => sum + item.amount * item.sap, 0);
-  const lye = baseLye * (1 - superfat / 100);
-  const waterMode = String(v.waterMode ?? "concentration");
-  let water: number;
-  let concentration: number;
-  if (waterMode === "ratio") {
-    const ratio = inputNumber(v, "waterToLyeRatio");
-    if (ratio === null || ratio <= 0 || ratio > 20) return { validation: "Water-to-lye ratio must be greater than 0 and no more than 20.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-    water = lye * ratio;
-    concentration = lye / (lye + water) * 100;
-  } else {
-    const concentrationInput = inputNumber(v, "lyeConcentration");
-    if (concentrationInput === null || concentrationInput <= 0 || concentrationInput >= 100) return { validation: "Lye concentration must be above 0% and below 100%.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-    concentration = concentrationInput;
-    water = lye * (100 - concentrationInput) / concentrationInput;
-  }
-  if (![totalOils, baseLye, lye, water, concentration].every(Number.isFinite) || lye <= 0 || water < 0) return { validation: "These values are outside the calculator's range. Check the oil weights and settings.", totalOils: "", lyeKind: "", lye: "", water: "", concentration: "", workings: "" };
-  const sapLabel = lyeType.toUpperCase();
-  const detail = used.map((item) => `${item.label}: ${item.amount} g × ${item.sap.toFixed(3)} SAP (${sapLabel}) = ${round(item.amount * item.sap, 2)} g before superfat.`);
-  detail.push(`Total lye before superfat: ${round(baseLye, 2)} g. At ${round(superfat, 2)}% superfat: ${round(baseLye, 2)} × (1 − ${round(superfat, 2)} ÷ 100) = ${round(lye, 2)} g.`);
-  detail.push(`Water: ${waterMode === "ratio" ? `${round(inputNumber(v, "waterToLyeRatio") ?? 0, 3)} × lye weight` : `${round(concentration, 2)}% lye concentration`} = ${round(water, 2)} g.`);
-  return { validation: "Estimate only; assumes 100% lye purity. Verify the complete recipe before making soap.", totalOils: round(totalOils, 2), lyeKind: lyeType === "koh" ? "KOH (potassium hydroxide)" : "NaOH (sodium hydroxide)", lye: round(lye, 2), water: round(water, 2), concentration: round(concentration, 2), workings: detail.join("\n") };
+	const rows = Array.isArray(v.oils) ? v.oils : [];
+	const used: { label: string; amount: number; sap: number }[] = [];
+	for (const row of rows) {
+		const oilId = String(row.ingredient ?? "").trim();
+		const amountText = String(row.amount ?? "").trim();
+		if (!oilId && !amountText) continue;
+		if (!oilId || !amountText)
+			return {
+				validation:
+					"Choose an oil and enter its weight in grams for every filled row.",
+				totalOils: "",
+				lyeKind: "",
+				lye: "",
+				water: "",
+				concentration: "",
+				workings: "",
+			};
+		const oil = SOAP_OILS.find((item) => item.id === oilId);
+		const amount = Number(amountText);
+		if (!oil)
+			return {
+				validation: "Choose an oil from the listed reference table.",
+				totalOils: "",
+				lyeKind: "",
+				lye: "",
+				water: "",
+				concentration: "",
+				workings: "",
+			};
+		if (!Number.isFinite(amount) || amount <= 0)
+			return {
+				validation: "Each oil weight must be a positive number of grams.",
+				totalOils: "",
+				lyeKind: "",
+				lye: "",
+				water: "",
+				concentration: "",
+				workings: "",
+			};
+		const lyeType = String(v.lyeType ?? "naoh");
+		used.push({
+			label: oil.label,
+			amount,
+			sap: lyeType === "koh" ? oil.koh : oil.naoh,
+		});
+	}
+	if (!used.length)
+		return {
+			validation: "Add at least one oil and its weight in grams.",
+			totalOils: "",
+			lyeKind: "",
+			lye: "",
+			water: "",
+			concentration: "",
+			workings: "",
+		};
+	const lyeType = String(v.lyeType ?? "naoh");
+	if (lyeType !== "naoh" && lyeType !== "koh")
+		return {
+			validation: "Choose NaOH or KOH.",
+			totalOils: "",
+			lyeKind: "",
+			lye: "",
+			water: "",
+			concentration: "",
+			workings: "",
+		};
+	const superfat = inputNumber(v, "superfat");
+	if (superfat === null || superfat < 0 || superfat > 50)
+		return {
+			validation: "Superfat must be between 0% and 50%.",
+			totalOils: "",
+			lyeKind: "",
+			lye: "",
+			water: "",
+			concentration: "",
+			workings: "",
+		};
+	const totalOils = used.reduce((sum, item) => sum + item.amount, 0);
+	const baseLye = used.reduce((sum, item) => sum + item.amount * item.sap, 0);
+	const lye = baseLye * (1 - superfat / 100);
+	const waterMode = String(v.waterMode ?? "concentration");
+	let water: number;
+	let concentration: number;
+	if (waterMode === "ratio") {
+		const ratio = inputNumber(v, "waterToLyeRatio");
+		if (ratio === null || ratio <= 0 || ratio > 20)
+			return {
+				validation:
+					"Water-to-lye ratio must be greater than 0 and no more than 20.",
+				totalOils: "",
+				lyeKind: "",
+				lye: "",
+				water: "",
+				concentration: "",
+				workings: "",
+			};
+		water = lye * ratio;
+		concentration = (lye / (lye + water)) * 100;
+	} else {
+		const concentrationInput = inputNumber(v, "lyeConcentration");
+		if (
+			concentrationInput === null ||
+			concentrationInput <= 0 ||
+			concentrationInput >= 100
+		)
+			return {
+				validation: "Lye concentration must be above 0% and below 100%.",
+				totalOils: "",
+				lyeKind: "",
+				lye: "",
+				water: "",
+				concentration: "",
+				workings: "",
+			};
+		concentration = concentrationInput;
+		water = (lye * (100 - concentrationInput)) / concentrationInput;
+	}
+	if (
+		![totalOils, baseLye, lye, water, concentration].every(Number.isFinite) ||
+		lye <= 0 ||
+		water < 0
+	)
+		return {
+			validation:
+				"These values are outside the calculator's range. Check the oil weights and settings.",
+			totalOils: "",
+			lyeKind: "",
+			lye: "",
+			water: "",
+			concentration: "",
+			workings: "",
+		};
+	const sapLabel = lyeType.toUpperCase();
+	const detail = used.map(
+		(item) =>
+			`${item.label}: ${item.amount} g × ${item.sap.toFixed(3)} SAP (${sapLabel}) = ${round(item.amount * item.sap, 2)} g before superfat.`,
+	);
+	detail.push(
+		`Total lye before superfat: ${round(baseLye, 2)} g. At ${round(superfat, 2)}% superfat: ${round(baseLye, 2)} × (1 − ${round(superfat, 2)} ÷ 100) = ${round(lye, 2)} g.`,
+	);
+	detail.push(
+		`Water: ${waterMode === "ratio" ? `${round(inputNumber(v, "waterToLyeRatio") ?? 0, 3)} × lye weight` : `${round(concentration, 2)}% lye concentration`} = ${round(water, 2)} g.`,
+	);
+	return {
+		validation:
+			"Estimate only; assumes 100% lye purity. Verify the complete recipe before making soap.",
+		totalOils: round(totalOils, 2),
+		lyeKind:
+			lyeType === "koh"
+				? "KOH (potassium hydroxide)"
+				: "NaOH (sodium hydroxide)",
+		lye: round(lye, 2),
+		water: round(water, 2),
+		concentration: round(concentration, 2),
+		workings: detail.join("\n"),
+	};
 }
 
 function calculateAquarium(v: CalculatorValues): CalculationOutput {
-  const length = inputNumber(v, "length"); const width = inputNumber(v, "width"); const height = inputNumber(v, "height");
-  if (length === null || width === null || height === null) return { validation: "Enter the tank's inside length, width, and height.", gallons: "", liters: "" };
-  if (length <= 0 || width <= 0 || height <= 0) return { validation: "All three inside dimensions must be greater than zero.", gallons: "", liters: "" };
-  const toInches = String(v.dimensionUnit ?? "in") === "cm" ? 1 / 2.54 : 1;
-  const cubicInches = length * toInches * width * toInches * height * toInches;
-  const gallons = cubicInches / 231;
-  const liters = gallons * 3.785411784;
-  if (![cubicInches, gallons, liters].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", gallons: "", liters: "" };
-  return { validation: "", gallons: round(gallons, 2), liters: round(liters, 2) };
+	const length = inputNumber(v, "length");
+	const width = inputNumber(v, "width");
+	const height = inputNumber(v, "height");
+	if (length === null || width === null || height === null)
+		return {
+			validation: "Enter the tank's inside length, width, and height.",
+			gallons: "",
+			liters: "",
+		};
+	if (length <= 0 || width <= 0 || height <= 0)
+		return {
+			validation: "All three inside dimensions must be greater than zero.",
+			gallons: "",
+			liters: "",
+		};
+	const toInches = String(v.dimensionUnit ?? "in") === "cm" ? 1 / 2.54 : 1;
+	const cubicInches = length * toInches * width * toInches * height * toInches;
+	const gallons = cubicInches / 231;
+	const liters = gallons * 3.785411784;
+	if (![cubicInches, gallons, liters].every(Number.isFinite))
+		return {
+			validation: "These dimensions are too large. Enter smaller measurements.",
+			gallons: "",
+			liters: "",
+		};
+	return {
+		validation: "",
+		gallons: round(gallons, 2),
+		liters: round(liters, 2),
+	};
 }
 
 function calculateSourdough(v: CalculatorValues): CalculationOutput {
-  const totalFlour = inputNumber(v, "totalFlour"); const hydration = inputNumber(v, "hydration"); const starterPercent = inputNumber(v, "starterPercent"); const starterHydration = inputNumber(v, "starterHydration"); const saltPercent = inputNumber(v, "saltPercent");
-  if (totalFlour === null || hydration === null || starterPercent === null || starterHydration === null || saltPercent === null) return { validation: "Enter a value for each recipe setting.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  if (totalFlour <= 0 || hydration < 0 || starterPercent < 0 || starterHydration < 0 || saltPercent < 0 || hydration > 500 || starterPercent > 500 || starterHydration > 1000 || saltPercent > 100) return { validation: "Flour must be positive; percentages must be within the listed input ranges.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  const starter = totalFlour * starterPercent / 100;
-  const starterFlour = starter / (1 + starterHydration / 100);
-  const starterWater = starter - starterFlour;
-  const flourToAdd = totalFlour - starterFlour;
-  const targetWater = totalFlour * hydration / 100;
-  const waterToAdd = targetWater - starterWater;
-  const salt = totalFlour * saltPercent / 100;
-  if (flourToAdd < -1e-9) return { validation: "The starter contains more flour than the total-flour target. Lower the starter percentage or increase total flour.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  if (waterToAdd < -1e-9) return { validation: "The starter already contains more water than this target hydration allows. Raise target hydration or change the starter settings.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  const doughWeight = totalFlour + targetWater + salt;
-  if (![starter, starterFlour, starterWater, flourToAdd, targetWater, waterToAdd, salt, doughWeight].every(Number.isFinite)) return { validation: "These values are too large. Enter smaller amounts.", flourToAdd: "", starter: "", starterBreakdown: "", waterToAdd: "", salt: "", doughWeight: "", hydrationResult: "" };
-  return { validation: "", flourToAdd: round(flourToAdd, 1), starter: round(starter, 1), starterBreakdown: `${round(starterFlour, 1)} g flour + ${round(starterWater, 1)} g water`, waterToAdd: round(Math.max(0, waterToAdd), 1), salt: round(salt, 1), doughWeight: round(doughWeight, 1), hydrationResult: round(hydration, 2) };
+	const totalFlour = inputNumber(v, "totalFlour");
+	const hydration = inputNumber(v, "hydration");
+	const starterPercent = inputNumber(v, "starterPercent");
+	const starterHydration = inputNumber(v, "starterHydration");
+	const saltPercent = inputNumber(v, "saltPercent");
+	if (
+		totalFlour === null ||
+		hydration === null ||
+		starterPercent === null ||
+		starterHydration === null ||
+		saltPercent === null
+	)
+		return {
+			validation: "Enter a value for each recipe setting.",
+			flourToAdd: "",
+			starter: "",
+			starterBreakdown: "",
+			waterToAdd: "",
+			salt: "",
+			doughWeight: "",
+			hydrationResult: "",
+		};
+	if (
+		totalFlour <= 0 ||
+		hydration < 0 ||
+		starterPercent < 0 ||
+		starterHydration < 0 ||
+		saltPercent < 0 ||
+		hydration > 500 ||
+		starterPercent > 500 ||
+		starterHydration > 1000 ||
+		saltPercent > 100
+	)
+		return {
+			validation:
+				"Flour must be positive; percentages must be within the listed input ranges.",
+			flourToAdd: "",
+			starter: "",
+			starterBreakdown: "",
+			waterToAdd: "",
+			salt: "",
+			doughWeight: "",
+			hydrationResult: "",
+		};
+	const starter = (totalFlour * starterPercent) / 100;
+	const starterFlour = starter / (1 + starterHydration / 100);
+	const starterWater = starter - starterFlour;
+	const flourToAdd = totalFlour - starterFlour;
+	const targetWater = (totalFlour * hydration) / 100;
+	const waterToAdd = targetWater - starterWater;
+	const salt = (totalFlour * saltPercent) / 100;
+	if (flourToAdd < -1e-9)
+		return {
+			validation:
+				"The starter contains more flour than the total-flour target. Lower the starter percentage or increase total flour.",
+			flourToAdd: "",
+			starter: "",
+			starterBreakdown: "",
+			waterToAdd: "",
+			salt: "",
+			doughWeight: "",
+			hydrationResult: "",
+		};
+	if (waterToAdd < -1e-9)
+		return {
+			validation:
+				"The starter already contains more water than this target hydration allows. Raise target hydration or change the starter settings.",
+			flourToAdd: "",
+			starter: "",
+			starterBreakdown: "",
+			waterToAdd: "",
+			salt: "",
+			doughWeight: "",
+			hydrationResult: "",
+		};
+	const doughWeight = totalFlour + targetWater + salt;
+	if (
+		![
+			starter,
+			starterFlour,
+			starterWater,
+			flourToAdd,
+			targetWater,
+			waterToAdd,
+			salt,
+			doughWeight,
+		].every(Number.isFinite)
+	)
+		return {
+			validation: "These values are too large. Enter smaller amounts.",
+			flourToAdd: "",
+			starter: "",
+			starterBreakdown: "",
+			waterToAdd: "",
+			salt: "",
+			doughWeight: "",
+			hydrationResult: "",
+		};
+	return {
+		validation: "",
+		flourToAdd: round(flourToAdd, 1),
+		starter: round(starter, 1),
+		starterBreakdown: `${round(starterFlour, 1)} g flour + ${round(starterWater, 1)} g water`,
+		waterToAdd: round(Math.max(0, waterToAdd), 1),
+		salt: round(salt, 1),
+		doughWeight: round(doughWeight, 1),
+		hydrationResult: round(hydration, 2),
+	};
 }
 
 function calculateFirewood(v: CalculatorValues): CalculationOutput {
-  const length = inputNumber(v, "length"); const width = inputNumber(v, "width"); const height = inputNumber(v, "height"); const price = inputNumber(v, "pricePerCord");
-  if (length === null || width === null || height === null) return { validation: "Enter the stack's length, width, and height.", cubicFeet: "", cords: "", cost: "" };
-  if (length <= 0 || width <= 0 || height <= 0) return { validation: "All stack dimensions must be greater than zero.", cubicFeet: "", cords: "", cost: "" };
-  if (price !== null && price < 0) return { validation: "Price per cord cannot be negative.", cubicFeet: "", cords: "", cost: "" };
-  const toFeet = String(v.dimensionUnit ?? "ft") === "in" ? 1 / 12 : 1;
-  const cubicFeet = length * toFeet * width * toFeet * height * toFeet;
-  const cords = cubicFeet / 128;
-  if (![cubicFeet, cords].every(Number.isFinite)) return { validation: "These dimensions are too large. Enter smaller measurements.", cubicFeet: "", cords: "", cost: "" };
-  return { validation: "", cubicFeet: round(cubicFeet, 2), cords: round(cords, 3), cost: price === null ? "" : round(cords * price, 2) };
+	const length = inputNumber(v, "length");
+	const width = inputNumber(v, "width");
+	const height = inputNumber(v, "height");
+	const price = inputNumber(v, "pricePerCord");
+	if (length === null || width === null || height === null)
+		return {
+			validation: "Enter the stack's length, width, and height.",
+			cubicFeet: "",
+			cords: "",
+			cost: "",
+		};
+	if (length <= 0 || width <= 0 || height <= 0)
+		return {
+			validation: "All stack dimensions must be greater than zero.",
+			cubicFeet: "",
+			cords: "",
+			cost: "",
+		};
+	if (price !== null && price < 0)
+		return {
+			validation: "Price per cord cannot be negative.",
+			cubicFeet: "",
+			cords: "",
+			cost: "",
+		};
+	const toFeet = String(v.dimensionUnit ?? "ft") === "in" ? 1 / 12 : 1;
+	const cubicFeet = length * toFeet * width * toFeet * height * toFeet;
+	const cords = cubicFeet / 128;
+	if (![cubicFeet, cords].every(Number.isFinite))
+		return {
+			validation: "These dimensions are too large. Enter smaller measurements.",
+			cubicFeet: "",
+			cords: "",
+			cost: "",
+		};
+	return {
+		validation: "",
+		cubicFeet: round(cubicFeet, 2),
+		cords: round(cords, 3),
+		cost: price === null ? "" : round(cords * price, 2),
+	};
 }
 
 const definitions: CalculatorDefinition[] = [
-  {
-    slug: "catering-food-quantity",
-    name: "Catering Food Quantity Calculator",
-    category: "Food & Catering",
-    categorySlug: "food-catering",
-    icon: "◉",
-    description: "Estimate how much food to plan for a catered meal without overbuying.",
-    fields: [
-      { key: "guests", label: "Adult guests", type: "number", unit: "people", min: 1, max: 10000, defaultValue: 50 },
-      { key: "eventType", label: "Event type", type: "select", defaultValue: "dinner", options: [{ label: "Dinner", value: "dinner" }, { label: "Lunch", value: "lunch" }, { label: "Cocktail reception", value: "cocktail" }] },
-      { key: "mealType", label: "Meal format", type: "select", defaultValue: "full", options: [{ label: "Full meal", value: "full" }, { label: "Light meal", value: "light" }, { label: "Heavy appetizers", value: "appetizers" }] },
-    ],
-    results: [
-      { key: "total", label: "Total food", unit: "lb", format: "number", estimate: true, interpretation: "A planning estimate for the entire meal." },
-      { key: "protein", label: "Protein", unit: "lb", format: "number", estimate: true },
-      { key: "sides", label: "Sides", unit: "lb", format: "number", estimate: true },
-      { key: "salads", label: "Salads", unit: "lb", format: "number", estimate: true },
-      { key: "dessert", label: "Dessert", unit: "lb", format: "number", estimate: true },
-      { key: "beverages", label: "Beverages", unit: "servings", format: "number", estimate: true },
-    ],
-    calculate: (v) => {
-      const guests = n(v, "guests", 50);
-      const multiplier = option(v, "mealType", "full") === "light" ? 1 : option(v, "mealType", "full") === "appetizers" ? 0.75 : 1.25;
-      const total = guests * multiplier;
-      return { total: round(total), protein: round(total * 0.35), sides: round(total * 0.35), salads: round(total * 0.15), dessert: round(total * 0.1), beverages: ceil(guests * 2) };
-    },
-    howItWorks: ["Start with roughly 1 to 1.5 pounds of food per adult for a full meal.", "This estimate uses 1.25 pounds per adult, then allocates the total across protein, sides, salads, and dessert.", "Beverages are planned at about two servings per guest; add more for long events or hot weather."],
-    example: { title: "50-person dinner", inputs: "50 adults, full meal", result: "About 62.5 lb of food, including 21.9 lb protein and 21.9 lb sides." },
-    faqs: [{ question: "How much food should I plan per person?", answer: "A common catering planning range is about 1 to 1.5 pounds of food per adult per meal. This calculator uses 1.25 pounds for a full meal." }, { question: "Does this include beverages?", answer: "Yes. The beverage result is shown separately at an estimate of two servings per guest." }, { question: "Should I add a buffer?", answer: "For buffet service, large appetites, or events longer than three hours, consider adding 5 to 10 percent." }, { question: "Are these exact quantities?", answer: "No. Catering quantities vary by menu, service style, guest mix, and event length, so treat the results as planning estimates." }],
-    seo: { title: "Catering Food Quantity Calculator | CalcForged", description: "Estimate food, protein, sides, salads, dessert, and beverages for your next catered meal.", h1: "Catering food quantity calculator", intro: "Planning a catered meal is easier when every menu category has a number behind it. Enter your adult guest count and meal format to get a practical estimate for total food, protein, sides, salads, dessert, and beverages. The calculator follows a common catering guideline of roughly 1 to 1.5 pounds of food per adult per meal, then breaks that total into useful buying categories. Use it for a family gathering, office lunch, graduation party, or any event where you need a clear starting point before you build the menu." },
-    related: ["bbq-meat", "taco-bar", "wedding-food"],
-  },
-  {
-    slug: "bbq-meat", name: "BBQ Meat Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◆", description: "Work backward from servings to the raw meat weight you need to buy.",
-    fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 10000, defaultValue: 30 }, { key: "meat", label: "Meat selection", type: "select", defaultValue: "brisket", options: [{ label: "Brisket", value: "brisket" }, { label: "Pulled pork", value: "pork" }, { label: "Ribs", value: "ribs" }, { label: "Sausage", value: "sausage" }, { label: "Chicken", value: "chicken" }] }, { key: "serving", label: "Cooked meat per guest", type: "number", unit: "oz", min: 2, max: 24, step: 0.5, defaultValue: 6 }],
-    results: [{ key: "raw", label: "Raw meat to buy", unit: "lb", format: "number", estimate: true, interpretation: "Includes the selected cooking yield." }, { key: "cooked", label: "Cooked meat", unit: "lb", format: "number" }, { key: "yield", label: "Expected yield", unit: "%", format: "percent" }],
-    calculate: (v) => { const guests = n(v, "guests", 30); const cooked = guests * n(v, "serving", 6) / 16; const meat = option(v, "meat", "brisket"); const yields: Record<string, number> = { brisket: 0.5, pork: 0.575, ribs: 0.525, sausage: 0.8, chicken: 0.675 }; const y = yields[meat] ?? 0.5; return { raw: round(cooked / y), cooked: round(cooked), yield: y }; },
-    howItWorks: ["Multiply guests by the cooked ounces each person will eat, then convert ounces to pounds.", "Divide cooked pounds by the typical raw-to-cooked yield for the selected meat.", "The yield accounts for trimming, moisture loss, and bones where applicable."],
-    example: { title: "30 guests with brisket", inputs: "30 guests at 6 oz cooked each", result: "About 22.5 lb raw brisket at a 50% yield." },
-    faqs: [{ question: "Why do I need more raw brisket than cooked meat?", answer: "Brisket loses weight from trimming and cooking. A 50% yield is a common planning estimate, so two raw pounds produces about one cooked pound." }, { question: "Are ribs calculated by edible meat?", answer: "This estimate uses a lower yield to account for bones and cooking loss. Buy extra if ribs are the only main dish." }, { question: "How much BBQ meat is one serving?", answer: "Six cooked ounces is a practical starting point for a meal with sides; use 8 ounces for meat-forward events." }, { question: "Should I add a safety margin?", answer: "Add 5 to 10 percent if guests are heavy eaters or you want leftovers." }],
-    seo: { title: "BBQ Meat Calculator – How Much Meat Per Person | CalcForged", description: "Calculate raw brisket, pork, ribs, sausage, or chicken to buy for any BBQ guest count.", h1: "BBQ meat calculator", intro: "Buying BBQ meat is a yield problem: the weight you put on the smoker is not the weight that reaches the plate. Enter your guest count, choose a meat, and set the cooked serving size to estimate how many raw pounds to buy. CalcForged uses common raw-to-cooked yield ranges—about 50% for brisket, 55–60% for pork butt, 50–55% for ribs, and 65–70% for chicken—so the result is a practical starting point rather than a false promise of precision." },
-    related: ["catering-food-quantity", "taco-bar", "wedding-food"],
-  },
-  {
-    slug: "taco-bar", name: "Taco Bar Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◒", description: "Plan tacos, cooked meat, tortillas, toppings, and sides for a crowd.",
-    fields: [{ key: "adults", label: "Adults", type: "number", unit: "people", min: 0, max: 10000, defaultValue: 25 }, { key: "children", label: "Children", type: "number", unit: "people", min: 0, max: 10000, defaultValue: 10 }, { key: "ozPerTaco", label: "Cooked meat per taco", type: "number", unit: "oz", min: 2, max: 4, step: 0.5, defaultValue: 3 }],
-    results: [{ key: "tacos", label: "Tacos", unit: "tacos", format: "number", estimate: true }, { key: "meat", label: "Cooked meat", unit: "lb", format: "number", estimate: true }, { key: "tortillas", label: "Tortillas", unit: "tortillas", format: "number", estimate: true }, { key: "toppings", label: "Topping servings", unit: "servings", format: "number", estimate: true }, { key: "sides", label: "Side servings", unit: "servings", format: "number", estimate: true }],
-    calculate: (v) => { const adults = n(v, "adults", 25); const children = n(v, "children", 10); const tacos = adults * 2 + children; const meat = tacos * n(v, "ozPerTaco", 3) / 16; return { tacos: ceil(tacos), meat: round(meat), tortillas: ceil(tacos * 1.2), toppings: ceil((adults + children) * 3), sides: ceil((adults + children) * 0.75) }; },
-    howItWorks: ["Plan about two tacos per adult and one taco per child.", "Multiply tacos by 2 to 4 ounces of cooked meat per taco; this calculator starts at 3 ounces.", "Tortillas include a 20% cushion for breakage, and toppings are estimated at three servings per guest across the topping spread."],
-    example: { title: "35-person taco bar", inputs: "25 adults, 10 children, 3 oz meat per taco", result: "60 tacos, about 11.3 lb cooked meat, and 72 tortillas." },
-    faqs: [{ question: "How many tacos does each person eat?", answer: "Two tacos per adult and one per child is a common planning baseline. Increase it for a late-night or taco-only meal." }, { question: "How much meat goes in a taco?", answer: "Two to four ounces of cooked meat per taco is a useful range, depending on shell size and toppings." }, { question: "Why are extra tortillas included?", answer: "Tortillas tear and people often take a second shell. The 20% cushion is an estimate." }, { question: "Does the result include chips and salsa?", answer: "It provides a separate side-serving estimate, which you can use for chips, beans, rice, or a similar side." }],
-    seo: { title: "Taco Bar Calculator – Tacos, Meat & Toppings | CalcForged", description: "Plan tacos, cooked meat, tortillas, toppings, and sides for adults and children.", h1: "Taco bar calculator", intro: "A taco bar is easy to serve but surprisingly easy to underbuy. Enter how many adults and children are coming to get a clear estimate for tacos, cooked meat, tortillas, toppings, and sides. The planning baseline is two tacos per adult and one per child, with a small tortilla cushion for breakage and seconds. Use the result as your shopping list starting point, then adjust for other mains, large appetites, or a long event." },
-    related: ["catering-food-quantity", "bbq-meat", "wedding-food"],
-  },
-  {
-    slug: "wedding-food", name: "Wedding Food Calculator", category: "Events", categorySlug: "events", icon: "◈", description: "Estimate wedding food quantities and a rough catering budget range.",
-    fields: [{ key: "guests", label: "Wedding guests", type: "number", unit: "people", min: 1, max: 5000, defaultValue: 100 }, { key: "style", label: "Meal style", type: "select", defaultValue: "buffet", options: [{ label: "Plated dinner", value: "plated" }, { label: "Buffet", value: "buffet" }, { label: "Cocktail-only", value: "cocktail" }] }, { key: "drinks", label: "Drinks service", type: "select", defaultValue: "beer-wine", options: [{ label: "Non-alcoholic", value: "none" }, { label: "Beer and wine", value: "beer-wine" }, { label: "Full bar", value: "full-bar" }] }, { key: "dessert", label: "Dessert", type: "select", defaultValue: "cake", options: [{ label: "Wedding cake", value: "cake" }, { label: "Dessert table", value: "table" }, { label: "Both", value: "both" }] }],
-    results: [{ key: "servings", label: "Meal servings", unit: "servings", format: "number", estimate: true }, { key: "desserts", label: "Dessert servings", unit: "servings", format: "number", estimate: true }, { key: "budgetLow", label: "Catering budget from", unit: "$", format: "currency", estimate: true }, { key: "budgetHigh", label: "Catering budget to", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => { const guests = n(v, "guests", 100); const style = option(v, "style", "buffet"); const factor = style === "cocktail" ? 1.25 : 1; const perPerson = style === "plated" ? [75, 150] : style === "cocktail" ? [45, 95] : [55, 110]; const drinksFactor = option(v, "drinks", "beer-wine") === "full-bar" ? 1.25 : option(v, "drinks", "beer-wine") === "none" ? 0.85 : 1; const dessertFactor = option(v, "dessert", "cake") === "both" ? 1.25 : 1; return { servings: ceil(guests * factor), desserts: ceil(guests * dessertFactor), budgetLow: Math.round(guests * perPerson[0] * drinksFactor), budgetHigh: Math.round(guests * perPerson[1] * drinksFactor) }; },
-    howItWorks: ["Meal servings are based on the guest count and service style; cocktail-only service gets a small buffer because food is the event.", "Dessert is planned at one serving per guest, with a 25% bump when serving both cake and a dessert table.", "Budget ranges are rough planning estimates and vary widely by city, menu, staffing, rentals, and bar package."],
-    example: { title: "100-person buffet wedding", inputs: "Buffet, beer and wine, cake", result: "100 meal servings, 100 dessert servings, and a rough $5,500–$11,000 catering range." },
-    faqs: [{ question: "How much wedding food should I order?", answer: "For a plated or buffet meal, start with one meal serving per guest and add a service-style buffer where appropriate." }, { question: "What does the budget estimate include?", answer: "It is a broad food-and-service planning range, not a quote. Ask caterers what staffing, rentals, tax, gratuity, and bar service add." }, { question: "Should I plan dessert for every guest?", answer: "Yes. One serving per guest is a good baseline, with extra if you offer a dessert table alongside cake." }, { question: "Why can wedding catering costs vary so much?", answer: "Region, menu ingredients, staffing, rentals, service format, and bar choices can all materially change the final quote." }],
-    seo: { title: "Wedding Food Calculator – Quantities & Catering Budget | CalcForged", description: "Estimate wedding meal and dessert servings from guest count, meal style, drinks, and dessert plan, plus a rough catering budget before requesting quotes.", h1: "Wedding food calculator", intro: "Wedding food planning has two separate jobs: figuring out how much to serve and setting a realistic budget range before you call caterers. Enter your guest count, meal style, drinks, and dessert plan for a practical estimate. The result is intentionally labeled as a planning range because local labor, menu choices, rentals, tax, and gratuity can move a real quote far beyond a simple per-person formula." },
-    related: ["catering-food-quantity", "taco-bar", "restaurant-food-cost"],
-  },
-  {
-    slug: "restaurant-food-cost", name: "Restaurant Food Cost Calculator", category: "Business", categorySlug: "business", icon: "▦", description: "See your cost per portion, food cost percentage, and gross margin at a glance.",
-    fields: [{ key: "ingredientCost", label: "Total ingredient cost", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 42 }, { key: "portions", label: "Portions produced", type: "number", unit: "portions", min: 1, defaultValue: 10 }, { key: "menuPrice", label: "Menu price per item", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 16 }],
-    results: [{ key: "costPerServing", label: "Cost per serving", unit: "$", format: "currency" }, { key: "foodCostPct", label: "Food cost", unit: "%", format: "percent" }, { key: "grossMargin", label: "Gross margin per item", unit: "$", format: "currency" }, { key: "targetNote", label: "Industry reference", format: "text" }],
-    calculate: (v) => { const cost = n(v, "ingredientCost", 42); const portions = n(v, "portions", 10); const price = n(v, "menuPrice", 16); const cps = cost / portions; return { costPerServing: round(cps, 2), foodCostPct: price ? round((cps / price) * 100, 1) : 0, grossMargin: round(price - cps, 2), targetNote: "Common target: 28–35%" }; },
-    howItWorks: ["Divide total ingredient cost by the number of portions to get cost per serving.", "Divide cost per serving by menu price to get food cost percentage.", "Gross margin per item is menu price minus ingredient cost per serving; it does not include labor, rent, packaging, or overhead."],
-    example: { title: "10-portion recipe", inputs: "$42 ingredient cost, 10 portions, $16 menu price", result: "$4.20 cost per serving, 26.3% food cost, and $11.80 gross margin." },
-    faqs: [{ question: "What is a good restaurant food cost percentage?", answer: "Many operators use roughly 28% to 35% as a planning target, but the right number depends on concept, labor, rent, and pricing strategy." }, { question: "Does this include labor?", answer: "No. This tool measures ingredient cost only. Add labor and overhead separately when you calculate true profitability." }, { question: "What if my menu price changes?", answer: "Edit the menu price and the food cost percentage and gross margin update instantly." }, { question: "Can I use this for a batch recipe?", answer: "Yes. Enter the total ingredient cost for the batch and how many sellable portions it creates." }],
-    seo: { title: "Restaurant Food Cost Calculator – Cost per Serving | CalcForged", description: "Calculate cost per serving, food cost percentage, and gross margin for a restaurant menu item.", h1: "Restaurant food cost calculator", intro: "Pricing a menu item starts with knowing what it costs to make. Enter the total ingredient cost for a batch, the number of portions it produces, and the menu price per item. CalcForged shows your cost per serving, food cost percentage, and gross margin per item instantly. Use it for recipe costing, menu engineering, catering packages, or a quick check before a price change. The result covers ingredients only, so keep labor, rent, packaging, and other operating costs in your broader margin model." },
-    related: ["catering-food-quantity", "wedding-food", "recipe-scaling"],
-  },
-  {
-    slug: "recipe-scaling", name: "Recipe Scaling Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "⌁", description: "Scale a recipe, convert supported weights and volumes between US and metric, and scan a photo to fill in the ingredient list.", photoScan: true,
-    fields: [{ key: "originalServings", label: "Original servings", type: "number", unit: "servings", min: 1, defaultValue: 4 }, { key: "newServings", label: "New servings", type: "number", unit: "servings", min: 1, defaultValue: 8 }, { key: "ingredients", label: "Ingredients", type: "ingredient-list", help: "Add the amount, unit, and ingredient name for each row." }],
-    results: [{ key: "factor", label: "Scale factor", format: "number" }, { key: "scaled", label: "Scaled ingredients", format: "text" }, { key: "note", label: "Baking note", format: "text" }],
-    calculate: (v) => { const factor = n(v, "newServings", 8) / n(v, "originalServings", 4); const rows = Array.isArray(v.ingredients) ? v.ingredients : []; const system = v.__recipeUnitSystem === "metric" ? "metric" : "us"; const scaled = rows.map((r) => formatScaledRecipeIngredient(r.amount, r.unit, r.ingredient, factor, system)).filter(Boolean); return { factor: round(factor, 2), scaled: scaled.join("\n") || "Add ingredients above", note: "For baking, scale pan size and time carefully; doubling a recipe rarely means doubling bake time." }; },
-    howItWorks: ["The scale factor is new servings divided by original servings.", "Choose US or Metric above the results. Supported weight and volume units convert between systems, while weight stays weight and volume stays volume.", "Cooking time and pan size do not always scale linearly, especially for baking; use the note as a prompt to check the recipe."],
-    example: { title: "4 servings to 8", inputs: "Original 4 servings, new 8 servings", result: "A 2× scale factor. A 1/2 cup ingredient becomes 1 cup, and 4 tablespoons become 1/2 cup." },
-    faqs: [{ question: "How do I scale a recipe down?", answer: "Enter a smaller new serving count. The scale factor will be below 1 and each ingredient will shrink proportionally." }, { question: "Can I scan a photo of my recipe?", answer: "Yes. Use the scan box in the calculator to upload a photo of a recipe page, handwritten card, or screenshot. The scanner reads the ingredients and original servings, fills them in, and then you pick the new serving count as usual. Always glance over the rows it fills in — photos and handwriting vary." }, { question: "Does cooking time double?", answer: "Usually not. Watch doneness and use the recipe's pan-size guidance, especially for baking." }, { question: "Can I scale spices exactly?", answer: "Start with the calculated amount, then adjust to taste. Salt, chili, and strong spices may not scale perfectly." }, { question: "What units can I enter?", answer: "Choose US or Metric above the results. Recognized weights and volumes convert within their own type, so grams do not turn into cups; units the calculator does not recognize stay as entered." }],
-    seo: { title: "Recipe Scaling Calculator: Scale Servings | CalcForged", description: "Scale recipe ingredients for more or fewer servings. Enter your current and desired serving counts to recalculate amounts, with supported US and metric weight and volume conversions.", h1: "Recipe scaling calculator", intro: "Scaling a recipe should be simple: divide the servings you want by the servings you have, then multiply each ingredient by that factor. Snap a photo of any recipe — a cookbook page, a handwritten card, a screenshot — and the scanner reads it and fills the list in for you, then you pick the new serving count. You can also add the ingredients by hand. The calculator does the arithmetic and formats common results as useful fractions so your shopping list stays readable. Use the US/Metric switch above the results to convert supported weights and volumes; it keeps weight and volume separate. For baking, use the result as a starting point and remember that pan size, oven time, and leavening often need their own judgment." },
-    related: ["restaurant-food-cost", "catering-food-quantity", "wedding-food"],
-  },
-  {
-    slug: "cups-to-grams", name: "Cups to Grams Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◉", description: "Convert a recipe volume to grams using a measured value for the selected ingredient.",
-    fields: [
-      { key: "amount", label: "Amount", type: "number", min: 0, max: 100000, step: 0.01, defaultValue: 1 },
-      { key: "volumeUnit", label: "Volume unit", type: "select", defaultValue: "cup", options: [{ label: "US cups", value: "cup" }, { label: "Tablespoons", value: "tbsp" }, { label: "Teaspoons", value: "tsp" }, { label: "US fluid ounces", value: "floz" }, { label: "Milliliters", value: "ml" }, { label: "Liters", value: "l" }] },
-      { key: "ingredient", label: "Ingredient and preparation", type: "select", defaultValue: "all-purpose-flour", options: COMMON_CUP_WEIGHTS.map(({ id, label }) => ({ label, value: id })) },
-    ],
-    results: [{ key: "grams", label: "Estimated weight", unit: "g", format: "number", estimate: true }, { key: "cupEquivalent", label: "Volume in US cups", unit: "cups", format: "number" }, { key: "gramsPerCup", label: "Reference weight", unit: "g per US cup", format: "number" }],
-    calculate: (v) => {
-      const ingredient = COMMON_CUP_WEIGHTS.find((item) => item.id === option(v, "ingredient", "all-purpose-flour")) ?? COMMON_CUP_WEIGHTS[0];
-      const amount = Math.max(0, n(v, "amount", 1));
-      const cups = amount * (CUP_VOLUME_EQUIVALENTS[option(v, "volumeUnit", "cup")] ?? 1);
-      const gramsPerCup = ingredient.grams / ingredient.cups;
-      return { grams: Math.round(cups * gramsPerCup), cupEquivalent: round(cups, 3), gramsPerCup: Math.round(gramsPerCup) };
-    },
-    howItWorks: ["Choose the ingredient and the preparation that match your recipe; these are ingredient-specific reference weights, not a universal volume-to-weight rule.", "The calculator converts the entered amount to US cups, then multiplies by the published grams-per-cup equivalent. Smaller chart measures are scaled proportionally to a cup.", "The displayed gram result is rounded to the nearest whole gram. For baking precision, weigh the ingredient and follow your recipe's measuring method."],
-    example: { title: "Half a cup of all-purpose flour", inputs: "0.5 US cup, all-purpose flour", result: "About 60 g using the chart reference of 120 g per US cup." },
-    faqs: [
-      { question: "Why does the ingredient matter?", answer: "A cup measures volume, while grams measure mass. Flour, sugar, honey, and other ingredients occupy the same volume but have different weights." },
-      { question: "Are these gram weights universal?", answer: "No. The references come from King Arthur Baking's ingredient chart. Flour brand, packing, sifting, particle size, moisture, and preparation change the result. Match the listed preparation and use a scale when precision matters." },
-      { question: "Which cup and volume conversions are used?", answer: "The calculator uses a US cup: 16 tablespoons, 48 teaspoons, 8 US fluid ounces, or about 236.588 milliliters. A recipe using a metric 250 ml cup may give a different result." },
-      { question: "Can I convert the result back to cups?", answer: "This tool starts with volume and estimates a weight for the selected ingredient. For other recipe scaling and supported unit changes, use Recipe Scaling; for volume or mass alone, use the Volume Converter or Weight Converter." },
-    ],
-    sources: [{ label: "King Arthur Baking, Ingredient Weight Chart", url: "https://www.kingarthurbaking.com/learn/ingredient-weight-chart" }],
-    seo: { title: "Cups to Grams Calculator by Ingredient | CalcForged", description: "Convert US cups, spoons, fluid ounces, milliliters, or liters to grams using ingredient-specific reference weights.", h1: "Cups to grams, by ingredient", intro: "A cup of flour does not weigh the same as a cup of sugar. Choose a listed ingredient, enter a volume, and get a gram estimate based on a published kitchen weight chart. Brand, packing, sifting, and preparation change the result, so treat each value as a reference and weigh ingredients when precision matters." },
-    related: ["recipe-scaling", "volume-converter", "weight-converter"],
-  },
-  {
-    slug: "paint", name: "Paint Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▰", description: "Estimate gallons of paint for a room, including doors, windows, and coats.",
-    fields: [{ key: "length", label: "Room length", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 12 }, { key: "width", label: "Room width", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 10 }, { key: "height", label: "Wall height", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 8 }, { key: "doors", label: "Doors", type: "number", unit: "doors", min: 0, defaultValue: 1 }, { key: "windows", label: "Windows", type: "number", unit: "windows", min: 0, defaultValue: 2 }, { key: "coats", label: "Coats", type: "number", unit: "coats", min: 1, max: 5, defaultValue: 2 }],
-    results: [{ key: "area", label: "Paintable area", unit: "sq ft", format: "number" }, { key: "gallons", label: "Paint to buy", unit: "gal", format: "number", estimate: true }, { key: "sheen", label: "Practical sheen", format: "text" }],
-    calculate: (v) => { const l = n(v, "length", 12), w = n(v, "width", 10), h = n(v, "height", 8); const area = (2 * (l + w) * h) - n(v, "doors", 1) * 21 - n(v, "windows", 2) * 12; const gallons = Math.max(0, area) * n(v, "coats", 2) / 375; return { area: round(Math.max(0, area)), gallons: round(gallons, 1), sheen: "Eggshell for most living spaces" }; },
-    howItWorks: ["Wall area is the room perimeter multiplied by wall height.", "This estimate subtracts 21 square feet per door and 12 square feet per window.", "Paint needed is paintable area × coats ÷ 375 square feet per gallon, rounded up when buying whole gallons."],
-    example: { title: "12 × 10 room", inputs: "8 ft walls, 1 door, 2 windows, 2 coats", result: "About 307 sq ft of paintable area and 1.6 gallons, so buy 2 gallons." },
-    faqs: [{ question: "How much area does a gallon of paint cover?", answer: "Many interior paints cover about 350 to 400 square feet per gallon. This calculator uses 375 as a midpoint estimate." }, { question: "Should I always use two coats?", answer: "Two coats are a common starting point for a consistent finish, especially over a different color." }, { question: "What sheen should I choose?", answer: "Eggshell is a practical general-purpose choice. Use satin for higher-traffic or moisture-prone areas and flat for ceilings." }, { question: "Does this include the ceiling?", answer: "No. It calculates walls and subtracts common door and window openings. Add ceiling area separately if needed." }],
-    seo: { title: "Paint Calculator – How Many Gallons Do I Need? | CalcForged", description: "Calculate paintable wall area and gallons needed for a room, with doors, windows, and coats.", h1: "Paint calculator", intro: "Buying paint is easier when you know the wall area instead of guessing by room size. Enter your room dimensions, doors, windows, and number of coats to estimate paintable square footage and gallons needed. The formula uses a common coverage range of about 350 to 400 square feet per gallon and subtracts standard openings. Use the result to plan your shopping list, then check the label on your chosen paint because coverage varies with color, surface, and application method." },
-    related: ["flooring", "concrete", "mulch"],
-  },
-  {
-    slug: "area", name: "Area Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "◫", description: "Find the area of common shapes in square feet, square yards, and square meters.",
-    fields: [
-      { key: "shape", label: "Shape", type: "select", defaultValue: "rectangle", options: [{ label: "Rectangle", value: "rectangle" }, { label: "Square", value: "square" }, { label: "Circle", value: "circle" }, { label: "Triangle", value: "triangle" }, { label: "Trapezoid", value: "trapezoid" }, { label: "Ellipse", value: "ellipse" }] },
-      { key: "dimensionUnit", label: "Dimension unit", type: "select", defaultValue: "ft", options: [{ label: "Feet (ft)", value: "ft" }, { label: "Meters (m)", value: "m" }], help: "Use the selected unit for every dimension below." },
-      { key: "length", label: "Length", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 12, visibleWhen: { key: "shape", values: ["rectangle"] } },
-      { key: "width", label: "Width", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["rectangle"] } },
-      { key: "side", label: "Side", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["square"] } },
-      { key: "diameter", label: "Diameter", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["circle"] } },
-      { key: "base", label: "Base", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 8, visibleWhen: { key: "shape", values: ["triangle"] } },
-      { key: "triangleHeight", label: "Height", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 6, visibleWhen: { key: "shape", values: ["triangle"] } },
-      { key: "baseA", label: "Shorter parallel side", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 8, visibleWhen: { key: "shape", values: ["trapezoid"] } },
-      { key: "baseB", label: "Longer parallel side", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 12, visibleWhen: { key: "shape", values: ["trapezoid"] } },
-      { key: "trapezoidHeight", label: "Height", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 5, visibleWhen: { key: "shape", values: ["trapezoid"] } },
-      { key: "majorAxis", label: "Major diameter", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "shape", values: ["ellipse"] } },
-      { key: "minorAxis", label: "Minor diameter", type: "number", unit: "ft or m", min: 0.1, max: 100000, step: 0.1, defaultValue: 6, visibleWhen: { key: "shape", values: ["ellipse"] } },
-    ],
-    results: [{ key: "squareFeet", label: "Area", unit: "sq ft", format: "number" }, { key: "squareYards", label: "Area", unit: "sq yd", format: "number" }, { key: "squareMeters", label: "Area", unit: "sq m", format: "number" }],
-    calculate: (v) => {
-      const scale = option(v, "dimensionUnit", "ft") === "m" ? 3.280839895013123 : 1;
-      const dim = (key: string, fallback: number) => Math.max(0, n(v, key, fallback)) * scale;
-      const shape = option(v, "shape", "rectangle");
-      const areaSqFt = shape === "square" ? dim("side", 10) ** 2
-        : shape === "circle" ? Math.PI * (dim("diameter", 10) / 2) ** 2
-          : shape === "triangle" ? dim("base", 8) * dim("triangleHeight", 6) / 2
-            : shape === "trapezoid" ? (dim("baseA", 8) + dim("baseB", 12)) / 2 * dim("trapezoidHeight", 5)
-              : shape === "ellipse" ? Math.PI * dim("majorAxis", 10) * dim("minorAxis", 6) / 4
-                : dim("length", 12) * dim("width", 10);
-      return { squareFeet: round(areaSqFt, 2), squareYards: round(areaSqFt / 9, 2), squareMeters: round(areaSqFt / 10.763910416709722, 2) };
-    },
-    howItWorks: ["Choose a shape; the calculator shows only the dimensions needed for that formula.", "Enter all dimensions in the selected unit. Meter inputs are converted before the area is calculated.", "The result is shown in square feet, square yards, and square meters."],
-    example: { title: "12 × 10 ft rectangle", inputs: "Length 12 ft, width 10 ft", result: "120 sq ft, 13.33 sq yd, or 11.15 sq m." },
-    faqs: [{ question: "Which shapes can I calculate?", answer: "Choose a rectangle, square, circle, triangle, trapezoid, or ellipse. Each shape shows the dimensions its formula needs." }, { question: "Can I calculate an irregular outline?", answer: "Split it into simple shapes, calculate each piece separately, add the areas, and subtract any openings. This calculator handles one shape at a time." }, { question: "Does a circle use its radius or diameter?", answer: "Enter the diameter, the full distance across the circle. The formula uses half of it as the radius." }, { question: "Can I enter meters?", answer: "Yes. Select meters and enter every dimension in meters. Results are still provided in square feet, square yards, and square meters." }],
-    seo: { title: "Area Calculator for 6 Shapes | CalcForged", description: "Calculate the area of a rectangle, square, circle, triangle, trapezoid, or ellipse in square feet, square yards, and square meters.", h1: "Area calculator for common shapes", intro: "Get the area without swapping formulas. Choose a rectangle, square, circle, triangle, trapezoid, or ellipse, enter dimensions in feet or meters, and see the result in square feet, square yards, and square meters. For an irregular outline, split it into simple shapes, calculate each piece, then add the areas and subtract openings." },
-    related: ["patio-pavers", "flooring", "concrete"],
-  },
-  {
-    slug: "patio-pavers", name: "Patio Paver Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▦", description: "Estimate patio pavers from dimensions or known area, with an adjustable extra allowance.",
-    fields: [
-      { key: "measureBy", label: "Patio measurement", type: "select", defaultValue: "rectangle", options: [{ label: "Rectangle dimensions", value: "rectangle" }, { label: "Known area", value: "area" }] },
-      { key: "length", label: "Patio length", type: "number", unit: "ft", min: 0.1, max: 100000, step: 0.1, defaultValue: 12, visibleWhen: { key: "measureBy", values: ["rectangle"] } },
-      { key: "width", label: "Patio width", type: "number", unit: "ft", min: 0.1, max: 100000, step: 0.1, defaultValue: 10, visibleWhen: { key: "measureBy", values: ["rectangle"] } },
-      { key: "knownArea", label: "Patio area", type: "number", unit: "sq ft", min: 0.1, max: 100000000, step: 0.1, defaultValue: 120, visibleWhen: { key: "measureBy", values: ["area"] } },
-      { key: "paverLength", label: "Paver length", type: "number", unit: "in", min: 0.1, max: 48, step: 0.125, defaultValue: 12 },
-      { key: "paverWidth", label: "Paver width", type: "number", unit: "in", min: 0.1, max: 48, step: 0.125, defaultValue: 12 },
-      { key: "allowance", label: "Extra allowance", type: "number", unit: "%", min: 0, max: 50, step: 1, defaultValue: 10, help: "Adjust for your layout, cuts, and breakage; confirm unusual patterns with your supplier or installer." },
-    ],
-    results: [{ key: "area", label: "Patio area", unit: "sq ft", format: "number" }, { key: "coverage", label: "Coverage per paver", unit: "sq ft", format: "number" }, { key: "pavers", label: "Pavers to cover area", unit: "pavers", format: "number" }, { key: "order", label: "Pavers to order", unit: "pavers", format: "number", estimate: true, interpretation: "Includes the extra allowance you selected." }, { key: "extra", label: "Extra pavers", unit: "pavers", format: "number", estimate: true }],
-    calculate: (v) => {
-      const measureBy = option(v, "measureBy", "rectangle");
-      const area = Math.max(0, measureBy === "area" ? n(v, "knownArea", 120) : n(v, "length", 12) * n(v, "width", 10));
-      const paverLength = Math.max(0.1, n(v, "paverLength", 12));
-      const paverWidth = Math.max(0.1, n(v, "paverWidth", 12));
-      const coverage = paverLength * paverWidth / 144;
-      const rawPavers = area / coverage;
-      const pavers = ceil(rawPavers);
-      const allowance = Math.min(50, Math.max(0, n(v, "allowance", 10))) / 100;
-      const order = ceil(rawPavers * (1 + allowance));
-      return { area: round(area, 2), coverage: round(coverage, 3), pavers, order, extra: Math.max(0, order - pavers) };
-    },
-    howItWorks: ["For a rectangle, multiply patio length by width. You can also enter a known area calculated elsewhere, including a combined area for an irregular layout.", "Multiply each paver's face length by its face width in inches, then divide by 144 to get square feet per paver.", "Divide patio area by paver coverage, add your editable allowance, and round up to whole pavers. Joint spacing and pattern-specific cuts are not modeled separately."],
-    example: { title: "12 × 10 ft patio", inputs: "120 sq ft area, 12 × 12 in pavers, 10% extra allowance", result: "120 pavers to cover the area; order 132, including 12 extra." },
-    faqs: [{ question: "Can I use this for an irregular patio?", answer: "Yes. Split the outline into simple shapes with the Area Calculator, add the sections and subtract openings, then enter the total under Known area." }, { question: "Does it account for paver joints?", answer: "It uses the paver's face dimensions and does not model joint spacing separately. Follow your supplier or installer's layout guidance for a precise order." }, { question: "What is the extra allowance for?", answer: "It adds the percentage you choose to cover cuts or breakage. The default 10% is an editable planning starting point, not a guarantee." }, { question: "Does this estimate the base, sand, or edging?", answer: "No. It estimates paver pieces only; base material, bedding sand, edge restraints, labor, and cost are not included." }],
-    seo: { title: "Patio Paver Calculator – Paver Count & Allowance | CalcForged", description: "Estimate how many patio pavers to buy from rectangle dimensions or a known area, paver size, and an adjustable extra allowance.", h1: "Patio paver calculator", intro: "Plan a rectangular patio from its length and width, or enter an area you already calculated. Add paver face dimensions in inches and an editable allowance for cuts or breakage. CalcForged estimates the pieces needed to cover the area and the quantity to order. The calculation does not estimate base material, sand, edging, or labor." },
-    related: ["area", "flooring", "concrete"],
-  },
-  {
-    slug: "flooring", name: "Flooring Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▤", description: "Calculate flooring square footage, waste allowance, boxes, and material cost.",
-    fields: [{ key: "length", label: "Room length", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 12 }, { key: "width", label: "Room width", type: "number", unit: "ft", min: 1, step: 0.1, defaultValue: 10 }, { key: "waste", label: "Waste factor", type: "select", defaultValue: "10", options: [{ label: "10% — straight lay", value: "10" }, { label: "15% — diagonal or herringbone", value: "15" }] }, { key: "boxCoverage", label: "Coverage per box", type: "number", unit: "sq ft", min: 1, step: 0.1, defaultValue: 20 }, { key: "price", label: "Price per box", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 42 }],
-    results: [{ key: "area", label: "Room area", unit: "sq ft", format: "number" }, { key: "orderArea", label: "Order with waste", unit: "sq ft", format: "number", estimate: true }, { key: "boxes", label: "Boxes to buy", unit: "boxes", format: "number", estimate: true }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => { const area = n(v, "length", 12) * n(v, "width", 10); const orderArea = area * (1 + n(v, "waste", 10) / 100); const boxes = ceil(orderArea / n(v, "boxCoverage", 20)); return { area: round(area), orderArea: round(orderArea), boxes, cost: round(boxes * n(v, "price", 42), 2) }; },
-    howItWorks: ["Multiply length by width to get floor area.", "Add 10% waste for a standard straight installation or 15% for diagonal and herringbone layouts.", "Divide the order area by the box coverage and round up to whole boxes."],
-    example: { title: "120 sq ft room", inputs: "12 × 10 ft, 10% waste, 20 sq ft per box", result: "132 sq ft to order, or 7 boxes." },
-    faqs: [{ question: "How much flooring waste should I add?", answer: "10% is a common planning allowance for a straightforward layout. Use 15% for diagonal, herringbone, or rooms with many cuts." }, { question: "Why do I need whole boxes?", answer: "Flooring is sold by the box, so always round up. Keep extra planks for future repairs." }, { question: "Does this work for irregular rooms?", answer: "Break the room into rectangles, calculate each one, and add the areas together for a better estimate." }, { question: "Does cost include installation?", answer: "No. It estimates material cost from the number of boxes and the price per box." }],
-    seo: { title: "Flooring Calculator – Square Footage, Boxes & Cost | CalcForged", description: "Calculate flooring area, waste, boxes needed, and material cost for a room.", h1: "Flooring calculator", intro: "Flooring orders need to account for waste, packaging, and the actual layout—not just the room's raw square footage. Enter room dimensions, choose a waste allowance, and add the coverage and price printed on your flooring box. CalcForged gives you room area, the recommended order area, whole boxes to buy, and a material cost estimate. Use 10% for a simple straight lay and 15% for diagonal or herringbone patterns." },
-    related: ["paint", "concrete", "mulch"],
-  },
-  {
-    slug: "concrete", name: "Concrete Calculator", category: "Construction", categorySlug: "construction", icon: "▥", description: "Estimate concrete volume in cubic yards, plus waste and bag equivalents.",
-    fields: [{ key: "shape", label: "Project shape", type: "select", defaultValue: "slab", options: [{ label: "Rectangular slab or footing", value: "slab" }, { label: "Round column", value: "column" }] }, { key: "length", label: "Length", type: "number", unit: "ft", min: 0.1, step: 0.1, defaultValue: 12 }, { key: "width", label: "Width / diameter", type: "number", unit: "ft", min: 0.1, step: 0.1, defaultValue: 10 }, { key: "thickness", label: "Thickness / height", type: "number", unit: "in", min: 0.1, step: 0.1, defaultValue: 4 }, { key: "waste", label: "Waste allowance", type: "select", defaultValue: "10", options: [{ label: "5%", value: "5" }, { label: "10%", value: "10" }] }],
-    results: [{ key: "cubicFeet", label: "Concrete volume", unit: "cu ft", format: "number" }, { key: "yards", label: "Order volume", unit: "cu yd", format: "number", estimate: true }, { key: "bags", label: "80 lb bag equivalent", unit: "bags", format: "number", estimate: true }],
-    calculate: (v) => { const a = n(v, "length", 12), b = n(v, "width", 10), thicknessFt = n(v, "thickness", 4) / 12; const base = option(v, "shape", "slab") === "column" ? Math.PI * (b / 2) ** 2 * a : a * b * thicknessFt; const order = base * (1 + n(v, "waste", 10) / 100); return { cubicFeet: round(base, 2), yards: round(order / 27, 2), bags: ceil(order / 0.6) }; },
-    howItWorks: ["A slab or footing uses length × width × thickness, with thickness converted from inches to feet.", "A round column uses π × radius² × height.", "Cubic feet are divided by 27 to convert to cubic yards, then a 5–10% waste allowance is added for ordering. One 80-pound bag is treated as about 0.6 cubic feet."],
-    example: { title: "12 × 10 slab", inputs: "4-inch thickness and 10% waste", result: "40.00 cu ft base volume, about 1.63 cu yd to order, or 74 bags." },
-    faqs: [{ question: "How many cubic feet are in a cubic yard?", answer: "One cubic yard contains 27 cubic feet." }, { question: "How much concrete waste should I plan?", answer: "Five to ten percent is a common ordering allowance for uneven subgrade, spillage, and measurement variation." }, { question: "How many 80-pound bags equal a cubic yard?", answer: "Using roughly 0.6 cubic feet per bag, one cubic yard is about 45 bags before waste. Check the product label for exact yield." }, { question: "Can I calculate a round column?", answer: "Yes. Choose Round column and enter diameter and height in feet." }],
-    seo: { title: "Concrete Calculator – Cubic Yards, Bags & Waste | CalcForged", description: "Estimate concrete for slabs, footings, or round columns in cubic feet and yards. Compare bag equivalents and waste, then check mix yield before ordering.", h1: "Concrete calculator", intro: "Concrete is sold by volume, so the most useful estimate converts your dimensions into cubic feet and cubic yards before you order. Choose a rectangular slab or footing, or a round column, then enter your dimensions and waste allowance. The calculator uses standard geometry, converts 27 cubic feet to one cubic yard, and shows an 80-pound bag equivalent using an approximate 0.6 cubic-foot yield. Always compare the result with the yield printed on your specific mix." },
-    related: ["flooring", "paint", "mulch"],
-  },
-  {
-    slug: "mulch", name: "Mulch Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "⌇", description: "Estimate cubic yards of mulch and compare a bulk order with bagged mulch.",
-    fields: [{ key: "area", label: "Bed area", type: "number", unit: "sq ft", min: 1, step: 1, defaultValue: 250 }, { key: "depth", label: "Mulch depth", type: "number", unit: "in", min: 1, max: 12, step: 0.5, defaultValue: 3 }, { key: "bagSize", label: "Bag size", type: "number", unit: "cu ft", min: 0.1, step: 0.1, defaultValue: 2 }, { key: "bagPrice", label: "Price per bag", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 4.5 }, { key: "bulkPrice", label: "Bulk price per cu yd", type: "number", unit: "$", min: 0, step: 1, defaultValue: 45 }],
-    results: [{ key: "yards", label: "Bulk mulch", unit: "cu yd", format: "number", estimate: true }, { key: "bags", label: "Bagged mulch", unit: "bags", format: "number", estimate: true }, { key: "bagCost", label: "Bagged cost", unit: "$", format: "currency", estimate: true }, { key: "bulkCost", label: "Bulk cost", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => { const area = n(v, "area", 250), depth = n(v, "depth", 3); const yards = area * depth / 324; const bags = ceil(yards * 27 / n(v, "bagSize", 2)); return { yards: round(yards, 2), bags, bagCost: round(bags * n(v, "bagPrice", 4.5), 2), bulkCost: round(yards * n(v, "bulkPrice", 45), 2) }; },
-    howItWorks: ["Multiply bed area in square feet by depth in inches.", "Divide by 324 to convert the result to cubic yards.", "The bag comparison converts cubic yards to cubic feet (27 cubic feet per yard), then divides by the bag size and rounds up."],
-    example: { title: "250 sq ft garden bed", inputs: "3-inch depth, 2 cu ft bags", result: "2.31 cubic yards, or 32 bags before delivery considerations." },
-    faqs: [{ question: "How deep should mulch be?", answer: "Two to three inches is a common recommendation for garden beds. Avoid piling mulch against tree trunks or plant stems." }, { question: "Why divide by 324?", answer: "The constant combines the inches-to-feet conversion with 27 cubic feet per cubic yard." }, { question: "Is bulk mulch cheaper?", answer: "It often can be for larger beds, but delivery fees and your local prices matter. Use the side-by-side estimate as a starting point." }, { question: "Should I use the same depth everywhere?", answer: "Not always. Use a lighter layer around shallow-rooted plants and follow local horticulture guidance." }],
-    seo: { title: "Mulch Calculator – Cubic Yards, Bags & Cost | CalcForged", description: "Calculate mulch cubic yards, bags, and a bagged-versus-bulk cost estimate for garden beds.", h1: "Mulch calculator", intro: "A mulch order is easiest to plan from area and depth. Enter your garden bed's square footage, choose a depth in inches, and add local prices for bags and bulk mulch. CalcForged uses the standard formula area × depth ÷ 324 to estimate cubic yards, then shows how many bags you would need and a simple cost comparison. Two to three inches is a common bed depth, but adjust for the plants and soil conditions in your yard." },
-    related: ["paint", "flooring", "concrete"],
-  },
-  {
-    slug: "ac-size", name: "AC Size Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "❄", description: "Work out the cooling load in BTU and the air conditioner size a room actually needs.",
-    fields: [
-      { key: "area", label: "Room area", type: "number", unit: "sq ft", min: 50, max: 5000, defaultValue: 300 },
-      { key: "ceilingHeight", label: "Ceiling height", type: "number", unit: "ft", min: 7, max: 12, step: 0.5, defaultValue: 8 },
-      { key: "sun", label: "Sun exposure", type: "select", defaultValue: "average", options: [{ label: "Heavily shaded", value: "shaded" }, { label: "Average", value: "average" }, { label: "Very sunny", value: "sunny" }] },
-      { key: "insulation", label: "Insulation", type: "select", defaultValue: "average", options: [{ label: "Good", value: "good" }, { label: "Average", value: "average" }, { label: "Poor", value: "poor" }] },
-      { key: "occupants", label: "People usually in the room", type: "number", unit: "people", min: 1, max: 50, defaultValue: 2 },
-      { key: "isKitchen", label: "Is it a kitchen?", type: "select", defaultValue: "no", options: [{ label: "No", value: "no" }, { label: "Yes", value: "yes" }] },
-      { key: "climate", label: "Climate", type: "select", defaultValue: "temperate", options: [{ label: "Temperate", value: "temperate" }, { label: "Hot", value: "hot" }, { label: "Very hot & humid", value: "extreme" }] },
-    ],
-    results: [
-      { key: "coolingLoad", label: "Cooling load", unit: "BTU/hr", format: "number", estimate: true, interpretation: "The heat the room adds on a hot day." },
-      { key: "tons", label: "Cooling load", unit: "tons", format: "number", estimate: true },
-      { key: "recommendedUnit", label: "Unit to buy", format: "text" },
-      { key: "guidanceNote", label: "Scope note", format: "text" },
-    ],
-    calculate: (v) => {
-      const area = n(v, "area", 300);
-      const ceilingFactor = n(v, "ceilingHeight", 8) / 8;
-      const sunFactor = option(v, "sun", "average") === "sunny" ? 1.1 : option(v, "sun", "average") === "shaded" ? 0.9 : 1;
-      const insulationFactor = option(v, "insulation", "average") === "poor" ? 1.15 : option(v, "insulation", "average") === "good" ? 0.9 : 1;
-      const climateFactor = option(v, "climate", "temperate") === "extreme" ? 1.2 : option(v, "climate", "temperate") === "hot" ? 1.1 : 1;
-      const occupants = n(v, "occupants", 2);
-      const base = area * 20 * ceilingFactor * sunFactor * insulationFactor;
-      const load = (base + Math.max(0, occupants - 2) * 600 + (option(v, "isKitchen", "no") === "yes" ? 4000 : 0)) * climateFactor;
-      const sizes = [5000, 6000, 8000, 9000, 10000, 12000, 15000, 18000, 21000, 24000, 30000, 36000, 48000, 60000];
-      const unit = sizes.find((size) => size >= load) ?? 60000;
-      return { coolingLoad: Math.round(load / 100) * 100, tons: round(load / 12000, 1), recommendedUnit: `Buy a ${unit.toLocaleString("en-US")} BTU (${round(unit / 12000, 1)}-ton) unit`, guidanceNote: "Simplified heat load for one room. Whole-house systems and professional installs need a full Manual J calculation." };
-    },
-    howItWorks: ["Start from 20 BTU per square foot of floor space — the standard room-cooling baseline.", "Scale for ceiling height, sun, and insulation, then add 600 BTU per person beyond two and 4,000 BTU for a kitchen.", "The load converts to tons (12,000 BTU per ton) and rounds up to the next unit size you can actually buy."],
-    example: { title: "Sunny kitchen, 3 people", inputs: "300 sq ft, 8 ft ceilings, very sunny, kitchen, 3 people", result: "About 11,200 BTU (0.9 tons) — buy a 12,000 BTU (1-ton) unit." },
-    faqs: [{ question: "How many BTU do I need per square foot?", answer: "A common baseline is 20 BTU per square foot of floor space, adjusted for sun, ceiling height, occupants, and kitchen heat. This calculator applies those standard adjustments for you." }, { question: "What is a ton of cooling?", answer: "One ton equals 12,000 BTU per hour of cooling. Window and portable units are rated in BTU; central systems are usually rated in tons." }, { question: "Is this a Manual J load calculation?", answer: "No. It is a simplified room heat load built on standard rules of thumb — right for picking a room unit or a mini-split. A professional whole-house installation should size from a full Manual J that models every window, wall, and duct." }, { question: "Is it bad to oversize an air conditioner?", answer: "Usually yes. An oversized unit cools fast, shuts off early, and never runs long enough to pull humidity out — the room ends up cold and clammy. Size to the load, and step up one size only for unusual conditions." }],
-    seo: { title: "AC Size Calculator – BTU & Heat Load | CalcForged", description: "Calculate the heat load in BTU and the right air conditioner size for any room — sun, ceiling height, occupants, insulation, and kitchen heat included.", h1: "AC size calculator", intro: "Air conditioners are sized by heat load: the number of BTU per hour the room adds on a hot day. Enter the room's area, ceiling height, sun exposure, insulation, and how many people use it, and the calculator applies the standard adjustments to the 20 BTU per square foot baseline. The result converts to tons and points at the next unit size you can actually buy — so you neither undersize a room into misery nor oversize it into a clammy, short-cycling machine." },
-    related: ["paint", "flooring", "concrete"],
-  },
-  {
-    slug: "deck-boards", name: "Deck Board Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▬", description: "Count deck board rows, linear feet, and whole boards to buy from deck size, board width, and gaps.",
-    fields: [
-      { key: "length", label: "Deck length", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 12 },
-      { key: "width", label: "Deck width", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 16 },
-      { key: "boardWidth", label: "Board width", type: "select", defaultValue: "5.5", options: [{ label: "5.5 in — nominal 6\"", value: "5.5" }, { label: "3.5 in — nominal 4\"", value: "3.5" }, { label: "7.25 in — nominal 8\"", value: "7.25" }] },
-      { key: "gap", label: "Gap between boards", type: "number", unit: "in", min: 0, max: 1, step: 0.0625, defaultValue: 0.125 },
-      { key: "stockLength", label: "Board stock length", type: "select", defaultValue: "12", options: [{ label: "8 ft", value: "8" }, { label: "12 ft", value: "12" }, { label: "16 ft", value: "16" }] },
-      { key: "waste", label: "Waste allowance", type: "number", unit: "%", min: 0, max: 25, step: 1, defaultValue: 10 },
-    ],
-    results: [{ key: "rows", label: "Board rows", format: "number" }, { key: "linearFt", label: "Total linear ft", unit: "ft", format: "number", estimate: true }, { key: "boards", label: "Boards to buy", unit: "boards", format: "number", estimate: true }, { key: "fastenerNote", label: "Fasteners", format: "text" }],
-    calculate: (v) => {
-      const rows = ceil((n(v, "width", 16) * 12) / (n(v, "boardWidth", 5.5) + n(v, "gap", 0.125)));
-      const linearFt = rows * n(v, "length", 12);
-      const boards = ceil(linearFt * (1 + n(v, "waste", 10) / 100) / n(v, "stockLength", 12));
-      return { rows, linearFt: round(linearFt), boards, fastenerNote: "Two fasteners per joist crossing; plan screws off your joist layout" };
-    },
-    howItWorks: ["Rows are the deck width in inches divided by board width plus gap, rounded up.", "Total linear feet is rows × deck length — set length as the direction your boards run. Waste covers crosscuts, defects, and butt joints.", "Boards to buy is linear feet with waste divided by your stock length, rounded up to whole boards."],
-    example: { title: "12 × 16 deck", inputs: "6\" boards, 1/8-in gaps, 12-ft stock, 10% waste", result: "35 rows, about 420 linear ft, and 39 twelve-foot boards." },
-    faqs: [{ question: "How much gap should I leave between deck boards?", answer: "Pressure-treated lumber is commonly gapped at about 1/8 inch because it shrinks as it dries. Composite manufacturers specify their own spacing — often 1/8 to 1/4 inch — so follow the label." }, { question: "Which direction do I enter as deck length?", answer: "Enter the direction your boards will run as length. The row count comes from the span the boards cross, so a 12 × 16 deck with boards running the long way is entered as length 16, width 12." }, { question: "How much waste should I add?", answer: "10% covers crosscuts and defects on a straight rectangular deck. Bump it to 15% if you are sorting boards for grain, working around curves, or making lots of angle cuts." }, { question: "Does this include stairs, fascia, or railings?", answer: "No — it plans the flat field of the deck. Add stair treads, fascia, and railing boards separately, or raise the waste allowance to cover them." }],
-    seo: { title: "Deck Board Calculator – Linear Feet & Boards to Buy | CalcForged", description: "Calculate deck board rows, total linear feet, and how many boards to buy, with gap spacing and waste.", h1: "Deck board calculator", intro: "Deck board counts are a row problem, not an area problem: rows come from board width plus gap spacing across the deck, and linear feet come from rows times the run. Enter your deck dimensions, board width, gap, stock length, and a waste allowance to get rows, total linear feet, and whole boards to buy. The fastener note keeps screws honest — two per joist crossing, planned from your joist layout, not from the deck's area." },
-    related: ["deck-stain", "concrete", "paint"],
-  },
-  {
-    slug: "deck-stain", name: "Deck Stain Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "◩", description: "Estimate stain gallons and cost for a deck, including railings and coats.",
-    fields: [{ key: "length", label: "Deck length", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 12 }, { key: "width", label: "Deck width", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 16 }, { key: "railings", label: "Include railings?", type: "select", defaultValue: "no", options: [{ label: "No — deck floor only", value: "no" }, { label: "Yes — add rail area", value: "yes" }] }, { key: "coats", label: "Coats", type: "number", unit: "coats", min: 1, max: 2, step: 1, defaultValue: 2 }, { key: "coverage", label: "Coverage per gallon", type: "number", unit: "sq ft", min: 50, step: 10, defaultValue: 250 }, { key: "price", label: "Price per gallon", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 35 }],
-    results: [{ key: "area", label: "Area to stain", unit: "sq ft", format: "number" }, { key: "gallons", label: "Stain to buy", unit: "gal", format: "number", estimate: true, interpretation: "Rounded up to whole gallons; the can's label wins on coverage." }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => { const l = n(v, "length", 12), w = n(v, "width", 16); const rail = option(v, "railings", "no") === "yes" ? 12 * (l + w) : 0; const area = l * w + rail; const gallons = ceil(area * n(v, "coats", 2) / n(v, "coverage", 250)); return { area: round(area), gallons, cost: round(gallons * n(v, "price", 35), 2) }; },
-    howItWorks: ["Deck floor area is length × width; railings add roughly 12 square feet per foot of perimeter, counting both faces of rails and balusters.", "Gallons are area × coats ÷ coverage per gallon, rounded up to whole gallons.", "Most stains cover 150 to 300 square feet per gallon depending on product and wood condition — enter your can's coverage and let it override the default."],
-    example: { title: "12 × 16 deck with railings", inputs: "2 coats, 250 sq ft per gallon", result: "About 528 sq ft to stain — 5 gallons, roughly $175 at $35 per gallon." },
-    faqs: [{ question: "How much area does a gallon of deck stain cover?", answer: "Most products cover 150 to 300 square feet per gallon per coat; semi-transparent stains on weathered, porous wood land at the low end. The coverage printed on your can beats any default." }, { question: "Do railings really add that much surface?", answer: "Yes. Rails have two faces plus edges, and every baluster has two faces — on a small deck the railing can add as much paintable surface as the floor itself." }, { question: "Should I stain the underside of the deck boards?", answer: "Usually no. Coat the walking surface and the exposed edges; airflow dries the underside, and the wear you are protecting against happens on top." }, { question: "One coat or two?", answer: "Two coats are the norm on bare wood — the first soaks in, the second builds color and protection. A single maintenance coat is common on a deck that was already stained." }],
-    seo: { title: "Deck Stain Calculator – Gallons & Cost | CalcForged", description: "Estimate deck stain gallons and cost from floor area, railings, coats, and coverage printed on your can. Enter dimensions and price to plan what to buy.", h1: "Deck stain calculator", intro: "Stain runs out at the worst time — halfway through a deck, with the sun moving and half the boards wet. This calculator works from real surface area instead of deck size: the floor, both faces of the railings when you include them, and your coat count, divided by the coverage on your actual can of stain. Most products cover 150 to 300 square feet per gallon, so the label wins; the result is whole gallons to buy and what they cost." },
-    related: ["deck-boards", "paint", "concrete"],
-  },
-  {
-    slug: "sod", name: "Sod Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "▧", description: "Calculate sod rolls, pallets, and cost for a lawn, with delivery-day waste built in.",
-    fields: [{ key: "length", label: "Lawn length", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 40 }, { key: "width", label: "Lawn width", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 30 }, { key: "waste", label: "Waste allowance", type: "number", unit: "%", min: 0, max: 20, step: 1, defaultValue: 5 }, { key: "rollSize", label: "Roll size", type: "number", unit: "sq ft", min: 1, step: 0.5, defaultValue: 10 }, { key: "palletSize", label: "Pallet size", type: "number", unit: "sq ft", min: 100, step: 25, defaultValue: 500 }, { key: "price", label: "Price per roll", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 4 }],
-    results: [{ key: "orderArea", label: "Order with waste", unit: "sq ft", format: "number", estimate: true }, { key: "rolls", label: "Rolls to order", unit: "rolls", format: "number", estimate: true }, { key: "palletsNote", label: "Pallets", format: "text" }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => { const area = n(v, "length", 40) * n(v, "width", 30); const orderArea = area * (1 + n(v, "waste", 5) / 100); const rolls = ceil(orderArea / n(v, "rollSize", 10)); const pallets = ceil(orderArea / n(v, "palletSize", 500)); return { orderArea: round(orderArea), rolls, palletsNote: `About ${pallets} pallet${pallets === 1 ? "" : "s"} at ${n(v, "palletSize", 500)} sq ft — pallets run 400–600 sq ft by farm.`, cost: round(rolls * n(v, "price", 4), 2) }; },
-    howItWorks: ["Order area is lawn area plus a small waste allowance — sod is perishable, so it needs less buffer than lumber or stone.", "Rolls are order area ÷ roll size, rounded up. The standard US roll is 2 × 5 ft, or 10 square feet.", "Cost is rolls × price per roll; the pallet count is shown as a note because most sod farms sell — and price — by the pallet."],
-    example: { title: "40 × 30 lawn", inputs: "5% waste, 10 sq ft rolls", result: "Order 1,260 sq ft — 126 rolls, about 3 pallets, roughly $504 at $4 per roll." },
-    faqs: [{ question: "How much extra sod should I order?", answer: "Five percent covers cuts around edges and garden beds on a simple rectangle; use 10% for curved borders, islands, and obstacles. Unlike most materials, don't stack a big buffer on top — sod doesn't store." }, { question: "How long can sod sit on the pallet?", answer: "Hours, not days. Rolled sod heats up fast, especially in summer, and starts to yellow within a day. Schedule delivery for the day you install and water it as soon as it's down." }, { question: "What size is a roll of sod?", answer: "The common US roll is 2 × 5 feet — 10 square feet. Farms also sell big rolls of roughly 360 square feet that are machine-installed. Pallets commonly carry 400 to 600 square feet depending on the farm and grass type." }, { question: "Which way should the rolls face?", answer: "Lay strips in rows with staggered end joints like brickwork, edges snug but never overlapping, and run the rows across a slope on hillsides so they can't creep downhill." }],
-    seo: { title: "Sod Calculator – Rolls, Pallets & Cost | CalcForged", description: "Calculate sod rolls, pallets, and cost for your lawn, with a waste allowance sized for delivery day.", h1: "Sod calculator", intro: "Sod is the one landscape material with a deadline: it arrives alive and needs to be in the ground the same day. So the order has to be right the first time. Enter your lawn dimensions and this calculator returns the order area with a small waste allowance, whole rolls at the standard 10-square-foot size, a pallet count for farms that sell by the pallet, and the cost. Five percent waste covers a clean rectangle; curved beds and obstacles deserve ten." },
-    related: ["mulch", "gravel-driveway", "flooring"],
-  },
-  {
-    slug: "rebar", name: "Rebar Calculator", category: "Construction", categorySlug: "construction", icon: "#", description: "Count rebar bars, linear feet, sticks, and weight for a reinforced concrete slab.",
-    fields: [{ key: "length", label: "Slab length", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 20 }, { key: "width", label: "Slab width", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 24 }, { key: "spacing", label: "Rebar spacing", type: "number", unit: "in", min: 6, max: 36, step: 1, defaultValue: 18 }, { key: "barSize", label: "Bar size", type: "select", defaultValue: "#4", options: [{ label: "#3 — 3/8 in", value: "#3" }, { label: "#4 — 1/2 in", value: "#4" }, { label: "#5 — 5/8 in", value: "#5" }] }, { key: "lap", label: "Overlap / lap allowance", type: "number", unit: "%", min: 0, max: 25, step: 1, defaultValue: 10 }, { key: "stockLength", label: "Stock bar length", type: "number", unit: "ft", min: 5, max: 60, step: 1, defaultValue: 20 }],
-    results: [{ key: "barsA", label: "Bars one way", format: "number" }, { key: "barsB", label: "Bars other way", format: "number" }, { key: "linearFt", label: "Total bar length", unit: "ft", format: "number", estimate: true }, { key: "sticks", label: "Stock bars to buy", unit: "bars", format: "number", estimate: true }, { key: "weight", label: "Total weight", unit: "lb", format: "number", estimate: true }],
-    calculate: (v) => { const spacing = Math.min(36, Math.max(6, n(v, "spacing", 18))); const barsA = ceil(n(v, "length", 20) * 12 / spacing) + 1; const barsB = ceil(n(v, "width", 24) * 12 / spacing) + 1; const linearFt = (barsA * n(v, "width", 24) + barsB * n(v, "length", 20)) * (1 + n(v, "lap", 10) / 100); const lbPerFt = option(v, "barSize", "#4") === "#3" ? 0.376 : option(v, "barSize", "#4") === "#5" ? 1.043 : 0.668; return { barsA, barsB, linearFt: round(linearFt), sticks: ceil(linearFt / n(v, "stockLength", 20)), weight: round(linearFt * lbPerFt, 0) }; },
-    howItWorks: ["Bars in each direction are the span in inches ÷ spacing, plus one extra for the far edge, rounded up.", "Total bar length adds both directions plus a lap allowance for the overlaps where bars splice together.", "Weight uses standard bar weights — #3 is 0.376 lb/ft, #4 is 0.668, #5 is 1.043 — and sticks are total feet ÷ stock length, rounded up."],
-    example: { title: "20 × 24 slab", inputs: "#4 bars at 18 in, 10% lap, 20-ft stock", result: "15 bars one way and 17 the other — about 770 linear ft, 39 sticks, roughly 514 lb." },
-    faqs: [{ question: "How far apart should rebar be in a slab?", answer: "18 inches on center is a common residential spacing, with 12 to 24 inches both seen depending on load and soil. If your project has engineered plans, the plans win." }, { question: "What size rebar for a patio or driveway slab?", answer: "#4 (1/2 inch) is the standard for 4-inch residential slabs. #3 suits light-duty patios and walkways; #5 shows up in footings, thick driveways, and commercial work." }, { question: "How much should rebar overlap at splices?", answer: "A common rule is 40 bar diameters of overlap — about 20 inches for a #4 bar. The 10% planning allowance covers splices plus the short offcuts left over from cutting." }, { question: "Do I need rebar in a 4-inch slab?", answer: "For sidewalks and patios, fiber or wire mesh is often enough. Rebar earns its keep on driveways, soft or filled soil, and slabs carrying vehicles — match your local code and use." }],
-    seo: { title: "Rebar Calculator – Bars, Length & Weight | CalcForged", description: "Calculate rebar count in both directions, total linear feet, 20-ft sticks to buy, and total weight for a slab.", h1: "Rebar calculator", intro: "Rebar orders are counted in sticks and weighed in pounds, but the slab only cares about spacing. Enter the slab dimensions, bar spacing, and bar size, and this calculator counts the bars in both directions, totals the linear feet with a lap allowance for splices, and converts that to 20-foot sticks and total weight using standard ASTM bar weights. #4 bars at 18 inches on center is the workhorse spec for residential slabs — adjust if your plans say otherwise." },
-    related: ["concrete", "gravel-driveway", "deck-boards"],
-  },
-  {
-    slug: "gravel-driveway", name: "Gravel Driveway Calculator", category: "Construction", categorySlug: "construction", icon: "◆", description: "Estimate gravel yards, tons, and cost for a driveway, with compaction built in.",
-    fields: [{ key: "length", label: "Driveway length", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 60 }, { key: "width", label: "Driveway width", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 12 }, { key: "depth", label: "Depth", type: "number", unit: "in", min: 1, max: 24, step: 0.5, defaultValue: 4 }, { key: "waste", label: "Compaction / waste", type: "number", unit: "%", min: 0, max: 25, step: 1, defaultValue: 10 }, { key: "price", label: "Delivered price per cu yd", type: "number", unit: "$", min: 0, step: 1, defaultValue: 45 }],
-    results: [{ key: "yards", label: "Gravel to order", unit: "cu yd", format: "number", estimate: true }, { key: "tons", label: "Weight", unit: "tons", format: "number", estimate: true, interpretation: "At about 1.4 tons per cubic yard." }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }, { key: "depthNote", label: "Depth check", format: "text" }],
-    calculate: (v) => { const cuFt = n(v, "length", 60) * n(v, "width", 12) * (n(v, "depth", 4) / 12); const yards = (cuFt / 27) * (1 + n(v, "waste", 10) / 100); return { yards: round(yards, 2), tons: round(yards * 1.4, 2), cost: round(yards * n(v, "price", 45), 2), depthNote: "4 in is the standard light-use depth; 6–8 in for vehicles that park daily." }; },
-    howItWorks: ["Volume is length × width × depth in feet, divided by 27 for cubic yards.", "The order adds 10% for compaction and losses — gravel settles as it's spread and rolled.", "Weight uses about 1.4 tons per cubic yard of crushed stone; cost is yards × your delivered price per yard."],
-    example: { title: "60 × 12 driveway", inputs: "4 in deep, 10% compaction, $45 per yard", result: "About 9.78 cu yd, 13.7 tons, roughly $440 delivered." },
-    faqs: [{ question: "How deep should a gravel driveway be?", answer: "Four inches compacted suits light, occasional use. Where vehicles park daily — or the soil is soft — plan 6 to 8 inches, ideally placed and compacted in two lifts." }, { question: "How much does a cubic yard of gravel weigh?", answer: "Crushed stone runs about 1.3 to 1.5 tons per cubic yard depending on the stone and moisture — 1.4 tons is a good planning figure." }, { question: "What does delivered gravel cost?", answer: "Most areas land between $15 and $75 per cubic yard delivered; road base often runs $25 to $62. Stone size and delivery distance move the price the most, so quote locally." }, { question: "Should I put fabric under the gravel?", answer: "On soft or muddy ground, yes — a geotextile fabric layer keeps stone from punching into the soil and roughly doubles the life of the driveway. It's cheap insurance on any questionable subgrade." }],
-    seo: { title: "Gravel Driveway Calculator – Yards, Tons & Cost | CalcForged", description: "Calculate cubic yards, tons, and cost for a gravel driveway, with compaction and a depth check.", h1: "Gravel driveway calculator", intro: "Gravel is ordered by the cubic yard, hauled by the ton, and paid for by the delivery — so all three numbers need to agree before the truck shows up. Enter your driveway dimensions and depth, and this calculator converts the volume to cubic yards with a 10% compaction allowance, estimates the tonnage at 1.4 tons per yard, and prices it at your local delivered rate. Four inches covers light use; daily parking wants 6 to 8 inches." },
-    related: ["concrete", "rebar", "mulch"],
-  },
-  {
-    slug: "wallpaper", name: "Wallpaper Calculator", category: "Home Improvement", categorySlug: "home-improvement", icon: "❖", description: "Estimate wallpaper rolls and cost for a room, minus openings and with pattern waste.",
-    fields: [{ key: "perimeter", label: "Room perimeter", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 52 }, { key: "height", label: "Wall height", type: "number", unit: "ft", min: 1, step: 0.5, defaultValue: 8 }, { key: "doors", label: "Doors", type: "number", unit: "doors", min: 0, step: 1, defaultValue: 1 }, { key: "windows", label: "Windows", type: "number", unit: "windows", min: 0, step: 1, defaultValue: 2 }, { key: "rollCoverage", label: "Coverage per roll", type: "number", unit: "sq ft", min: 1, step: 0.5, defaultValue: 55 }, { key: "patternWaste", label: "Pattern waste", type: "number", unit: "%", min: 0, max: 40, step: 1, defaultValue: 15 }, { key: "price", label: "Price per roll", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 30 }],
-    results: [{ key: "wallArea", label: "Wall area", unit: "sq ft", format: "number" }, { key: "rolls", label: "Rolls to buy", unit: "rolls", format: "number", estimate: true }, { key: "cost", label: "Material estimate", unit: "$", format: "currency", estimate: true }, { key: "dyeLotNote", label: "Dye lot", format: "text" }],
-    calculate: (v) => { const wallArea = n(v, "perimeter", 52) * n(v, "height", 8) - n(v, "doors", 1) * 21 - n(v, "windows", 2) * 15; const orderArea = Math.max(0, wallArea) * (1 + n(v, "patternWaste", 15) / 100); const rolls = ceil(orderArea / n(v, "rollCoverage", 55)); return { wallArea: round(Math.max(0, wallArea)), rolls, cost: round(rolls * n(v, "price", 30), 2), dyeLotNote: "Order every roll from one dye lot — mixed lots show at the seams." }; },
-    howItWorks: ["Wall area is the room perimeter × wall height, minus 21 square feet per door and 15 per window.", "Pattern waste — 15% is typical — covers matching repeats and trimming; large patterns and many corners need more.", "Rolls are order area ÷ coverage per roll, rounded up. A US double roll is 60.75 sq ft nominal but lands near 55 usable."],
-    example: { title: "12 × 14 room", inputs: "8 ft walls, 1 door, 2 windows, 15% pattern waste", result: "365 sq ft of wall — 8 rolls at 55 sq ft each, about $240." },
-    faqs: [{ question: "How much wallpaper is on a roll?", answer: "A US double roll (27 in × 27 ft) is 60.75 square feet nominal, but pattern repeats and trimming leave about 50–55 usable. European and peel-and-stick rolls differ — enter the coverage printed on your roll's label." }, { question: "What is pattern waste?", answer: "The extra material consumed matching the pattern at every seam and trimming top and bottom. Small repeats waste little; large drop patterns of 24 inches or more can eat 20 to 25 percent." }, { question: "What is a dye lot, and why does it matter?", answer: "Wallpaper is printed in batches, and small color shifts between batches are visible where sheets meet. Buy every roll — plus one spare — from the same dye lot in a single order." }, { question: "Can I wallpaper over existing wallpaper?", answer: "Usually not a good idea. Seams telegraph through and adhesion fails on the old paste. Strip the old paper, prime, then hang — the prep is most of the job." }],
-    seo: { title: "Wallpaper Calculator – Rolls & Cost | CalcForged", description: "Calculate wallpaper rolls and cost for a room, minus doors and windows, with pattern waste and dye-lot guidance.", h1: "Wallpaper calculator", intro: "Wallpaper punishes two mistakes equally: one roll short, and rolls from different dye lots. This calculator works from the room's wall area — perimeter × height, minus doors and windows — then adds a pattern-waste allowance for the material that disappears into matching repeats and trim cuts. Rolls come from your roll's actual usable coverage, not its nominal size, and the dye-lot note is there before you order, not after the seams show." },
-    related: ["paint", "flooring"],
-  },
-  {
-    slug: "mortgage", name: "Mortgage Calculator", category: "Finance", categorySlug: "finance", icon: "▤", description: "Estimate your monthly mortgage payment, including taxes and insurance.",
-    fields: [{ key: "homePrice", label: "Home price", type: "number", unit: "$", min: 10000, step: 1000, defaultValue: 400000 }, { key: "downPayment", label: "Down payment", type: "number", unit: "$", min: 0, step: 1000, defaultValue: 80000 }, { key: "rate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 25, step: 0.05, defaultValue: 6.5 }, { key: "term", label: "Loan term", type: "select", defaultValue: "30", options: [{ label: "30 years", value: "30" }, { label: "20 years", value: "20" }, { label: "15 years", value: "15" }, { label: "10 years", value: "10" }] }, { key: "tax", label: "Property tax per year", type: "number", unit: "$", min: 0, step: 100, defaultValue: 3600 }, { key: "insurance", label: "Home insurance per year", type: "number", unit: "$", min: 0, step: 100, defaultValue: 1500 }],
-    results: [{ key: "loan", label: "Loan amount", unit: "$", format: "currency" }, { key: "monthlyPI", label: "Principal & interest", unit: "$/mo", format: "currency" }, { key: "monthlyTotal", label: "Estimated total monthly", unit: "$/mo", format: "currency", estimate: true, interpretation: "Principal, interest, property tax, and insurance." }, { key: "totalInterest", label: "Total interest over the loan", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => {
-      const price = n(v, "homePrice", 400000); const principal = Math.max(0, price - n(v, "downPayment", 80000));
-      const r = n(v, "rate", 6.5) / 1200; const months = Number(option(v, "term", "30")) * 12;
-      const pi = r === 0 ? principal / months : principal * r / (1 - (1 + r) ** -months);
-      const taxMo = n(v, "tax", 3600) / 12; const insMo = n(v, "insurance", 1500) / 12;
-      return { loan: Math.round(principal), monthlyPI: round(pi, 2), monthlyTotal: round(pi + taxMo + insMo, 2), totalInterest: round(pi * months - principal, 0) };
-    },
-    howItWorks: ["The loan amount is the home price minus your down payment.", "Principal and interest use the standard amortization formula: loan × monthly rate ÷ (1 − (1 + monthly rate)⁻ⁿ).", "Property tax and insurance are divided into monthly amounts and added to the payment; escrow for HOA dues or mortgage insurance is not included."],
-    example: { title: "$400,000 home", inputs: "$80,000 down, 6.5% for 30 years, $3,600 tax, $1,500 insurance", result: "About $2,023 principal & interest, or roughly $2,448 total monthly." },
-    faqs: [{ question: "Does this include PMI?", answer: "No. If your down payment is under 20%, most lenders add private mortgage insurance, which is not part of this estimate." }, { question: "Why is my escrow payment different?", answer: "Lenders collect taxes and insurance into escrow and may keep a cushion, so the escrow portion of a real bill can differ from a simple division by twelve." }, { question: "How much does a shorter term save?", answer: "A shorter term raises the monthly payment but cuts total interest dramatically — compare 15 and 30 years in the term selector." }, { question: "What interest rate should I use?", answer: "Use the rate from a current lender quote or pre-approval. Headline rates you see advertised often assume points and strong credit." }],
-    seo: { title: "Mortgage Calculator – Monthly Payment Estimate | CalcForged", description: "Estimate your monthly mortgage payment with principal, interest, property tax, and insurance included.", h1: "Mortgage calculator", intro: "A mortgage payment is more than the loan. Enter the home price, down payment, interest rate, and term to see the principal-and-interest portion, then add your expected property tax and insurance for a realistic monthly total. The calculator uses the standard amortization formula lenders use, so it is a solid starting point before you compare official loan estimates. Remember that a down payment under 20% usually adds private mortgage insurance, and closing costs are separate from everything shown here." },
-    related: ["loan", "compound-interest", "investment"],
-  },
-  {
-    slug: "loan", name: "Loan Calculator", category: "Finance", categorySlug: "finance", icon: "$", description: "See the monthly payment, total interest, and payoff cost for any fixed loan.",
-    fields: [{ key: "amount", label: "Loan amount", type: "number", unit: "$", min: 100, step: 100, defaultValue: 25000 }, { key: "rate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 40, step: 0.05, defaultValue: 8.5 }, { key: "months", label: "Term", type: "number", unit: "months", min: 1, max: 480, defaultValue: 60 }],
-    results: [{ key: "monthly", label: "Monthly payment", unit: "$/mo", format: "currency" }, { key: "totalInterest", label: "Total interest", unit: "$", format: "currency", estimate: true }, { key: "totalPaid", label: "Total repaid", unit: "$", format: "currency", estimate: true }, { key: "interestShare", label: "Interest as share of payments", unit: "%", format: "percent" }],
-    calculate: (v) => {
-      const principal = n(v, "amount", 25000); const r = n(v, "rate", 8.5) / 1200; const months = Math.max(1, n(v, "months", 60));
-      const monthly = r === 0 ? principal / months : principal * r / (1 - (1 + r) ** -months);
-      const totalPaid = monthly * months; const interest = totalPaid - principal;
-      return { monthly: round(monthly, 2), totalInterest: round(interest, 0), totalPaid: round(totalPaid, 0), interestShare: principal ? round((interest / totalPaid) * 100, 1) : 0 };
-    },
-    howItWorks: ["Monthly payment uses the standard amortization formula for a fixed-rate, fixed-term loan.", "Total repaid is the monthly payment multiplied by the number of months.", "Total interest is everything you pay above the amount borrowed; it assumes no extra payments and no fees."],
-    example: { title: "$25,000 personal loan", inputs: "8.5% over 60 months", result: "About $512.91 per month and $5,775 total interest." },
-    faqs: [{ question: "Does this work for car loans?", answer: "Yes. Any fixed-rate, fixed-term installment loan — personal, auto, or student — uses the same formula." }, { question: "Are origination fees included?", answer: "No. Fees are not interest, but they raise your real cost. Some loans add them to the balance, so you could enter a slightly higher loan amount to account for that." }, { question: "What happens if I pay extra each month?", answer: "Extra payments go straight to principal and shorten the loan, so your actual total interest would be lower than shown." }, { question: "Why does a longer term cost more?", answer: "A longer term lowers the monthly payment but keeps interest accruing for more months, so the total interest grows even at the same rate." }],
-    seo: { title: "Loan Calculator – Monthly Payment & Total Interest | CalcForged", description: "Estimate fixed-rate loan payments, total interest, and repayment from your amount, rate, and term. Compare loan terms before committing; fees are not included.", h1: "Loan calculator", intro: "Before you sign for a personal, auto, or business loan, it helps to see the whole picture: the monthly payment, the total interest, and what the loan really costs end to end. Enter the amount, rate, and term in months and the calculator applies the standard amortization formula lenders use for fixed installment loans. Try a shorter term or a lower rate to see how much interest each change saves, and remember that fees and extra payments are not part of this estimate." },
-    related: ["mortgage", "compound-interest", "savings"],
-  },
-  {
-    slug: "auto-loan-payoff", name: "Auto Loan Cost & Payoff Calculator", category: "Automotive", categorySlug: "automotive", icon: "◈", description: "Estimate an auto loan payment, total vehicle cost, and how extra monthly principal could change the payoff.",
-    fields: [
-      { key: "vehiclePrice", label: "Vehicle price", type: "number", unit: "$", min: 0, max: 500000, step: 500, defaultValue: 32000 },
-      { key: "taxAndFees", label: "Sales tax and fees", type: "number", unit: "$", min: 0, max: 100000, step: 100, defaultValue: 2500, help: "Enter the combined amount from your quote; tax rules vary by location." },
-      { key: "downPayment", label: "Down payment", type: "number", unit: "$", min: 0, max: 500000, step: 500, defaultValue: 4000 },
-      { key: "tradeEquity", label: "Net trade-in equity (+/-)", type: "number", unit: "$", min: -100000, max: 100000, step: 100, defaultValue: 0, help: "Positive equity reduces the loan. Negative equity adds what you still owe above the trade-in value." },
-      { key: "apr", label: "APR", type: "number", unit: "%", min: 0, max: 40, step: 0.05, defaultValue: 6.5 },
-      { key: "termMonths", label: "Loan term", type: "select", defaultValue: "60", options: [{ label: "36 months", value: "36" }, { label: "48 months", value: "48" }, { label: "60 months", value: "60" }, { label: "72 months", value: "72" }, { label: "84 months", value: "84" }, { label: "96 months", value: "96" }] },
-      { key: "extraPayment", label: "Extra principal each month", type: "number", unit: "$", min: 0, max: 10000, step: 25, defaultValue: 100, help: "Check that your lender applies extra money to principal." },
-    ],
-    results: [
-      { key: "amountFinanced", label: "Estimated amount financed", unit: "$", format: "currency" },
-      { key: "monthlyPayment", label: "Scheduled monthly payment", unit: "$/mo", format: "currency", estimate: true },
-      { key: "scheduledInterest", label: "Interest with scheduled payments", unit: "$", format: "currency", estimate: true },
-      { key: "totalCostScheduled", label: "Vehicle cost with scheduled payments", unit: "$", format: "currency", estimate: true, interpretation: "Vehicle price, entered taxes and fees, and modeled loan interest. Excludes ownership costs." },
-      { key: "monthlyWithExtra", label: "Monthly outflow with extra", unit: "$/mo", format: "currency", estimate: true },
-      { key: "payoffMonthsWithExtra", label: "Modeled payoff with extra", unit: "months", format: "number", estimate: true },
-      { key: "interestWithExtra", label: "Interest with extra payments", unit: "$", format: "currency", estimate: true },
-      { key: "interestSaved", label: "Modeled interest saved", unit: "$", format: "currency", estimate: true },
-      { key: "totalCostWithExtra", label: "Vehicle cost with extra payments", unit: "$", format: "currency", estimate: true },
-    ],
-    calculate: (v) => {
-      const vehiclePrice = Math.max(0, n(v, "vehiclePrice", 32000));
-      const taxAndFees = Math.max(0, n(v, "taxAndFees", 2500));
-      const cashPrice = vehiclePrice + taxAndFees;
-      const downPayment = Math.max(0, n(v, "downPayment", 4000));
-      const tradeEquity = n(v, "tradeEquity", 0);
-      const principal = Math.max(0, cashPrice - downPayment - tradeEquity);
-      const annualRate = Math.min(40, Math.max(0, n(v, "apr", 6.5)));
-      const rate = annualRate / 1200;
-      const months = Math.min(96, Math.max(1, Math.round(n(v, "termMonths", 60))));
-      const extra = Math.max(0, n(v, "extraPayment", 100));
-      const rawPayment = principal === 0 ? 0 : rate === 0 ? principal / months : principal * rate / (1 - (1 + rate) ** -months);
-      const monthlyPayment = Math.ceil(rawPayment * 100) / 100;
-      const simulate = (payment: number) => {
-        let balance = principal;
-        let interest = 0;
-        let totalPaid = 0;
-        let periods = 0;
-        while (balance > 0.004 && periods < months) {
-          const periodInterest = balance * rate;
-          const due = balance + periodInterest;
-          const paid = Math.min(due, payment);
-          interest += periodInterest;
-          totalPaid += paid;
-          balance = Math.max(0, due - paid);
-          periods++;
-        }
-        return { interest: round(interest, 2), totalPaid: round(totalPaid, 2), periods };
-      };
-      const scheduled = simulate(monthlyPayment);
-      const accelerated = simulate(monthlyPayment + extra);
-      const interestSaved = round(Math.max(0, scheduled.interest - accelerated.interest), 2);
-      return {
-        amountFinanced: round(principal, 2), monthlyPayment, scheduledInterest: scheduled.interest,
-        totalCostScheduled: round(cashPrice + scheduled.interest, 2), monthlyWithExtra: round(monthlyPayment + extra, 2),
-        payoffMonthsWithExtra: accelerated.periods, interestWithExtra: accelerated.interest, interestSaved,
-        totalCostWithExtra: round(cashPrice + accelerated.interest, 2),
-      };
-    },
-    howItWorks: ["Add the vehicle price and the taxes and fees from your quote, then subtract your down payment and net trade-in equity. Negative equity increases the amount financed.", "The scheduled payment uses a fixed-rate monthly amortization estimate. The comparison then models interest on the remaining balance each month and applies any extra payment to principal.", "Vehicle cost adds the entered purchase price and fees to modeled loan interest. It does not include insurance, fuel, maintenance, or other ownership costs."],
-    example: { title: "Compare an auto purchase", inputs: "$32,000 vehicle, $2,500 taxes and fees, $4,000 down, 6.5% APR for 60 months, plus $100 monthly", result: "$596.77 monthly as scheduled and $39,806.02 total vehicle cost. With $100 extra each month: 51 months, $38,907.50 total, and $898.52 less interest." },
-    faqs: [{ question: "Is this an exact lender payoff quote?", answer: "No. It models monthly interest on a fixed-rate balance. Actual auto loans may accrue interest daily, and payment timing, fees, and contract terms can change the lender's figure. Request a dated payoff quote before closing the loan." }, { question: "How should I enter trade-in equity?", answer: "Enter the trade-in value minus the payoff on your current vehicle. Positive equity reduces the new loan; negative equity adds to it. Put sales tax and fees in their own field." }, { question: "Will extra payments reduce interest?", answer: "This estimate assumes extra payments are credited to principal on a simple-interest style balance. Check your contract and ask your lender how extra payments are applied; precomputed interest and fees can change the result." }, { question: "What is included in total vehicle cost?", answer: "It includes the vehicle price, the taxes and fees you enter, and modeled loan interest. It excludes insurance, fuel, maintenance, registration renewals, and other costs of ownership." }],
-    seo: { title: "Auto Loan Cost & Payoff Calculator | CalcForged", description: "Estimate an auto loan payment, amount financed, total vehicle cost, and interest savings from extra monthly principal payments.", h1: "Auto loan cost and payoff calculator", intro: "A car payment is only part of the purchase cost. Enter the vehicle price, taxes and fees, down payment, net trade-in equity, APR, and term to estimate the amount financed and scheduled payment. Then compare the modeled interest and payoff time if you add extra principal each month. The estimate uses monthly periods; your contract, daily interest, payment dates, and lender instructions determine the exact payoff." },
-    related: ["loan", "fuel-mileage", "tire-size"],
-  },
-  {
-    slug: "investment", name: "Investment Calculator", category: "Finance", categorySlug: "finance", icon: "↗", description: "Project the growth of a one-time investment plus ongoing monthly contributions.",
-    fields: [{ key: "initial", label: "Starting amount", type: "number", unit: "$", min: 0, step: 100, defaultValue: 10000 }, { key: "monthly", label: "Monthly contribution", type: "number", unit: "$", min: 0, step: 10, defaultValue: 500 }, { key: "returnRate", label: "Expected annual return", type: "number", unit: "%", min: -10, max: 30, step: 0.1, defaultValue: 7 }, { key: "years", label: "Years invested", type: "number", unit: "years", min: 1, max: 60, defaultValue: 20 }],
-    results: [{ key: "futureValue", label: "Projected value", unit: "$", format: "currency", estimate: true }, { key: "totalDeposits", label: "Total contributed", unit: "$", format: "currency" }, { key: "growth", label: "Investment growth", unit: "$", format: "currency", estimate: true }],
-    calculate: (v) => {
-      const initial = n(v, "initial", 10000); const monthly = n(v, "monthly", 500); const years = n(v, "years", 20);
-      const i = n(v, "returnRate", 7) / 1200; const months = years * 12;
-      const growthFactor = i === 0 ? months : ((1 + i) ** months - 1) / i;
-      const fv = initial * (1 + i) ** months + monthly * growthFactor;
-      const deposits = initial + monthly * months;
-      return { futureValue: round(fv, 0), totalDeposits: round(deposits, 0), growth: round(fv - deposits, 0) };
-    },
-    howItWorks: ["The starting balance compounds monthly at your expected annual return.", "Each monthly contribution is treated as an end-of-month deposit earning the same rate.", "Investment growth is the projected value minus everything you contributed — the part compounding did on its own."],
-    example: { title: "20-year plan", inputs: "$10,000 start, $500/month, 7% annual return", result: "Roughly $301,000 projected value from $130,000 contributed." },
-    faqs: [{ question: "What return should I assume?", answer: "Long-run diversified stock index returns have historically averaged around 7% nominal per year, but future returns are never guaranteed. Run conservative, moderate, and optimistic scenarios." }, { question: "Does this account for inflation?", answer: "No. Results are in today's dollars at the return you enter. A real return of 4–5% (nominal return minus inflation) gives a rougher but more honest picture." }, { question: "Are taxes and fees included?", answer: "No. Account fees, expense ratios, and taxes on gains all reduce the real result, sometimes by 1% a year or more." }, { question: "Why does the growth column get so large?", answer: "Compounding: your returns start earning their own returns. Over long horizons, growth routinely exceeds everything you deposited." }],
-    seo: { title: "Investment Calculator – Project Portfolio Growth | CalcForged", description: "Project investment growth from a starting balance and monthly contributions at any expected return.", h1: "Investment calculator", intro: "The most motivating part of investing is watching compounding take over, and the clearest way to see it is to run the numbers. Enter a starting amount, a monthly contribution, an expected annual return, and a time horizon. The calculator projects the future value with monthly compounding and splits the result into what you contributed versus what growth added. Use it for retirement planning, a brokerage account, or comparing what an extra $100 a month is worth over 20 years." },
-    related: ["compound-interest", "savings", "loan"],
-  },
-  {
-    slug: "savings", name: "Savings Calculator", category: "Finance", categorySlug: "finance", icon: "◉", description: "Find out when you'll hit a savings goal with your current plan.",
-    fields: [{ key: "goal", label: "Savings goal", type: "number", unit: "$", min: 100, step: 100, defaultValue: 20000 }, { key: "current", label: "Current savings", type: "number", unit: "$", min: 0, step: 100, defaultValue: 5000 }, { key: "monthly", label: "Monthly deposit", type: "number", unit: "$", min: 0, step: 10, defaultValue: 400 }, { key: "returnRate", label: "Interest rate", type: "number", unit: "%", min: 0, max: 15, step: 0.1, defaultValue: 4 }],
-    results: [{ key: "months", label: "Months to reach goal", unit: "months", format: "number", estimate: true }, { key: "years", label: "That's about", unit: "years", format: "number", estimate: true }, { key: "deposits", label: "You'll have deposited", unit: "$", format: "currency" }, { key: "status", label: "Plan check", format: "text" }],
-    calculate: (v) => {
-      const goal = n(v, "goal", 20000); const monthly = n(v, "monthly", 400); const i = n(v, "returnRate", 4) / 1200;
-      let balance = n(v, "current", 5000); let months = 0;
-      while (balance < goal && months < 1200) { balance = balance * (1 + i) + monthly; months += 1; }
-      if (balance < goal) return { months: "—", years: "—", deposits: round(n(v, "current", 5000) + monthly * 1200, 0), status: "Not reachable at this pace — raise the deposit or the rate." };
-      return { months, years: round(months / 12, 1), deposits: round(n(v, "current", 5000) + monthly * months, 0), status: "On track with this plan." };
-    },
-    howItWorks: ["Each month, interest is applied to the balance, then your deposit is added.", "The loop runs until the balance reaches your goal, up to 100 years.", "If the plan never gets there — for example, deposits that don't cover interest losses — the check result tells you plainly."],
-    example: { title: "$20,000 emergency fund", inputs: "$5,000 saved, $400/month at 4%", result: "About 35 months — just under 3 years." },
-    faqs: [{ question: "What interest rate should I use?", answer: "High-yield savings accounts move with the market; use your account's current APY. For cash under a mattress, use 0%." }, { question: "What if I already reached my goal?", answer: "If current savings already meet or exceed the goal, the result is zero months." }, { question: "Does this include withdrawals?", answer: "No. It assumes deposits only. If you'll dip into the fund along the way, aim for a higher goal." }, { question: "Why does the result say 'not reachable'?", answer: "If your monthly deposit is zero and interest alone can't close the gap, no number of months gets you there — the tool flags it instead of guessing." }],
-    seo: { title: "Savings Calculator – When Will I Reach My Goal? | CalcForged", description: "Calculate how long it takes to reach a savings goal with monthly deposits and interest.", h1: "Savings calculator", intro: "A savings goal becomes real when it has a date. Enter your target, what you have saved, your monthly deposit, and the interest your account pays. The calculator walks the balance forward month by month — interest first, then your deposit — and tells you when you arrive, how much you'll have deposited along the way, and whether the plan works at all. Use it for an emergency fund, a house down payment, a car, or a trip." },
-    related: ["investment", "compound-interest", "loan"],
-  },
-  {
-    slug: "compound-interest", name: "Compound Interest Calculator", category: "Finance", categorySlug: "finance", icon: "$", description: "Watch principal, interest, and compounding frequency grow a balance over time.",
-    fields: [{ key: "principal", label: "Starting principal", type: "number", unit: "$", min: 0, step: 100, defaultValue: 5000 }, { key: "rate", label: "Annual interest rate", type: "number", unit: "%", min: 0, max: 30, step: 0.1, defaultValue: 5 }, { key: "frequency", label: "Compounding frequency", type: "select", defaultValue: "12", options: [{ label: "Daily", value: "365" }, { label: "Monthly", value: "12" }, { label: "Quarterly", value: "4" }, { label: "Annually", value: "1" }] }, { key: "years", label: "Years", type: "number", unit: "years", min: 1, max: 60, defaultValue: 10 }, { key: "monthlyAdd", label: "Additional monthly deposit", type: "number", unit: "$", min: 0, step: 10, defaultValue: 100 }],
-    results: [{ key: "futureValue", label: "Final balance", unit: "$", format: "currency", estimate: true }, { key: "deposits", label: "Total deposited", unit: "$", format: "currency" }, { key: "interest", label: "Interest earned", unit: "$", format: "currency", estimate: true }, { key: "apy", label: "Effective annual rate", unit: "%", format: "percent" }],
-    calculate: (v) => {
-      const principal = n(v, "principal", 5000); const years = n(v, "years", 10); const monthlyAdd = n(v, "monthlyAdd", 100);
-      const freq = Number(option(v, "frequency", "12")); const r = n(v, "rate", 5) / 100; const periods = freq * years;
-      const perPeriod = r / freq; const factor = (1 + perPeriod) ** periods;
-      const fv = principal * factor + monthlyAdd * (freq / 12) * ((factor - 1) / (perPeriod || 1));
-      const deposits = principal + monthlyAdd * years * 12;
-      return { futureValue: round(fv, 2), deposits: round(deposits, 0), interest: round(fv - deposits, 2), apy: round(((1 + r / freq) ** freq - 1) * 100, 3) };
-    },
-    howItWorks: ["The principal grows at rate ÷ frequency, compounded once per period for all periods.", "Monthly deposits are converted to the compounding period and earn the same rate — an approximation when deposits and compounding don't align exactly.", "The effective annual rate shows what your nominal rate is really worth once compounding frequency is applied."],
-    example: { title: "$5,000 at 5%", inputs: "Compounded monthly, 10 years, $100/month added", result: "About $23,763 final balance, with $6,763 of it interest." },
-    faqs: [{ question: "What's the difference between APR and APY?", answer: "APR is the nominal annual rate; APY includes the effect of compounding. A 5% rate compounded monthly is about 5.12% APY." }, { question: "How much does daily compounding help?", answer: "Marginally — daily versus monthly compounding changes a 5% rate by about 0.01% a year. Term and rate matter far more than frequency." }, { question: "Does this work for debt?", answer: "The math is identical, which is exactly why credit card balances grow so fast. Enter your card's APR to see what a balance becomes if you pay only interest." }, { question: "Why is the interest estimate approximate with deposits?", answer: "The formula assumes each deposit compounds for an average period. Real accounts credit deposits on the day they arrive, which shifts results by a few dollars." }],
-    seo: { title: "Compound Interest Calculator – Growth Over Time | CalcForged", description: "Calculate compound interest with any compounding frequency, plus monthly deposits and effective rate.", h1: "Compound interest calculator", intro: "Compound interest is the engine behind both savings growth and debt growth, and small changes in rate or time swing the result surprisingly hard. Enter a starting principal, rate, compounding frequency, and optional monthly deposits to see the final balance, total interest earned, and the effective annual rate your nominal rate really delivers. Use it to compare savings accounts, project a certificate of deposit, or understand what a credit card balance does when left alone." },
-    related: ["investment", "savings", "loan"],
-  },
-  {
-    slug: "bmi", name: "BMI Calculator", category: "Health", categorySlug: "health", icon: "⚖", description: "Compute Body Mass Index and see where it falls on the standard scale.",
-    fields: [{ key: "weight", label: "Weight", type: "number", min: 20, max: 1000, step: 0.1, defaultValue: 154 }, { key: "weightUnit", label: "Weight unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }] }, { key: "height", label: "Height", type: "number", min: 20, max: 120, step: 0.5, defaultValue: 67 }, { key: "heightUnit", label: "Height unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }] }],
-    results: [{ key: "bmi", label: "Your BMI", format: "number" }, { key: "category", label: "Standard category", format: "text" }, { key: "healthyRange", label: "Healthy weight range", format: "text", estimate: true }],
-    calculate: (v) => {
-      const weight = n(v, "weight", 154); const height = n(v, "height", 67);
-      const kg = option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
-      const meters = option(v, "heightUnit", "in") === "in" ? height * 0.0254 : height / 100;
-      if (meters <= 0) return { bmi: "—", category: "Enter a valid height", healthyRange: "—" };
-      const bmi = kg / (meters * meters);
-      const category = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy weight" : bmi < 30 ? "Overweight" : "Obesity";
-      const lowKg = 18.5 * meters * meters; const highKg = 24.9 * meters * meters;
-      const toDisplay = (kgValue: number) => option(v, "weightUnit", "lb") === "lb" ? `${Math.round(kgValue / 0.45359237)} lb` : `${Math.round(kgValue)} kg`;
-      return { bmi: round(bmi, 1), category, healthyRange: `${toDisplay(lowKg)} – ${toDisplay(highKg)} for your height` };
-    },
-    howItWorks: ["Weight is converted to kilograms and height to meters.", "BMI equals kilograms divided by height in meters squared.", "The category bands are the standard adult cutoffs: under 18.5, 18.5–24.9, 25–29.9, and 30+."],
-    example: { title: "154 lb at 5'7\"", inputs: "154 lb, 67 inches", result: "BMI of about 24.1 — healthy weight, with a range of roughly 118–159 lb." },
-    faqs: [{ question: "Is BMI accurate for everyone?", answer: "No. It doesn't distinguish muscle from fat, so athletes often score high, and it isn't calibrated for children, pregnancy, or adults over 65." }, { question: "What BMI is healthy?", answer: "For most adults, 18.5 to 24.9 is the standard healthy band, but individual health depends on far more than this one number." }, { question: "Why does the healthy range use my weight unit?", answer: "The range is calculated from your height and shown in the same unit you entered, so you can compare it directly with your weight." }, { question: "Should I use BMI or body fat percentage?", answer: "BMI is a quick population-level screen; body composition measures say more about individual risk. Treat BMI as a starting point, not a diagnosis." }],
-    seo: { title: "BMI Calculator – Body Mass Index | CalcForged", description: "Calculate Body Mass Index in pounds or kilograms and see the standard weight category.", h1: "BMI calculator", intro: "Body Mass Index is the fastest general screen for whether your weight is in a standard healthy band for your height. Enter your weight and height in whichever units you use — pounds or kilograms, inches or centimeters — and the calculator returns your BMI, the standard category, and the weight range that corresponds to a healthy BMI for someone your height. BMI is a population screening tool, not a diagnosis: it can't tell muscle from fat, so use it as a starting point for a conversation with a healthcare provider." },
-    related: ["pregnancy-due-date", "weight-converter", "age"],
-  },
-  {
-    slug: "walking-steps", name: "Walking Steps Calculator", category: "Health", categorySlug: "health", icon: "↗", description: "Estimate walking distance from steps and your measured step length, with an optional MET-based calorie estimate.",
-    fields: [
-      { key: "steps", label: "Step count", type: "number", min: 0, max: 10000000, step: 1, defaultValue: 5000 },
-      { key: "stepLengthMode", label: "Step length", type: "select", defaultValue: "direct", options: [{ label: "Enter a measured step length", value: "direct" }, { label: "Calculate from a measured walk", value: "measured" }] },
-      { key: "stepLength", label: "Distance per step", type: "number", unit: "in or cm", min: 0.01, max: 500, step: 0.01, defaultValue: "", visibleWhen: { key: "stepLengthMode", values: ["direct"] }, help: "One step is one foot placement, not a two-step stride." },
-      { key: "stepUnit", label: "Step-length unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }], visibleWhen: { key: "stepLengthMode", values: ["direct"] } },
-      { key: "calibrationDistance", label: "Measured walking distance", type: "number", unit: "ft or m", min: 0.01, max: 100000, step: 0.01, defaultValue: "", visibleWhen: { key: "stepLengthMode", values: ["measured"] } },
-      { key: "calibrationUnit", label: "Distance unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Meters", value: "m" }], visibleWhen: { key: "stepLengthMode", values: ["measured"] } },
-      { key: "calibrationSteps", label: "Steps counted over that distance", type: "number", min: 1, max: 1000000, step: 1, defaultValue: "", visibleWhen: { key: "stepLengthMode", values: ["measured"] } },
-      { key: "bodyWeight", label: "Body weight (optional, for calories)", type: "number", min: 0, max: 1000, step: 0.1, defaultValue: "" },
-      { key: "weightUnit", label: "Weight unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }] },
-      { key: "walkingMinutes", label: "Walking time (optional, for calories)", type: "number", unit: "minutes", min: 0, max: 100000, step: 1, defaultValue: "" },
-      { key: "walkingIntensity", label: "Closest level-walking pace (for calories)", type: "select", defaultValue: "3.8", options: WALKING_MET_OPTIONS, help: "Choose the 2024 Adult Compendium entry closest to the walk; terrain and personal effort can differ." },
-    ],
-    results: [{ key: "distanceMiles", label: "Estimated distance", format: "text", estimate: true }, { key: "distanceKm", label: "Metric distance", format: "text", estimate: true }, { key: "stepLengthUsed", label: "Step length used", format: "text" }, { key: "calories", label: "Estimated gross calories", format: "text", estimate: true, interpretation: "This optional MET estimate includes energy used at rest during the entered time." }],
-    calculate: (v) => {
-      const steps = Math.max(0, n(v, "steps", 0));
-      const mode = option(v, "stepLengthMode", "direct");
-      let stepLengthMeters = 0;
-      if (mode === "measured") {
-        const measuredDistance = n(v, "calibrationDistance", 0);
-        const measuredSteps = n(v, "calibrationSteps", 0);
-        const meters = option(v, "calibrationUnit", "ft") === "m" ? measuredDistance : measuredDistance * 0.3048;
-        if (measuredDistance > 0 && measuredSteps > 0) stepLengthMeters = meters / measuredSteps;
-      } else {
-        const enteredLength = n(v, "stepLength", 0);
-        stepLengthMeters = option(v, "stepUnit", "in") === "cm" ? enteredLength / 100 : enteredLength * 0.0254;
-      }
-      if (stepLengthMeters <= 0) return { distanceMiles: "Enter a positive step length or a measured distance and step count.", distanceKm: "Enter a positive step length or a measured distance and step count.", stepLengthUsed: "—", calories: "Add a step length before estimating distance." };
-      const distanceMeters = steps * stepLengthMeters;
-      const weight = n(v, "bodyWeight", 0);
-      const minutes = n(v, "walkingMinutes", 0);
-      const weightKg = option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
-      const met = Number(option(v, "walkingIntensity", "3.8"));
-      const calories = weightKg > 0 && minutes > 0 && met > 0 ? `${Math.round(met * weightKg * minutes / 60).toLocaleString("en-US")} kcal` : "Add body weight and walking time for a MET-based estimate.";
-      return { distanceMiles: `${round(distanceMeters / 1609.344, 2)} mi`, distanceKm: `${round(distanceMeters / 1000, 2)} km`, stepLengthUsed: `${round(stepLengthMeters / 0.0254, 1)} in per step (${round(stepLengthMeters * 100, 1)} cm)`, calories };
-    },
-    howItWorks: ["Enter the distance covered by one foot placement, or measure a known path and divide its distance by the steps you counted. Do not enter a two-step stride as a step length.", "Distance equals step count × step length. The calculator converts your input to miles and kilometers using exact length-unit factors.", "Calories are optional: enter body weight, actual walking minutes, and the closest listed level-walking intensity. The 2024 Adult Compendium defines 1 MET as about 1 kcal per kg per hour; this estimate uses MET × kilograms × hours and includes resting energy."],
-    example: { title: "A measured one-mile walk", inputs: "2,112 steps at 30 inches per step", result: "About 1.00 mile (1.61 km). A calorie estimate appears only when body weight and walking time are entered." },
-    faqs: [
-      { question: "How do I find my step length?", answer: "Walk a measured, flat distance at your usual pace and count each foot placement. Divide the distance by that count. For a better personal estimate, repeat the measurement and average the results." },
-      { question: "Is step length the same as stride length?", answer: "No. Step length is the distance for one foot placement. Stride length usually covers two steps, so entering a full stride here would roughly double the distance." },
-      { question: "How are walking calories estimated?", answer: "The optional estimate requires your weight, walking duration, and a selected walking MET value from the 2024 Adult Compendium. It does not multiply steps by a universal calories-per-step factor; actual energy use varies by person and conditions." },
-      { question: "Are the results exact?", answer: "No. Distance depends on the step length you enter or measure. The optional calorie result is a gross population-level estimate, not an individual measurement or medical advice." },
-    ],
-    sources: [{ label: "2024 Adult Compendium of Physical Activities, Walking MET values", url: "https://pacompendium.com/walking/" }, { label: "Compendium of Physical Activities, MET definition and conversion", url: "https://pacompendium.com/" }],
-    seo: { title: "Walking Steps Calculator: Steps to Miles and Kilometers | CalcForged", description: "Estimate walking distance from steps using your measured step length, with an optional sourced MET-based calorie estimate.", h1: "Walking steps to distance calculator", intro: "Turn a step count into an estimated distance using your own step length, or calculate it from a measured walk. Add your body weight, walking time, and a matching Compendium pace only if you want the optional calorie estimate. Step length varies, and the calorie result is a rough gross-energy estimate, not a personal measurement." },
-    related: ["length-converter", "calorie-tdee", "bmi"],
-  },
-  {
-    slug: "calorie-tdee", name: "Calorie and TDEE Calculator", category: "Health", categorySlug: "health", icon: "◉", description: "Estimate resting energy expenditure and total daily energy expenditure with Mifflin–St Jeor.",
-    fields: [
-      { key: "weight", label: "Body weight", type: "number", min: 0.1, max: 1000, step: 0.1, defaultValue: "" },
-      { key: "weightUnit", label: "Weight unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }] },
-      { key: "height", label: "Height", type: "number", min: 0.1, max: 300, step: 0.1, defaultValue: "" },
-      { key: "heightUnit", label: "Height unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters (cm)", value: "cm" }] },
-      { key: "age", label: "Age in years (study sample: 19–78)", type: "number", min: 19, max: 78, step: 1, defaultValue: "" },
-      { key: "equationConstant", label: "Equation constant from the source study", type: "select", defaultValue: "", options: [{ label: "Choose an equation constant", value: "" }, { label: "Female equation (−161)", value: "female" }, { label: "Male equation (+5)", value: "male" }], help: "The original model used two study categories; this constant is not a personalized gender assessment." },
-      { key: "activityFactor", label: "Activity assumption", type: "select", defaultValue: "", options: TDEE_ACTIVITY_OPTIONS, help: "These broad multipliers are assumptions, not a measured activity score." },
-    ],
-    results: [{ key: "resting", label: "Estimated resting energy", format: "text", estimate: true }, { key: "tdee", label: "Estimated total daily energy", format: "text", estimate: true }, { key: "activity", label: "Activity adjustment used", format: "text" }],
-    calculate: (v) => {
-      const weight = n(v, "weight", 0);
-      const height = n(v, "height", 0);
-      const age = n(v, "age", 0);
-      const equation = option(v, "equationConstant", "");
-      const activityFactor = Number(option(v, "activityFactor", ""));
-      if (age > 0 && (age < 19 || age > 78)) return { resting: "The source study's adult sample was ages 19–78; no estimate is shown outside that range.", tdee: "The source study's adult sample was ages 19–78; no estimate is shown outside that range.", activity: "—" };
-      if (weight <= 0 || height <= 0 || age <= 0 || !["male", "female"].includes(equation)) return { resting: "Enter weight, height, age, and the equation constant.", tdee: "Enter those details and choose an activity assumption.", activity: "Choose an activity assumption." };
-      if (!TDEE_ACTIVITY_LABELS[String(activityFactor)]) return { resting: "Complete the inputs to calculate an estimate.", tdee: "Choose an activity assumption to estimate daily energy.", activity: "Choose an activity assumption." };
-      const weightKg = option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
-      const heightCm = option(v, "heightUnit", "in") === "in" ? height * 2.54 : height;
-      const constant = equation === "male" ? 5 : -161;
-      const resting = 10 * weightKg + 6.25 * heightCm - 5 * age + constant;
-      const tdee = resting * activityFactor;
-      const activity = TDEE_ACTIVITY_LABELS[String(activityFactor)];
-      return { resting: `${Math.round(resting).toLocaleString("en-US")} kcal/day`, tdee: `${Math.round(tdee).toLocaleString("en-US")} kcal/day`, activity: `×${activityFactor} (${activity})` };
-    },
-    howItWorks: ["Mifflin–St Jeor estimates resting energy: 10 × weight in kg + 6.25 × height in cm − 5 × age, then add 5 for the male equation or subtract 161 for the female equation.", "To estimate total daily energy expenditure (TDEE), multiply resting energy by the selected activity factor: 1.2, 1.375, 1.55, 1.725, or 1.9.", "US weights and heights are converted to kilograms and centimeters first. Results are rounded to whole kcal/day; the activity factor and equation are broad assumptions, not personal measurements."],
-    example: { title: "70 kg, 175 cm, age 30", inputs: "Male equation (+5), moderately active (×1.55)", result: "About 1,649 kcal/day resting energy and 2,556 kcal/day estimated TDEE." },
-    faqs: [
-      { question: "What equation does this use?", answer: "The calculator uses the Mifflin–St Jeor predictive equation for resting energy expenditure, then multiplies by a selected activity factor to estimate TDEE." },
-      { question: "What do the activity factors mean?", answer: "They are broad labels from a common clinical calculation: sedentary ×1.2, lightly active ×1.375, moderately active ×1.55, active ×1.725, and very active ×1.9. They do not measure your daily activity." },
-      { question: "Is this a calorie target or medical advice?", answer: "No. TDEE is an estimate of energy expenditure, not a prescribed intake, diagnosis, or medically personalized calorie target. Individual needs can differ from an equation estimate; ask a qualified health professional for personal guidance." },
-      { question: "Who was the equation studied on?", answer: "The original study derived the equation from 498 healthy adults ages 19–78. Results can differ for individuals and for people outside that study population." },
-    ],
-    sources: [{ label: "Mifflin et al. (1990), original study on PubMed", url: "https://pubmed.ncbi.nlm.nih.gov/2305711/" }, { label: "Medscape, Mifflin–St Jeor equation and activity factors", url: "https://reference.medscape.com/calculator/846/mifflin-st-jeor-equation-calculator" }],
-    seo: { title: "Calorie and TDEE Calculator: Mifflin–St Jeor | CalcForged", description: "Estimate resting energy and TDEE from Mifflin–St Jeor with clear activity multipliers and unit conversions.", h1: "Calorie and TDEE calculator", intro: "Estimate resting energy with Mifflin–St Jeor, then apply a selected activity factor for a rough TDEE. Choose the source-study equation constant and a broad activity assumption. Results are general estimates, not prescribed calorie targets, diagnoses, or personalized medical guidance." },
-    related: ["bmi", "weight-converter", "walking-steps"],
-  },
-  {
-    slug: "pregnancy-due-date", name: "Pregnancy Due Date Calculator", category: "Health", categorySlug: "health", icon: "◷", description: "Estimate a due date from your last period or conception date.",
-    fields: [{ key: "method", label: "Start from", type: "select", defaultValue: "lmp", options: [{ label: "First day of last period", value: "lmp" }, { label: "Conception date", value: "conception" }] }, { key: "date", label: "Date", type: "text", help: "YYYY-MM-DD" }, { key: "cycle", label: "Average cycle length", type: "number", unit: "days", min: 20, max: 45, defaultValue: 28 }, { key: "asOf", label: "Show progress as of", type: "text", defaultToday: true, help: "Leave blank and today fills in automatically" }],
-    results: [{ key: "dueDate", label: "Estimated due date", format: "text", estimate: true }, { key: "conceptionDate", label: "Estimated conception", format: "text", estimate: true }, { key: "progress", label: "Progress on the date above", format: "text", estimate: true }, { key: "trimester", label: "Trimester on that date", format: "text" }],
-    calculate: (v) => {
-      const start = parseYmd(String(v.date ?? ""));
-      if (!start) return { dueDate: "Enter a valid date (YYYY-MM-DD)", conceptionDate: "—", progress: "—", trimester: "—" };
-      const method = option(v, "method", "lmp"); const cycleAdjust = method === "lmp" ? n(v, "cycle", 28) - 28 : 0;
-      const conception = method === "lmp" ? addDaysUtc(start, 14 + cycleAdjust) : start;
-      const due = addDaysUtc(conception, 266);
-      const asOf = parseYmd(String(v.asOf ?? ""));
-      if (!asOf) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: "—", trimester: "—" };
-      const days = Math.floor((asOf.getTime() - start.getTime()) / 86400000);
-      if (days < 0) return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: `Cycle day ${days + 280 > 0 ? Math.max(1, days + 281) : 1}`, trimester: "—" };
-      const weeks = Math.floor(days / 7); const remainder = days % 7;
-      const trimester = weeks < 13 ? "First trimester" : weeks < 27 ? "Second trimester" : "Third trimester";
-      return { dueDate: fmtDate(due), conceptionDate: fmtDate(conception), progress: weeks > 42 ? "Past 42 weeks — speak with your provider" : `${weeks} weeks, ${remainder} days pregnant`, trimester };
-    },
-    howItWorks: ["From the first day of your last period, the estimate adds 280 days, adjusted by your average cycle length (Naegele's rule).", "From a known or estimated conception date, it adds 266 days.", "Progress counts completed weeks and days from the start date to the date shown, using standard obstetric counting."],
-    example: { title: "Last period June 1", inputs: "LMP June 1, 28-day cycle", result: "Estimated due date around March 8, with conception near June 15." },
-    faqs: [{ question: "How accurate is a due date estimate?", answer: "Only a small share of babies arrive on their estimated date; most arrive within a window about two weeks either side. An early ultrasound is the most accurate dating method." }, { question: "Why does cycle length change the estimate?", answer: "The 280-day rule assumes ovulation on day 14. If your cycles run longer or shorter, ovulation likely shifted, so the estimate moves with it." }, { question: "Why is progress counted from the last period?", answer: "Pregnancy age is conventionally counted from the first day of the last menstrual period, which is about two weeks before conception." }, { question: "Is this medical advice?", answer: "No. This is a planning estimate. Your prenatal provider will confirm dating with measurements and adjust as needed." }],
-    seo: { title: "Pregnancy Due Date Calculator – Estimate Your Date | CalcForged", description: "Estimate a due date from the first day of your last period or a conception date, with progress and trimester.", h1: "Pregnancy due date calculator", intro: "An estimated due date gives a pregnancy its shape: appointments, planning, and the finish line. Enter the first day of your last menstrual period — or a known conception date — and your average cycle length. The calculator applies the standard obstetric rules (280 days from the last period, adjusted for cycle length, or 266 days from conception), estimates the conception window, and shows how many weeks along the pregnancy is as of today. Every estimate is a midpoint, not a deadline; most babies arrive within about two weeks of the date." },
-    related: ["bmi", "age", "time-zone"],
-  },
-  {
-    slug: "currency-converter", name: "Currency Converter", category: "Travel", categorySlug: "travel", icon: "⇄", description: "Convert between major world currencies using live exchange rates.",
-    liveRates: true,
-    fields: [{ key: "amount", label: "Amount", type: "number", min: 0, step: 0.01, defaultValue: 100 }, { key: "from", label: "From currency", type: "select", defaultValue: "USD", options: CURRENCIES }, { key: "to", label: "To currency", type: "select", defaultValue: "EUR", options: CURRENCIES }],
-    results: [{ key: "converted", label: "Converted amount", format: "number", estimate: true }, { key: "rate", label: "Exchange rate", format: "text" }, { key: "inverse", label: "Inverse rate", format: "text" }, { key: "source", label: "Rate source", format: "text" }],
-    calculate: (v) => {
-      const amount = n(v, "amount", 100); const from = option(v, "from", "USD"); const to = option(v, "to", "EUR");
-      let rates = FALLBACK_RATES; let source = "Built-in snapshot — live rates unavailable";
-      try { const parsed = JSON.parse(String(v.__rates ?? "")) as { rates?: Record<string, number>; date?: string }; if (parsed?.rates && Object.keys(parsed.rates).length > 5) { rates = parsed.rates; source = `Live European Central Bank reference rates${parsed.date ? ` · ${parsed.date}` : ""}`; } } catch { /* fallback stands */ }
-      const rate = (rates[to] ?? FALLBACK_RATES[to]) / (rates[from] ?? FALLBACK_RATES[from]);
-      return { converted: round(amount * rate, 2), rate: `1 ${from} = ${round(rate, 4)} ${to}`, inverse: `1 ${to} = ${round(1 / rate, 4)} ${from}`, source };
-    },
-    howItWorks: ["The converter pulls the latest reference rates when the page loads and refreshes them each visit.", "Cross rates are derived from each currency's rate against the US dollar.", "If the rate service can't be reached, a built-in snapshot is used and the source line says so."],
-    example: { title: "$100 to euros", inputs: "100 USD to EUR at 0.92", result: "About €92.00, with the inverse rate shown for the trip home." },
-    faqs: [{ question: "How current are these rates?", answer: "When live rates load, they're the latest European Central Bank reference rates, updated each business day. The source line shows the rate date." }, { question: "Will I get this rate at the airport?", answer: "Almost never. Banks, cards, and exchange kiosks add a margin on top of the mid-market rate, so expect a few percent worse in practice." }, { question: "Which cards give the best conversion?", answer: "Many travel-friendly cards convert close to the mid-market rate with no foreign transaction fee — usually far better than cash exchange kiosks." }, { question: "What does the inverse rate mean?", answer: "It's the reverse conversion, so you can sanity-check prices in both directions without flipping the calculator around." }],
-    seo: { title: "Currency Converter – Live Exchange Rates | CalcForged", description: "Convert between USD, EUR, GBP, JPY, and more with live reference rates and inverse rates.", h1: "Currency converter", intro: "Whether you're pricing a hotel or checking a receipt from a trip, this converter translates between ten major currencies using live central-bank reference rates, loaded fresh each visit. Enter an amount, pick the two currencies, and see the converted result plus the exact exchange rate and its inverse. The rate you're shown is the mid-market reference — the honest baseline — while banks and exchange services add their own margin on top, so budget a few percent worse for real-world transactions." },
-    related: ["time-zone", "tip", "percentage"],
-  },
-  {
-    slug: "time-zone", name: "Time Zone Calculator", category: "Travel", categorySlug: "travel", icon: "◷", description: "Convert a time between two cities and see the gap and day shift.",
-    fields: [{ key: "date", label: "Date", type: "text", defaultToday: true, help: "YYYY-MM-DD — leave blank for today" }, { key: "time", label: "Time to convert", type: "text", help: "24-hour clock, e.g. 14:30", defaultValue: "14:30" }, { key: "fromZone", label: "From", type: "select", defaultValue: "America/New_York", options: ZONES }, { key: "toZone", label: "To", type: "select", defaultValue: "Asia/Tokyo", options: ZONES }],
-    results: [{ key: "converted", label: "Time there", format: "text" }, { key: "difference", label: "Time difference", format: "text" }, { key: "dayShift", label: "Day", format: "text" }],
-    calculate: (v) => {
-      const from = option(v, "fromZone", "America/New_York"); const to = option(v, "toZone", "Asia/Tokyo");
-      const dateStr = String(v.date ?? "").trim(); const timeStr = String(v.time ?? "").trim();
-      const utc = zonedToUtc(dateStr || "2000-01-01", timeStr || "12:00", from);
-      if (!utc) return { converted: "Enter a time like 14:30 and a date like 2026-01-31", difference: "—", dayShift: "—" };
-      const stamp = zoneStamp(utc, to);
-      const difference = from === to ? "Same time zone" : `${zoneDiffLabel(from, to, utc)} relative to the starting zone`;
-      const convertedDay = new Intl.DateTimeFormat("en-CA", { timeZone: to, year: "numeric", month: "2-digit", day: "2-digit" }).format(utc);
-      const startDay = parseYmd(dateStr);
-      const dayShift = startDay ? (convertedDay === dateStr ? "Same day" : convertedDay > dateStr ? "Next day" : "Previous day") : "—";
-      return { converted: stamp, difference, dayShift };
-    },
-    howItWorks: ["Your entered time is interpreted in the starting zone, including daylight saving rules for that exact date.", "The instant is then displayed in the destination zone using its own DST rules.", "The difference and day shift are calculated for the specific date, so crossings near a DST change stay correct."],
-    example: { title: "2:30 PM New York to Tokyo", inputs: "Any weekday, 14:30 ET → Asia/Tokyo", result: "About 3:30 AM the next day in Tokyo, 13–14 hours ahead depending on DST." },
-    faqs: [{ question: "Why does the difference change during the year?", answer: "Daylight saving starts and ends on different dates in different countries, so the gap between two zones can shift by an hour for part of the year. This tool uses the exact date you enter." }, { question: "Does it handle half-hour zones?", answer: "Yes. Zones like India (UTC+5:30) are shown with their exact minute offsets." }, { question: "What time format should I enter?", answer: "24-hour time, like 09:00 or 21:45. The result is shown in 12-hour format with AM/PM." }, { question: "Is this good for scheduling calls?", answer: "Yes — enter the time you want to meet in your zone and read what it becomes for the other person, including whether it lands on their next day." }],
-    seo: { title: "Time Zone Calculator – Convert Time Between Cities | CalcForged", description: "Convert times between world cities with daylight-saving-aware results and the exact hour difference.", h1: "Time zone calculator", intro: "Scheduling across time zones goes wrong in two ways: an hour lost to daylight saving, or a meeting that lands on someone's next day. This converter takes a date and time in one zone and shows exactly when it lands in another, with the precise hour difference and any day shift. It uses each zone's real daylight-saving rules for the date you enter, handles half-hour offsets like India, and covers 19 major zones from Honolulu to Auckland — enough for scheduling calls, flights, and launches." },
-    related: ["currency-converter", "age", "percentage"],
-  },
-  {
-    slug: "percentage", name: "Percentage Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "%", description: "Find a percentage of a number, a share of a whole, or the change between two values.",
-    fields: [{ key: "mode", label: "What do you need?", type: "select", defaultValue: "of", options: [{ label: "X% of Y — e.g. 15% of 200", value: "of" }, { label: "X is what % of Y — e.g. 30 of 200", value: "share" }, { label: "% change from X to Y — e.g. 80 → 100", value: "change" }] }, { key: "x", label: "X", type: "number", step: 0.01, defaultValue: 15 }, { key: "y", label: "Y", type: "number", step: 0.01, defaultValue: 200 }],
-    results: [{ key: "result", label: "Result", format: "number" }, { key: "formula", label: "What was computed", format: "text" }],
-    calculate: (v) => {
-      const x = n(v, "x", 15); const y = n(v, "y", 200); const mode = option(v, "mode", "of");
-      if (mode === "share") return { result: y === 0 ? "—" : round((x / y) * 100, 2), formula: `${x} ÷ ${y} × 100 — X as a share of Y` };
-      if (mode === "change") return { result: x === 0 ? "—" : round(((y - x) / Math.abs(x)) * 100, 2), formula: `(${y} − ${x}) ÷ ${Math.abs(x)} × 100 — change from X to Y` };
-      return { result: round((x / 100) * y, 2), formula: `${x}% × ${y} — X percent of Y` };
-    },
-    howItWorks: ["Pick the mode first — the same two numbers mean different things in each mode.", "X% of Y multiplies; X as a share of Y divides; percent change divides the difference by the starting value.", "Percent change is negative when the value falls and uses the absolute starting value as its base."],
-    example: { title: "Tip on a discount", inputs: "15% of 200", result: "30." },
-    faqs: [{ question: "How do I calculate a discount?", answer: "Use X% of Y to get the discount amount, then subtract it from the price. For a $80 item at 25% off, the discount is $20 and the price is $60." }, { question: "How do I add a percentage, like tax or tip?", answer: "Use % change from X to Y in reverse, or simply compute X% of Y and add it. A 15% tip on $60 is $9, so pay $69." }, { question: "Why is my percent change negative?", answer: "The value went down. A drop from 100 to 80 is −20%, calculated against the original 100." }, { question: "What's the difference between percent and percentage points?", answer: "Going from 10% to 15% is a 5 percentage-point rise, but a 50% relative change. This calculator computes the relative change." }],
-    seo: { title: "Percentage Calculator – Discounts, Shares & Change | CalcForged", description: "Calculate X% of a number, compare one value as a share of another, or find percent change. Use it for discounts, tax, and tips, with each formula shown.", h1: "Percentage calculator", intro: "Percentages trip people up because the same two numbers can answer three different questions: what is 15% of 200, what share of 200 is 30, and how much did 80 change to become 100. Pick the question, enter two numbers, and get the answer with the exact formula shown beside it. This covers discounts, tax, tips, grade shares, price increases, and the percentage-point versus percent-change distinction that catches so many people out." },
-    related: ["tip", "weight-converter", "square-root-cube-root"],
-  },
-  {
-    slug: "weight-converter", name: "Weight Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "⇄", description: "Convert between pounds, kilograms, ounces, grams, and stone.",
-    fields: [{ key: "weight", label: "Weight", type: "number", min: 0, step: 0.01, defaultValue: 150 }, { key: "from", label: "From unit", type: "select", defaultValue: "lb", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }, { label: "Ounces (oz)", value: "oz" }, { label: "Grams (g)", value: "g" }, { label: "Stone (st)", value: "st" }] }, { key: "to", label: "To unit", type: "select", defaultValue: "kg", options: [{ label: "Pounds (lb)", value: "lb" }, { label: "Kilograms (kg)", value: "kg" }, { label: "Ounces (oz)", value: "oz" }, { label: "Grams (g)", value: "g" }, { label: "Stone (st)", value: "st" }] }],
-    results: [{ key: "converted", label: "Converted weight", format: "number" }, { key: "all", label: "In every unit", format: "text" }],
-    calculate: (v) => {
-      const weight = n(v, "weight", 150); const from = option(v, "from", "lb"); const to = option(v, "to", "kg");
-      const kg: Record<string, number> = { lb: 0.45359237, kg: 1, oz: 0.028349523125, g: 0.001, st: 6.35029318 };
-      const inKg = weight * kg[from];
-      const display = (unit: string) => { const value = inKg / kg[unit]; return `${round(value, value < 10 ? 3 : 2)} ${unit}`; };
-      return { converted: round(inKg / kg[to], 4), all: (["lb", "kg", "oz", "g", "st"] as const).map(display).join("\n") };
-    },
-    howItWorks: ["The entered weight is converted to kilograms using exact standard factors.", "Kilograms are then converted to your chosen target unit.", "The full conversion table shows the same weight in all five units at once."],
-    example: { title: "150 lb in kilograms", inputs: "150 lb → kg", result: "About 68.04 kg — and the table shows ounces, grams, and stone too." },
-    faqs: [{ question: "How many pounds is a kilogram?", answer: "One kilogram is about 2.2046 pounds. For quick mental math, multiply kilograms by 2.2." }, { question: "What is stone, and who uses it?", answer: "A stone is 14 pounds, commonly used for body weight in the UK and Ireland." }, { question: "How precise are the conversions?", answer: "The factors are exact by definition where possible (pound, ounce, gram); results are rounded for display but computed from full precision." }, { question: "Does this work for cooking measurements?", answer: "Yes for weight — ounces and grams here are units of mass. Fluid ounces measure volume and are not interchangeable." }],
-    seo: { title: "Weight Converter – lb, kg, oz, g & stone | CalcForged", description: "Convert weight between pounds, kilograms, ounces, grams, and stone with exact factors.", h1: "Weight converter", intro: "Weight units split awkwardly across the Atlantic: recipes in grams, gym plates in pounds, body weight in stone in the UK. This converter handles all five units with exact standard factors — enter a weight, pick the units, and see the precise conversion plus a table showing the same weight in every unit at once. Useful for travel, shipping, cooking from foreign recipes, and translating a medical form that assumes you think in kilograms." },
-    related: ["percentage", "bmi", "currency-converter"],
-  },
-  {
-    slug: "length-converter", name: "Length Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "⇄", description: "Convert between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers.",
-    fields: [{ key: "length", label: "Length", type: "number", min: 0, step: 0.01, defaultValue: 100 }, { key: "from", label: "From unit", type: "select", defaultValue: "ft", options: [{ label: "Inches (in)", value: "in" }, { label: "Feet (ft)", value: "ft" }, { label: "Yards (yd)", value: "yd" }, { label: "Miles (mi)", value: "mi" }, { label: "Millimeters (mm)", value: "mm" }, { label: "Centimeters (cm)", value: "cm" }, { label: "Meters (m)", value: "m" }, { label: "Kilometers (km)", value: "km" }] }, { key: "to", label: "To unit", type: "select", defaultValue: "m", options: [{ label: "Inches (in)", value: "in" }, { label: "Feet (ft)", value: "ft" }, { label: "Yards (yd)", value: "yd" }, { label: "Miles (mi)", value: "mi" }, { label: "Millimeters (mm)", value: "mm" }, { label: "Centimeters (cm)", value: "cm" }, { label: "Meters (m)", value: "m" }, { label: "Kilometers (km)", value: "km" }] }],
-    results: [{ key: "converted", label: "Converted length", format: "number" }, { key: "all", label: "In every unit", format: "text" }],
-    calculate: (v) => {
-      const length = n(v, "length", 100); const from = option(v, "from", "ft"); const to = option(v, "to", "m");
-      const meters: Record<string, number> = { in: 0.0254, ft: 0.3048, yd: 0.9144, mi: 1609.344, mm: 0.001, cm: 0.01, m: 1, km: 1000 };
-      const inMeters = length * meters[from];
-      const display = (unit: string) => { const value = inMeters / meters[unit]; return `${round(value, value < 10 ? 3 : 2)} ${unit}`; };
-      return { converted: round(inMeters / meters[to], 4), all: (["in", "ft", "yd", "mi", "mm", "cm", "m", "km"] as const).map(display).join("\n") };
-    },
-    howItWorks: ["The entered length is converted to meters using exact standard factors.", "Meters are then converted to your chosen target unit.", "The full conversion table shows the same length in all eight units at once."],
-    example: { title: "100 ft in meters", inputs: "100 ft → m", result: "About 30.48 m — and the table shows inches, yards, and miles too." },
-    faqs: [{ question: "How many feet in a meter?", answer: "One meter is about 3.2808 feet — or, the other way, one foot is exactly 0.3048 meters." }, { question: "How many inches in a mile?", answer: "63,360 inches. The exact standard factors behind this calculator handle that in one step." }, { question: "Are US and imperial units the same?", answer: "Close but not identical: the US survey inch differed by about two parts per million. Since 1959 both countries share the same international inch, which is what this calculator uses." }, { question: "Which unit should I use for a building project?", answer: "Pick the unit your plans and materials are labeled in, and stay in it — converting back and forth mid-project is where mistakes happen." }],
-    seo: { title: "Length Converter – Inches, Feet, Yards, Miles, mm, cm & Meters | CalcForged", description: "Convert length and distance between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers — with a full table of every unit.", h1: "Length converter", intro: "Length conversions come up everywhere — a room measured in feet, a part speced in millimeters, a hike listed in kilometers. Enter a length, pick the units, and this converter returns the exact value with a table showing the same length in every unit at once. The factors are exact by definition, so the result is as precise as your measurement." },
-    related: ["weight-converter", "volume-converter", "percentage"],
-  },
-  {
-    slug: "volume-converter", name: "Volume Converter", category: "Everyday Life", categorySlug: "everyday-life", icon: "◉", description: "Convert between fluid ounces, cups, pints, quarts, gallons, milliliters, liters, and spoon measures.",
-    fields: [{ key: "volume", label: "Volume", type: "number", min: 0, step: 0.01, defaultValue: 16 }, { key: "from", label: "From unit", type: "select", defaultValue: "floz", options: [{ label: "Fluid ounces (fl oz)", value: "floz" }, { label: "Cups (c)", value: "c" }, { label: "Pints (pt)", value: "pt" }, { label: "Quarts (qt)", value: "qt" }, { label: "Gallons (gal)", value: "gal" }, { label: "Tablespoons (tbsp)", value: "tbsp" }, { label: "Teaspoons (tsp)", value: "tsp" }, { label: "Milliliters (ml)", value: "ml" }, { label: "Liters (l)", value: "l" }] }, { key: "to", label: "To unit", type: "select", defaultValue: "l", options: [{ label: "Fluid ounces (fl oz)", value: "floz" }, { label: "Cups (c)", value: "c" }, { label: "Pints (pt)", value: "pt" }, { label: "Quarts (qt)", value: "qt" }, { label: "Gallons (gal)", value: "gal" }, { label: "Tablespoons (tbsp)", value: "tbsp" }, { label: "Teaspoons (tsp)", value: "tsp" }, { label: "Milliliters (ml)", value: "ml" }, { label: "Liters (l)", value: "l" }] }],
-    results: [{ key: "converted", label: "Converted volume", format: "number" }, { key: "all", label: "In every unit", format: "text" }],
-    calculate: (v) => {
-      const volume = n(v, "volume", 16); const from = option(v, "from", "floz"); const to = option(v, "to", "l");
-      const liters: Record<string, number> = { floz: 0.0295735295625, c: 0.2365882365, pt: 0.473176473, qt: 0.946352946, gal: 3.785411784, tbsp: 0.0147867647813, tsp: 0.00492892159375, ml: 0.001, l: 1 };
-      const inLiters = volume * liters[from];
-      const display = (unit: string) => { const value = inLiters / liters[unit]; return `${round(value, value < 10 ? 3 : 2)} ${unit}`; };
-      return { converted: round(inLiters / liters[to], 4), all: (["floz", "c", "pt", "qt", "gal", "tbsp", "tsp", "ml", "l"] as const).map(display).join("\n") };
-    },
-    howItWorks: ["The entered volume is converted to liters using exact US customary factors.", "Liters are then converted to your chosen target unit.", "The full conversion table shows the same volume in all nine units at once."],
-    example: { title: "16 fl oz in liters", inputs: "16 fl oz → l", result: "About 0.473 liters — and the table shows cups, pints, quarts, and gallons too." },
-    faqs: [{ question: "Is a fluid ounce the same as an ounce?", answer: "No — a fluid ounce measures volume, an ounce measures weight. They only coincide for water. Honey, oil, and flour all weigh different amounts per fluid ounce." }, { question: "Are US and imperial fluid ounces the same?", answer: "No. A US fluid ounce is about 29.6 ml; an imperial one is 28.4 ml, and the imperial gallon is 20% larger than the US gallon. This calculator uses US customary units." }, { question: "How many milliliters in a cup?", answer: "About 237 ml in a US legal measuring cup. Recipes from outside the US often assume a 250 ml metric cup — check which one your recipe means." }, { question: "Why don't grams appear here?", answer: "Grams measure weight, not volume, so converting them depends on the substance — a cup of honey weighs far more than a cup of flour. Use the weight converter for grams." }],
-    seo: { title: "Volume Converter – fl oz, Cups, Pints, Quarts, Gallons & Liters | CalcForged", description: "Convert volume between fluid ounces, cups, pints, quarts, gallons, tablespoons, teaspoons, milliliters, and liters — with a full table of every unit.", h1: "Volume converter", intro: "Cooking, mixing, and measuring liquids means crossing between US customary and metric units, and the conversions are never round. Enter a volume, pick the units, and this converter returns the exact value with a table showing the same volume in all nine units at once — fluid ounces to liters, cups to milliliters, gallons to everything. The factors are exact US customary definitions, computed at full precision." },
-    related: ["weight-converter", "length-converter", "recipe-scaling"],
-  },
-  {
-    slug: "tip", name: "Tip Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "%", description: "Work out the tip, the total, and what each person owes — with optional rounding.",
-    fields: [{ key: "bill", label: "Bill amount", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 85 }, { key: "tipPercent", label: "Tip percentage", type: "number", unit: "%", min: 0, max: 100, step: 1, defaultValue: 18 }, { key: "split", label: "Split between", type: "number", unit: "people", min: 1, max: 100, defaultValue: 1 }, { key: "roundUp", label: "Round each share", type: "select", defaultValue: "no", options: [{ label: "No rounding", value: "no" }, { label: "Round up to whole dollars", value: "yes" }] }],
-    results: [{ key: "tip", label: "Tip amount", unit: "$", format: "currency" }, { key: "total", label: "Total with tip", unit: "$", format: "currency" }, { key: "perPerson", label: "Per person", unit: "$", format: "currency" }, { key: "note", label: "Rounding note", format: "text" }],
-    calculate: (v) => {
-      const bill = n(v, "bill", 85); const percent = n(v, "tipPercent", 18); const people = Math.max(1, n(v, "split", 1));
-      const tip = bill * percent / 100; const total = bill + tip; const perPerson = total / people;
-      if (option(v, "roundUp", "no") === "yes") {
-        const rounded = Math.ceil(perPerson); const adjustedTotal = rounded * people;
-        return { tip: round(adjustedTotal - bill, 2), total: round(adjustedTotal, 2), perPerson: rounded, note: `Each of ${people} pays $${rounded}, putting the effective tip at ${bill ? round(((adjustedTotal - bill) / bill) * 100, 1) : 0}%.` };
-      }
-      return { tip: round(tip, 2), total: round(total, 2), perPerson: round(perPerson, 2), note: "Turn on rounding to make each share a whole dollar amount." };
-    },
-    howItWorks: ["The tip is the bill multiplied by your percentage.", "The total is bill plus tip, divided evenly across the number of people.", "With rounding on, each person's share is rounded up to the next whole dollar and the effective tip percentage is recalculated."],
-    example: { title: "$85 dinner for two", inputs: "18% tip, 2 people, rounded", result: "$51 each, an effective tip of 20%." },
-    faqs: [{ question: "How much should I tip?", answer: "In the US, 15–20% at restaurants is customary, with 20% for great service. Tipping norms differ widely by country and service type." }, { question: "Should I tip on tax?", answer: "Practice varies. Tipping on the pre-tax subtotal is the traditional approach; many people simply tip on the full bill for simplicity." }, { question: "Does rounding overtip?", answer: "Slightly — the note shows the effective percentage so you can see exactly what the rounded shares add up to." }, { question: "What if the bill includes a service charge?", answer: "Large parties often carry an automatic gratuity. If the bill already includes service, an additional tip is optional." }],
-    seo: { title: "Tip Calculator – Split the Bill | CalcForged", description: "Calculate the tip, total, and per-person share for any bill, with optional dollar rounding.", h1: "Tip calculator", intro: "The check arrives, the table does mental math, and someone always rounds wrong. Enter the bill, choose a tip percentage, and say how many people are splitting; the calculator shows the tip, the total, and each person's share. Turn on rounding and every share becomes a clean whole-dollar amount — with the effective tip percentage shown so you know exactly what the rounding did. Useful at restaurants, for haircuts, taxis, delivery, and any service where the tip is expected." },
-    related: ["percentage", "currency-converter", "loan"],
-  },
-  {
-    slug: "age", name: "Age Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "◷", description: "Find an exact age in years, months, and days — plus the next birthday.",
-    fields: [{ key: "birthDate", label: "Date of birth", type: "text", help: "YYYY-MM-DD" }, { key: "asOf", label: "Age on this date", type: "text", defaultToday: true, help: "Leave blank and today fills in automatically" }],
-    results: [{ key: "summary", label: "Exact age", format: "text" }, { key: "totalDays", label: "Total days lived", unit: "days", format: "number", estimate: true }, { key: "nextBirthday", label: "Next birthday in", unit: "days", format: "number" }, { key: "bornOn", label: "Born on a", format: "text" }],
-    calculate: (v) => {
-      const birth = parseYmd(String(v.birthDate ?? "")); const asOf = parseYmd(String(v.asOf ?? ""));
-      if (!birth || !asOf) return { summary: "Enter a birth date like 1990-05-14", totalDays: "—", nextBirthday: "—", bornOn: "—" };
-      if (birth > asOf) return { summary: "That birth date is in the future", totalDays: "—", nextBirthday: "—", bornOn: "—" };
-      let years = asOf.getUTCFullYear() - birth.getUTCFullYear();
-      let months = asOf.getUTCMonth() - birth.getUTCMonth();
-      let days = asOf.getUTCDate() - birth.getUTCDate();
-      if (days < 0) { months -= 1; days += new Date(Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), 0)).getUTCDate(); }
-      if (months < 0) { years -= 1; months += 12; }
-      const totalDays = Math.floor((asOf.getTime() - birth.getTime()) / 86400000);
-      let next = Date.UTC(asOf.getUTCFullYear(), birth.getUTCMonth(), birth.getUTCDate());
-      if (next <= asOf.getTime()) next = Date.UTC(asOf.getUTCFullYear() + 1, birth.getUTCMonth(), birth.getUTCDate());
-      const bornWeekday = birth.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" });
-      return { summary: `${years} years, ${months} months, ${days} days`, totalDays, nextBirthday: Math.round((next - asOf.getTime()) / 86400000), bornOn: bornWeekday };
-    },
-    howItWorks: ["Years, months, and days are counted calendar-accurately, borrowing days from the previous month when needed.", "Total days is the exact day count between the two dates.", "The next birthday is the upcoming anniversary of the birth date; if today is the birthday, it counts to next year."],
-    example: { title: "Born May 14, 1990", inputs: "As of January 31, 2026", result: "35 years, 8 months, 17 days — next birthday in 103 days." },
-    faqs: [{ question: "Why do months vary in length?", answer: "Calendar months run 28 to 31 days, so an age in years-months-days depends on which months are involved. The day count is always exact." }, { question: "Can I calculate an age on a past or future date?", answer: "Yes — edit the second date to any day, past or future, and the age is calculated as of that date." }, { question: "Does it handle leap-year birthdays?", answer: "February 29 birthdays are counted on March 1 in non-leap years for the next-birthday result." }, { question: "Why would I need an exact day count?", answer: "Visa and residency applications, insurance forms, and sports age divisions often ask for age in years, months, and days rather than just years." }],
-    seo: { title: "Age Calculator – Exact Age in Years, Months & Days | CalcForged", description: "Calculate exact age from a birth date, with total days lived, next birthday countdown, and birth weekday.", h1: "Age calculator", intro: "\"How old are you\" has a simple answer until a form asks for it exactly. Enter a date of birth and this calculator returns the precise age in years, months, and days as of today (or any date you choose), plus the total days lived, a countdown to the next birthday, and the weekday you were born on. Calendar-accurate, including leap years — useful for applications, anniversaries, milestone planning, and settling birthday debates." },
-    related: ["pregnancy-due-date", "bmi", "percentage"],
-  },
-  {
-    slug: "date", name: "Date Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "◫", description: "Count days between dates or add and subtract days, weeks, months, and years.",
-    fields: [
-      { key: "mode", label: "What do you need?", type: "select", defaultValue: "between", options: [{ label: "Days between dates", value: "between" }, { label: "Add or subtract from a date", value: "adjust" }] },
-      { key: "startDate", label: "Starting date", type: "text", defaultToday: true, help: "Enter a date as YYYY-MM-DD." },
-      { key: "endDate", label: "Ending date", type: "text", visibleWhen: { key: "mode", values: ["between"] }, help: "Enter a date as YYYY-MM-DD." },
-      { key: "direction", label: "Add or subtract", type: "select", defaultValue: "add", visibleWhen: { key: "mode", values: ["adjust"] }, options: [{ label: "Add", value: "add" }, { label: "Subtract", value: "subtract" }] },
-      { key: "amount", label: "How many", type: "number", min: 0, max: 365000, step: 1, defaultValue: 7, visibleWhen: { key: "mode", values: ["adjust"] } },
-      { key: "unit", label: "Unit", type: "select", defaultValue: "days", visibleWhen: { key: "mode", values: ["adjust"] }, options: [{ label: "Days", value: "days" }, { label: "Weeks", value: "weeks" }, { label: "Months", value: "months" }, { label: "Years", value: "years" }] },
-    ],
-    results: [{ key: "answer", label: "Result", format: "text" }, { key: "breakdown", label: "Breakdown", format: "text" }, { key: "weekday", label: "Weekday", format: "text" }],
-    calculate: (v) => {
-      const mode = option(v, "mode", "between"); const start = parseYmd(String(v.startDate ?? "").trim());
-      if (!start) return { answer: "Enter a valid starting date like 2026-10-11", breakdown: "—", weekday: "—" };
-      const weekday = (date: Date) => date.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" });
-      if (mode === "adjust") {
-        const amount = n(v, "amount", 7); const unit = option(v, "unit", "days"); const direction = option(v, "direction", "add");
-        if (!Number.isInteger(amount) || amount < 0 || amount > 365000 || !["days", "weeks", "months", "years"].includes(unit)) return { answer: "Enter a whole number from 0 to 365,000", breakdown: "—", weekday: "—" };
-        const sign = direction === "subtract" ? -1 : 1; let resultDate: Date;
-        if (unit === "days" || unit === "weeks") resultDate = addDaysUtc(start, sign * amount * (unit === "weeks" ? 7 : 1));
-        else {
-          const monthOffset = sign * amount * (unit === "years" ? 12 : 1); const targetMonth = start.getUTCFullYear() * 12 + start.getUTCMonth() + monthOffset; const year = Math.floor(targetMonth / 12); const month = ((targetMonth % 12) + 12) % 12;
-          if (year < 1000 || year > 9999) return { answer: "That result is outside the supported date range", breakdown: "—", weekday: "—" };
-          const day = Math.min(start.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate()); resultDate = new Date(Date.UTC(year, month, day));
-        }
-        if (resultDate.getUTCFullYear() < 1000 || resultDate.getUTCFullYear() > 9999) return { answer: "That result is outside the supported date range", breakdown: "—", weekday: "—" };
-        const unitLabel = amount === 1 ? unit.slice(0, -1) : unit; const action = sign > 0 ? "added" : "subtracted";
-        return { answer: fmtDate(resultDate), breakdown: `${amount} ${unitLabel} ${action} from ${fmtDate(start)}`, weekday: weekday(resultDate) };
-      }
-      const end = parseYmd(String(v.endDate ?? "").trim());
-      if (!end) return { answer: "Enter a valid ending date like 2026-10-18", breakdown: "—", weekday: "—" };
-      const days = Math.round(Math.abs(end.getTime() - start.getTime()) / 86400000); const weeks = Math.floor(days / 7); const remainingDays = days % 7;
-      return { answer: days === 0 ? "Same date" : `${days.toLocaleString("en-US")} calendar days apart`, breakdown: `${weeks} week${weeks === 1 ? "" : "s"} and ${remainingDays} day${remainingDays === 1 ? "" : "s"}`, weekday: `${weekday(start)} to ${weekday(end)}` };
-    },
-    howItWorks: ["Days between dates are elapsed calendar days: the starting date is day zero, rather than counting both endpoints as full days.", "Adding or subtracting days and weeks uses calendar days. For months and years, the calculator keeps the day number when it exists; if the destination month is shorter, it uses that month's last day.", "The weekday is calculated from the actual calendar date, including leap years. This tool does not remove weekends or public holidays."],
-    example: { title: "Add one month to January 31", inputs: "Starting date January 31, 2026; add 1 month", result: "February 28, 2026, a Saturday." },
-    faqs: [{ question: "Does the day count include both dates?", answer: "No. It counts elapsed days from the start date to the end date. For example, March 1 to March 2 is 1 elapsed day." }, { question: "What happens when I add one month to a date near month-end?", answer: "If the destination month does not have that day number, the result is the last day of that month. January 31 plus one month becomes February 28, or February 29 in a leap year." }, { question: "Does this count business days?", answer: "No. The difference is in calendar days and includes weekends. Public holidays are not removed." }, { question: "Can I subtract time from a date?", answer: "Yes. Choose Add or subtract from a date, select Subtract, then enter a number of days, weeks, months, or years." }],
-    seo: { title: "Date Calculator – Days Between Dates & Date Math | CalcForged", description: "Find elapsed days between two dates, or add and subtract days, weeks, months, and years with month-end handling.", h1: "Date calculator", intro: "Count the time between two dates, or move a date forward or back by days, weeks, months, or years. The calculator shows the calendar-day gap, the equivalent weeks and days, and the weekday. Month and year changes handle short months sensibly: adding one month to January 31 lands on the last day of February." },
-    related: ["age", "pregnancy-due-date", "time"],
-  },
-  {
-    slug: "time", name: "Time Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "◷", description: "Calculate hours between times, subtract breaks, or add and subtract time across midnight.",
-    fields: [
-      { key: "mode", label: "What do you need?", type: "select", defaultValue: "duration", options: [{ label: "Hours between two times", value: "duration" }, { label: "Add or subtract time", value: "adjust" }] },
-      { key: "startTime", label: "Starting time", type: "text", defaultValue: "09:00", help: "Use 24-hour time, such as 09:00 or 21:30." },
-      { key: "endTime", label: "Ending time", type: "text", defaultValue: "17:00", visibleWhen: { key: "mode", values: ["duration"] }, help: "If this is earlier than the start, it is treated as the next day." },
-      { key: "breakMinutes", label: "Unpaid break", type: "number", unit: "minutes", min: 0, max: 1440, step: 1, defaultValue: 0, visibleWhen: { key: "mode", values: ["duration"] } },
-      { key: "operation", label: "Operation", type: "select", defaultValue: "add", visibleWhen: { key: "mode", values: ["adjust"] }, options: [{ label: "Add", value: "add" }, { label: "Subtract", value: "subtract" }] },
-      { key: "hours", label: "Hours", type: "number", min: 0, max: 240, step: 1, defaultValue: 1, visibleWhen: { key: "mode", values: ["adjust"] } },
-      { key: "minutes", label: "Minutes", type: "number", min: 0, max: 59, step: 1, defaultValue: 30, visibleWhen: { key: "mode", values: ["adjust"] } },
-    ],
-    results: [{ key: "answer", label: "Result", format: "text" }, { key: "decimalHours", label: "Decimal hours", format: "text" }, { key: "dayShift", label: "Day change", format: "text" }, { key: "details", label: "Calculation", format: "text" }],
-    calculate: (v) => {
-      const mode = option(v, "mode", "duration"); const parseTime = (value: string) => { const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim()); return match ? Number(match[1]) * 60 + Number(match[2]) : null; };
-      const formatTime = (minutes: number) => { const hour = Math.floor(minutes / 60) % 24; const minute = minutes % 60; const displayHour = hour % 12 || 12; return `${displayHour}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`; };
-      const formatDuration = (total: number) => { const hours = Math.floor(total / 60); const minutes = total % 60; if (!hours) return `${minutes} minute${minutes === 1 ? "" : "s"}`; return minutes ? `${hours} hour${hours === 1 ? "" : "s"} and ${minutes} minute${minutes === 1 ? "" : "s"}` : `${hours} hour${hours === 1 ? "" : "s"}`; };
-      const start = parseTime(String(v.startTime ?? ""));
-      if (start === null) return { answer: "Enter a valid time like 09:00 or 21:30", decimalHours: "—", dayShift: "—", details: "Use the 24-hour clock." };
-      if (mode === "adjust") {
-        const hours = n(v, "hours", 1); const minutes = n(v, "minutes", 30); const operation = option(v, "operation", "add");
-        if (!Number.isInteger(hours) || hours < 0 || hours > 240 || !Number.isInteger(minutes) || minutes < 0 || minutes > 59) return { answer: "Enter whole hours from 0 to 240 and minutes from 0 to 59", decimalHours: "—", dayShift: "—", details: "—" };
-        const delta = hours * 60 + minutes; const signed = operation === "subtract" ? -delta : delta; const total = start + signed; const dayShift = Math.floor(total / 1440); const resultTime = ((total % 1440) + 1440) % 1440;
-        const shiftLabel = dayShift === 0 ? "Same day" : dayShift === 1 ? "Next day" : dayShift === -1 ? "Previous day" : dayShift > 1 ? `${dayShift} days later` : `${Math.abs(dayShift)} days earlier`;
-        return { answer: formatTime(resultTime), decimalHours: "—", dayShift: shiftLabel, details: `${formatDuration(delta)} ${signed < 0 ? "subtracted from" : "added to"} ${formatTime(start)}` };
-      }
-      const end = parseTime(String(v.endTime ?? ""));
-      if (end === null) return { answer: "Enter a valid ending time like 17:00", decimalHours: "—", dayShift: "—", details: "Use the 24-hour clock." };
-      let elapsed = end - start; const overnight = elapsed < 0; if (overnight) elapsed += 1440;
-      const breakMinutes = n(v, "breakMinutes", 0);
-      if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > elapsed) return { answer: "The break cannot exceed the time between the two times", decimalHours: "—", dayShift: "—", details: "Check the break length and times." };
-      const worked = elapsed - breakMinutes;
-      return { answer: formatDuration(worked), decimalHours: `${round(worked / 60, 2)} hours`, dayShift: overnight ? "Ends the next day" : "Same day", details: breakMinutes ? `${breakMinutes} unpaid break minutes deducted` : "No break deducted" };
-    },
-    howItWorks: ["For a time span, the ending time is treated as the next day when it is earlier than the starting time. Matching start and end times count as zero hours.", "An unpaid break is subtracted from the elapsed minutes. The result is shown as hours and minutes, plus decimal hours for timesheets or quotes.", "For Add or subtract time, the clock wraps at midnight and the day change is shown separately."],
-    example: { title: "An overnight shift", inputs: "Start 22:30, end 06:15, with a 30-minute unpaid break", result: "7 hours 15 minutes, or 7.25 decimal hours, ending the next day." },
-    faqs: [{ question: "Does the time calculator handle overnight shifts?", answer: "Yes. If the ending time is earlier than the starting time, it is treated as the next day. If both times match, the duration is zero." }, { question: "How do I subtract a lunch break?", answer: "Enter the unpaid break in minutes. The calculator subtracts it from the elapsed time before showing hours and decimal hours." }, { question: "What are decimal hours?", answer: "Decimal hours express minutes as part of an hour. For example, 30 minutes is 0.5 hours, so 7 hours 30 minutes is 7.5 hours." }, { question: "Can I add time to a clock time?", answer: "Yes. Choose Add or subtract time, enter a starting clock time and the hours and minutes, then choose Add or Subtract. The result shows whether it lands on another day." }],
-    seo: { title: "Time Calculator – Hours Between Times & Time Math | CalcForged", description: "Calculate hours between times, subtract breaks, or add and subtract time across midnight. See total and decimal hours.", h1: "Time calculator", intro: "Work out the time between two clock times, subtract an unpaid break, or add and subtract hours and minutes from a starting time. Overnight spans are handled automatically, and the result includes decimal hours for timesheets, payroll entries, or job estimates. Enter times in 24-hour format, such as 09:00 or 21:30." },
-    related: ["date", "time-zone", "age"],
-  },
-  {
-    slug: "gpa", name: "GPA Calculator", category: "Education", categorySlug: "education", icon: "#", description: "Calculate your grade point average from course credits and letter grades.",
-    fields: [{ key: "courses", label: "Courses", type: "ingredient-list", ingredientSchema: { first: "Courses", amount: "Credit hours", unit: "Grade", name: "Course", amountPlaceholder: "3", unitPlaceholder: "A", namePlaceholder: "Intro to Biology" }, help: "One row per course: credit hours in the amount box and the final grade (A, B+, C− …) in the grade box." }],
-    results: [{ key: "gpa", label: "Your GPA", format: "number" }, { key: "credits", label: "Total credits", unit: "credits", format: "number" }, { key: "qualityPoints", label: "Quality points", format: "number" }, { key: "band", label: "Letter equivalent", format: "text" }],
-    calculate: (v) => {
-      const rows = Array.isArray(v.courses) ? v.courses : [];
-      let credits = 0; let points = 0; let counted = 0;
-      for (const row of rows) {
-        const courseCredits = Number(row.amount) || 0;
-        const grade = (row.unit || "").trim().toUpperCase();
-        const gp = GPA_POINTS[grade];
-        if (!courseCredits || gp === undefined) continue;
-        credits += courseCredits; points += courseCredits * gp; counted += 1;
-      }
-      if (!credits) return { gpa: "—", credits: 0, qualityPoints: 0, band: "Add at least one course with credits and a letter grade" };
-      const gpa = points / credits;
-      const band = gpa >= 3.85 ? "A" : gpa >= 3.5 ? "A−" : gpa >= 3.15 ? "B+" : gpa >= 2.85 ? "B" : gpa >= 2.5 ? "B−" : gpa >= 2.15 ? "C+" : gpa >= 1.85 ? "C" : gpa >= 1.5 ? "C−" : gpa >= 1.15 ? "D+" : gpa >= 0.85 ? "D" : "F";
-      return { gpa: round(gpa, 2), credits: round(credits, 1), qualityPoints: round(points, 1), band: `${band} average across ${counted} course${counted === 1 ? "" : "s"}` };
-    },
-    howItWorks: ["Each letter grade is converted to grade points on the standard 4.0 scale (A = 4.0, B+ = 3.3, and so on).", "Quality points are grade points multiplied by credit hours for every course.", "Your GPA is total quality points divided by total credits — weighted exactly the way most registrars calculate it."],
-    example: { title: "Four-course semester", inputs: "A in a 4-credit course, B+ in 3 credits, B in 3 credits, A− in 2 credits", result: "About 3.52 GPA across 12 credits." },
-    faqs: [{ question: "Which grade scale does this use?", answer: "The common 4.0 scale with plus/minus grades: A = 4.0, A− = 3.7, B+ = 3.3, down to F = 0. If your school uses a different scale, adjust your expectations accordingly." }, { question: "Are pass/fail courses included?", answer: "No — enter only letter-graded courses. Pass/fail credits usually don't affect GPA, though they may count toward enrollment totals." }, { question: "How do I project my semester GPA?", answer: "Enter just this semester's courses. To see a cumulative GPA, add previous courses too, using their actual grades and credits." }, { question: "Why do credits matter so much?", answer: "A 4-credit course moves your GPA more than a 1-credit lab. Credit weighting is exactly why two students with the same grades can have different GPAs." }],
-    seo: { title: "GPA Calculator – Weighted Grade Point Average | CalcForged", description: "Calculate your GPA on the 4.0 scale from course credits and letter grades, weighted properly.", h1: "GPA calculator", intro: "A GPA isn't an average of grades — it's an average weighted by credit hours, which is why that 4-credit chemistry course matters more than a 1-credit seminar. Add one row per course with its credits and final letter grade, and this calculator converts grades to the standard 4.0 scale, sums the quality points, and divides by total credits. Use it at the end of a semester, to project what final grades will do to your cumulative GPA, or to see exactly what raising one grade is worth." },
-    related: ["square-root-cube-root", "percentage", "age"],
-  },
-  {
-    slug: "square-root-cube-root", name: "Square Root & Cube Root Calculator", category: "Education", categorySlug: "education", icon: "#", description: "Get square roots, cube roots, and any nth root — with the math shown.",
-    fields: [{ key: "value", label: "Number", type: "number", step: "any", defaultValue: 144 }, { key: "n", label: "For nth root, use n", type: "number", unit: "n", min: 2, max: 12, step: 1, defaultValue: 4 }],
-    results: [{ key: "sqrt", label: "Square root (√)", format: "number" }, { key: "cbrt", label: "Cube root (∛)", format: "number" }, { key: "nth", label: "nth root", format: "text" }, { key: "check", label: "Check", format: "text" }],
-    calculate: (v) => {
-      const value = n(v, "value", 144); const nth = Math.round(n(v, "n", 4));
-      const sqrtNum = value < 0 ? NaN : Math.sqrt(value);
-      const cbrt = Math.cbrt(value);
-      const nthRoot = (x: number, root: number) => (x < 0 && root % 2 === 0 ? null : Math.sign(x) * Math.abs(x) ** (1 / root));
-      const nthValue = nthRoot(value, nth);
-      return {
-        sqrt: value < 0 ? "Not a real number" : round(sqrtNum, 6),
-        cbrt: round(cbrt, 6),
-        nth: nthValue === null ? `No real ${nth}th root of a negative number` : `ⁿ√ with n = ${nth}: ${round(nthValue, 6)}`,
-        check: value < 0 ? "Square is negative — no real square root" : Number.isInteger(sqrtNum) ? `${sqrtNum} × ${sqrtNum} = ${value}` : `${round(sqrtNum, 4)}² ≈ ${value}`,
-      };
-    },
-    howItWorks: ["The square root is the number that, multiplied by itself, gives your input.", "The cube root handles negatives correctly — ∛−27 is −3 — because odd roots of negatives are real.", "The nth root takes any n from 2 to 12; even roots of negative numbers have no real solution and the result says so."],
-    example: { title: "144", inputs: "Value 144, n = 4", result: "√144 = 12, ∛144 ≈ 5.24, and the 4th root is ≈ 3.46." },
-    faqs: [{ question: "Why is the square root of a negative number impossible?", answer: "No real number times itself is negative, so even roots of negatives have no real solution — they live in complex numbers, which this calculator doesn't show." }, { question: "How do I estimate a square root mentally?", answer: "Find the nearest perfect squares above and below your number and interpolate. √50 sits between 7 (49) and 8 (64), so around 7.07." }, { question: "What is a principal root?", answer: "Every positive number has two square roots, positive and negative. The √ symbol means the positive one — the principal root — and that's what's shown." }, { question: "When would I need an nth root?", answer: "Geometry and finance both use them: side lengths from areas and volumes, and compound-growth back-solving (the 12th root of a 12-year growth factor gives the annual rate)." }],
-    seo: { title: "Square Root Calculator – With Cube & nth Roots | CalcForged", description: "Calculate square roots, cube roots, and nth roots from 2 to 12, handle negative numbers, and verify answers with a check line that shows the arithmetic.", h1: "Square root and cube root calculator", intro: "Roots come up everywhere: geometry homework, the Pythagorean theorem, standard deviations, and back-solving growth rates. Enter any number and get the square root and cube root instantly, plus any nth root from 2 to 12 with the n of your choice. Negative numbers are handled correctly — odd roots of negatives are real, even roots are flagged rather than silently wrong — and a check line shows the arithmetic so you can trust the answer at a glance." },
-    related: ["gpa", "percentage", "compound-interest"],
-  },
-  {
-    slug: "wedding-dessert-table", name: "Wedding Dessert Table Calculator", category: "Events", categorySlug: "events", icon: "◒", description: "Plan dessert pieces, cake slices, and variety for a wedding dessert spread.",
-    fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 80 }, { key: "cakePlan", label: "Cake plan", type: "select", defaultValue: "cake-table", options: [{ label: "Dessert table only (no cake)", value: "none" }, { label: "Cake only", value: "cake" }, { label: "Cake + dessert table", value: "cake-table" }] }, { key: "dessertTypes", label: "Dessert types on the table", type: "number", unit: "types", min: 1, max: 12, step: 1, defaultValue: 5 }, { key: "portionStyle", label: "Portion style", type: "select", defaultValue: "mini", options: [{ label: "Mini desserts (2 to 3 bites)", value: "mini" }, { label: "Full servings", value: "full" }] }],
-    results: [{ key: "totalPieces", label: "Total dessert pieces", unit: "pieces", format: "number", estimate: true, interpretation: "Cake slices plus table pieces to prepare." }, { key: "tablePieces", label: "Dessert table pieces", unit: "pieces", format: "number", estimate: true }, { key: "perType", label: "Pieces per dessert type", unit: "pieces", format: "number", estimate: true }, { key: "guidance", label: "Serving guidance", format: "text", estimate: true }],
-    calculate: (v) => {
-      const guests = n(v, "guests", 80);
-      const plan = option(v, "cakePlan", "cake-table");
-      const types = Math.max(1, Math.round(n(v, "dessertTypes", 5)));
-      const mini = option(v, "portionStyle", "mini") === "mini";
-      const tablePieces = ceil(guests * (mini ? (plan === "none" ? 3.5 : plan === "cake-table" ? 2.5 : 0) : plan === "none" ? 1.25 : plan === "cake-table" ? 0.75 : 0));
-      const cakeSlices = plan === "cake" ? ceil(guests) : plan === "cake-table" ? ceil(guests * 0.8) : 0;
-      const perType = Math.round(tablePieces / types);
-      const varietyNote = guests < 100 ? "Four to six dessert types work well under 100 guests." : guests < 150 ? "Five to seven dessert types suit an event this size." : "Six to eight dessert types give a full table without extra complexity.";
-      const cakeNote = plan === "none" ? " With no cake, the table carries the whole dessert course." : plan === "cake" ? " With cake as the only dessert, plan a slice for every guest." : " Cake covers most of the dessert need, so the table stays light.";
-      return { totalPieces: tablePieces + cakeSlices, tablePieces, perType, guidance: `${varietyNote}${cakeNote}` };
-    },
-    howItWorks: ["Cake served on its own is planned at one slice per guest; paired with a dessert table, slices for about 80% of guests are enough because some guests skip a slice.", "Without cake, plan 3 to 4 mini desserts per guest; with cake and a table together, 2 to 3 mini portions per guest cover the gap the cake leaves.", "Table pieces divide evenly across your dessert types, and full servings are planned at roughly a third of the mini count."],
-    example: { title: "80 guests, cake plus table", inputs: "Cake + dessert table, 5 types, mini desserts", result: "About 64 cake slices and 200 mini desserts — 264 pieces total, roughly 40 pieces per dessert type." },
-    faqs: [{ question: "Do cookies count as dessert pieces?", answer: "Yes. A standard cookie, brownie square, or small tart counts as one mini piece. For very small bites, plan one and a half to two pieces so the tray does not empty early." }, { question: "Mini desserts or full servings?", answer: "Minis let guests sample several things without waste — 3 to 4 mini pieces is roughly one full serving. Full servings suit a seated dessert course where each guest takes one plate." }, { question: "How much cake should I order per guest?", answer: "One slice per serving is the unit. When cake shares the table with other desserts, ordering for about 80% of guests is standard since not everyone takes a slice; when cake is the only dessert, plan a slice for every guest." }, { question: "When can you skip the dessert table?", answer: "Whenever budget or logistics say so. A well-sized cake is a complete dessert course on its own — the table adds variety and visual appeal, not a requirement." }],
-    seo: { title: "Wedding Dessert Table Calculator – Pieces Per Guest | CalcForged", description: "Plan how many desserts for a wedding: mini pieces per guest, cake slices, and dessert types for the table.", h1: "Wedding dessert table calculator", intro: "A dessert table looks effortless and hides a real question: how many desserts does a wedding actually need? Enter your guest count, whether cake is served, the number of dessert types you want, and whether you are serving minis or full servings. The calculator plans cake slices and table pieces separately, using the portion rules caterers work with — 3 to 4 mini desserts per guest when there is no cake, 2 to 3 when cake is sharing the job, and slices for about 80% of guests when cake and table run together. Use the result as your buying list, then divide it across your dessert types." },
-    related: ["wedding-food", "catering-food-quantity", "appetizers-per-person"],
-  },
-  {
-    slug: "catering-price-per-person", name: "Catering Price Per Person Calculator", category: "Business", categorySlug: "business", icon: "$", description: "Set a per-person catering charge from food cost, labor, and your target margin.",
-    fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 5000, defaultValue: 40 }, { key: "serviceStyle", label: "Service style", type: "select", defaultValue: "buffet", options: [{ label: "Plated dinner", value: "plated" }, { label: "Buffet", value: "buffet" }, { label: "Cocktail reception", value: "cocktail" }, { label: "Food stations", value: "stations" }] }, { key: "foodCost", label: "Food cost per person", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 18 }, { key: "pricingBasis", label: "Pricing basis", type: "select", defaultValue: "pct", options: [{ label: "Target food-cost percentage", value: "pct" }, { label: "Labor + overhead added", value: "labor" }] }, { key: "targetPct", label: "Target food-cost percentage", type: "number", unit: "%", min: 5, max: 90, defaultValue: 30 }, { key: "laborCost", label: "Labor + overhead per person", type: "number", unit: "$", min: 0, step: 0.01, defaultValue: 15, help: "Used when the pricing basis is labor + overhead." }],
-    results: [{ key: "charge", label: "Suggested charge per person", unit: "$", format: "currency", estimate: true }, { key: "quote", label: "Total quote", unit: "$", format: "currency", estimate: true }, { key: "foodPct", label: "Food cost at that price", unit: "%", format: "percent" }, { key: "marketNote", label: "Market range check", format: "text", estimate: true, interpretation: "A sanity check against typical per-guest pricing — not a quote." }],
-    calculate: (v) => {
-      const guests = n(v, "guests", 40);
-      const food = n(v, "foodCost", 18);
-      const pct = Math.max(5, n(v, "targetPct", 30)) / 100;
-      const labor = n(v, "laborCost", 15);
-      const charge = option(v, "pricingBasis", "pct") === "labor" ? food / pct + labor : food / pct;
-      const quote = Math.round(charge * guests);
-      const foodPct = charge ? round((food / charge) * 100, 1) : 0;
-      const style = option(v, "serviceStyle", "buffet");
-      const range = style === "plated" ? [75, 150] : style === "cocktail" ? [45, 95] : [55, 110];
-      const marketNote = charge < range[0] ? `Below the typical $${range[0]}–$${range[1]} range for this style — check that labor and rentals are covered.` : charge > range[1] ? `Above the typical $${range[0]}–$${range[1]} range for this style — the menu or market will need to support it.` : `Inside the typical $${range[0]}–$${range[1]} per-guest range for this service style.`;
-      return { charge: round(charge, 2), quote, foodPct, marketNote };
-    },
-    howItWorks: ["The classic baseline is to charge about three times your food cost, which puts food at 30% of the price.", "Pricing from labor instead marks your food up to the target percentage, then adds your per-person labor and overhead on top.", "The range check compares your charge with typical market pricing for the service style; rentals, tax, and gratuity usually sit on top of food in real quotes."],
-    example: { title: "40-guest buffet", inputs: "Buffet, $18 food cost, 30% target", result: "A $60 per-person charge, a $2,400 total quote, and a note that $60 sits inside the typical buffet range of $55–$110." },
-    faqs: [{ question: "What percentage should food cost be?", answer: "Many caterers target 28% to 35%. At 30%, charging three times your food cost covers the margin; higher-cost menus or heavy staffing mean the number should be checked against your full costs." }, { question: "What do I add for labor?", answer: "Staff hours times wages plus payroll burden, then rentals, transport, and overhead. A service charge of 18% to 22% on the subtotal is also common practice in catering quotes." }, { question: "How should I price beverages?", answer: "Keep them as a separate line. A per-person drink package or a consumption-based bar both work; folding drinks into the food number hides your real margin." }, { question: "How do deposits usually work?", answer: "A deposit of 25% to 50% holds the date, with the balance due a week or more before the event. Put both dates in the contract." }],
-    seo: { title: "Catering Price Per Person Calculator | CalcForged", description: "Work out how much to charge per person for catering, with a market-range sanity check.", h1: "Catering price per person calculator", intro: "How much to charge per person for catering is part arithmetic, part market check. Enter your guest count, service style, and food cost per person, then price from either a target food-cost percentage — the classic rule is to charge about three times your food cost — or from your labor and overhead added on top. The calculator shows the resulting charge, the total quote for the event, and how your number compares with typical market ranges for plated, buffet, cocktail, and station service. Treat the comparison as a starting point for the client conversation, not a final quote: labor, rentals, tax, and gratuity usually ride on top of food." },
-    related: ["restaurant-food-cost", "wedding-food", "catering-food-quantity"],
-  },
-  {
-    slug: "appetizers-per-person", name: "Appetizers Per Person Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◒", description: "Plan appetizer pieces per guest for pre-dinner bites, cocktail hours, or appetizer-only meals.",
-    fields: [{ key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 40 }, { key: "occasion", label: "Occasion", type: "select", defaultValue: "cocktail", options: [{ label: "Pre-dinner bites (dinner follows)", value: "pre-dinner" }, { label: "Cocktail party (no dinner)", value: "cocktail" }, { label: "Appetizers are the meal", value: "meal" }] }, { key: "hours", label: "Event length", type: "number", unit: "hours", min: 0.5, max: 8, step: 0.5, defaultValue: 2 }, { key: "heavy", label: "Heavy appetites", type: "select", defaultValue: "no", options: [{ label: "No", value: "no" }, { label: "Yes (add about 20%)", value: "yes" }] }],
-    results: [{ key: "totalPieces", label: "Total appetizer pieces", unit: "pieces", format: "number", estimate: true }, { key: "perGuest", label: "Pieces per guest", unit: "pieces", format: "number", estimate: true }, { key: "perVariety", label: "Pieces per variety", unit: "pieces", format: "number", estimate: true }, { key: "varietyNote", label: "Variety guidance", format: "text", estimate: true }],
-    calculate: (v) => {
-      const guests = n(v, "guests", 40);
-      const occasion = option(v, "occasion", "cocktail");
-      const hours = Math.max(0.5, n(v, "hours", 2));
-      let perGuest = occasion === "pre-dinner" ? 4 : occasion === "meal" ? 12 + Math.max(0, hours - 2) : 6 + 2.5 * Math.max(0, hours - 1);
-      if (option(v, "heavy", "no") === "yes") perGuest *= 1.2;
-      const pieces = ceil(guests * perGuest);
-      const varieties = guests < 50 ? 5 : guests < 100 ? 6 : guests < 150 ? 7 : 8;
-      const perVariety = Math.ceil(pieces / varieties);
-      const varietyNote = `${guests < 100 ? "Aim for 4 to 6 varieties under 100 guests." : "Six to eight varieties cover a crowd this size."} The per-variety figure assumes about ${varieties} varieties.`;
-      return { totalPieces: pieces, perGuest: round(perGuest, 1), perVariety, varietyNote };
-    },
-    howItWorks: ["Pre-dinner bites run about 4 pieces per guest — guests hold back when a full meal is coming.", "A cocktail party with no dinner climbs from about 6 pieces in the first hour by 2 to 3 pieces per additional hour; when appetizers are the meal, start at 12 and add one per hour past two.", "Heavy appetites or an event with nothing else to eat add about 20%, and pieces per variety assume a variety count suited to your guest list."],
-    example: { title: "40 guests, 2-hour cocktail party", inputs: "Cocktail party, 2 hours, no heavy appetites", result: "About 340 pieces — roughly 68 per variety across 5 varieties." },
-    faqs: [{ question: "How many appetizers for 50 guests?", answer: "For a two- to three-hour cocktail party, 8 to 12 pieces per guest means 400 to 600 pieces. If dinner follows, 4 to 6 per guest — about 200 to 300 pieces — is plenty." }, { question: "What counts as one piece?", answer: "One bite-size serving: a crostini, a skewer, a spring roll. Larger items like sliders or substantial skewers can count as one and a half to two pieces." }, { question: "How many appetizer varieties should I offer?", answer: "Four to six varieties for events under 100 guests, six to eight for larger crowds. More variety looks generous but multiplies prep and serving dishes." }, { question: "Should I round up or down?", answer: "Up. Appetizers run out before they run over, especially with drinks being served — err on the generous side of any range." }],
-    seo: { title: "Appetizers Per Person Calculator | CalcForged", description: "Work out how many appetizers per person for pre-dinner bites, cocktail parties, or appetizer-only meals.", h1: "Appetizers per person calculator", intro: "How many appetizers per person depends on what else is being served and how long guests are standing around hungry. Pick the occasion — pre-dinner bites, a cocktail party with no dinner behind it, or appetizers as the meal itself — set the event length, and note whether appetites run heavy. The calculator turns those into a piece count per guest, a total for your shopping list, and a per-variety split across a sensible number of varieties. The ranges follow standard catering practice: about 4 pieces per guest before dinner, 8 to 12 across a two- to three-hour cocktail party, and 12 or more when the apps are the meal." },
-    related: ["catering-food-quantity", "taco-bar", "wedding-dessert-table"],
-  },
-  {
-    slug: "yarn-yardage", name: "Yarn Yardage Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "◈", description: "Estimate yarn yardage and skeins for blankets by size and yarn weight.",
-    fields: [{ key: "lengthIn", label: "Length", type: "number", unit: "inches", min: 4, max: 200, defaultValue: 60, help: "Common sizes: baby blanket 30×40, throw 50×60, queen 90×100." }, { key: "widthIn", label: "Width", type: "number", unit: "inches", min: 4, max: 200, defaultValue: 50 }, { key: "weight", label: "Yarn weight", type: "select", defaultValue: "4", options: [{ label: "0 — Lace", value: "0" }, { label: "1 — Superfine (sock, fingering)", value: "1" }, { label: "2 — Fine (sport)", value: "2" }, { label: "3 — Light (DK)", value: "3" }, { label: "4 — Medium (worsted)", value: "4" }, { label: "5 — Bulky", value: "5" }, { label: "6 — Super bulky", value: "6" }, { label: "7 — Jumbo", value: "7" }] }, { key: "yardsPerSkein", label: "Yards per skein", type: "number", unit: "yd", min: 10, max: 2000, defaultValue: 220 }, { key: "wastePct", label: "Waste allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 15, help: "For swatching, fringe, and weaving in ends." }],
-    results: [{ key: "totalYards", label: "Yarn needed", unit: "yd", format: "number", estimate: true, interpretation: "Before the waste allowance." }, { key: "buyYards", label: "Yards to buy (with allowance)", unit: "yd", format: "number", estimate: true }, { key: "skeins", label: "Skeins to buy", unit: "skeins", format: "number", estimate: true }, { key: "note", label: "Reality check", format: "text", estimate: true }],
-    calculate: (v) => {
-      const length = Math.max(4, n(v, "lengthIn", 60));
-      const width = Math.max(4, n(v, "widthIn", 50));
-      const area = length * width;
-      const factors: Record<string, number> = { "0": 1.7, "1": 1.45, "2": 1.25, "3": 1.12, "4": 1, "5": 0.75, "6": 0.55, "7": 0.4 };
-      const factor = factors[option(v, "weight", "4")] ?? 1;
-      const totalYards = round(area * 0.6 * factor);
-      const buyYards = Math.round(totalYards * (1 + Math.min(100, Math.max(0, n(v, "wastePct", 15))) / 100));
-      const skeins = ceil(buyYards / Math.max(10, n(v, "yardsPerSkein", 220)));
-      return { totalYards, buyYards, skeins, note: "Gauge and stitch density change everything — dense stitches use more yarn, open stitches less. Treat this as a starting estimate and let a swatch refine it." };
-    },
-    howItWorks: ["The estimate starts from your project's area in square inches.", "Each yarn weight carries a yards-per-square-inch factor, calibrated so a 50×60 throw in worsted weight lands near the 1,800 yards most guides cite.", "Your waste allowance is added for swatching, fringe, and weaving in ends, then divided by yards per skein and rounded up to whole skeins."],
-    example: { title: "50×60 throw in worsted", inputs: "50 × 60 inches, weight 4, 220 yd skeins, 15% allowance", result: "About 1,800 yards — 2,070 with the allowance, or 10 skeins." },
-    faqs: [{ question: "Why do yarn estimates vary so much?", answer: "Gauge, stitch density, and stitch pattern all change consumption. Two makers with the same yarn and hook can differ by 10% to 20%, so a calculator gives a starting estimate, not a guarantee." }, { question: "What eats extra yarn?", answer: "Fringe and borders, colorwork with floats, dense textured stitches, and the swatch itself — which is why the allowance defaults to 15%." }, { question: "How do I check my gauge?", answer: "Work a 4-inch swatch in your pattern stitch, wash and block it the way you will finish the blanket, then count stitches and rows per inch against the yarn's label." }, { question: "Why buy one dye lot?", answer: "Dye lots vary between batches, and the difference shows across a large project. Buy every skein for the blanket at once, all from the same lot." }],
-    seo: { title: "Yarn Yardage Calculator – How Much Yarn for a Blanket | CalcForged", description: "Estimate yarn yardage and skeins for a blanket by size and yarn weight, with a waste allowance for swatching and finishing.", h1: "Yarn yardage calculator", intro: "How much yarn a blanket needs is one of those questions with a famously long answer — gauge, stitch density, and yarn weight all move the number. This blanket yarn calculator gives you a grounded starting point: enter the finished length and width, pick your yarn weight from the standard 0-to-7 categories, and set your yards per skein and waste allowance. The math is calibrated so a 50×60 throw in worsted weight lands near the 1,800 yards most yarn guides cite, then scales across the other weights. The skein count rounds up so one dye lot covers the whole project. Treat the result as a planning estimate and let a swatch refine it." },
-    related: ["recipe-scaling", "weight-converter", "percentage"],
-  },
-  {
-    slug: "pizza-party", name: "Pizza Party Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◒", description: "Order the right number of pizzas for any crowd, by size and appetite.",
-    fields: [
-      { key: "adults", label: "Adults", type: "number", unit: "people", min: 0, max: 1000, defaultValue: 20 },
-      { key: "children", label: "Children", type: "number", unit: "people", min: 0, max: 1000, defaultValue: 0 },
-      { key: "slicesPerAdult", label: "Slices per adult", type: "number", unit: "slices", min: 1, max: 6, defaultValue: 3, help: "Most adults eat 2–3 slices; 3–4 when pizza is the only main." },
-      { key: "slicesPerChild", label: "Slices per child", type: "number", unit: "slices", min: 0, max: 4, defaultValue: 2, help: "Kids usually manage 1–2 slices." },
-      { key: "pizzaSize", label: "Pizza size", type: "select", defaultValue: "large", options: [{ label: "10\" small — 6 slices", value: "small" }, { label: "12\" medium — 8 slices", value: "medium" }, { label: "14\" large — 8 slices", value: "large" }, { label: "16\" extra large — 12 slices", value: "xl" }] },
-    ],
-    results: [
-      { key: "slices", label: "Total slices", unit: "slices", format: "number" },
-      { key: "pizzas", label: "Pizzas to order", unit: "pizzas", format: "number", estimate: true, interpretation: "Rounded up to whole pizzas." },
-      { key: "note", label: "Ordering note", format: "text" },
-    ],
-    calculate: (v) => {
-      const adults = n(v, "adults", 20);
-      const children = n(v, "children", 0);
-      const slices = ceil(adults * n(v, "slicesPerAdult", 3) + children * n(v, "slicesPerChild", 2));
-      const sizes: Record<string, { perPizza: number; label: string }> = { small: { perPizza: 6, label: "10\" small" }, medium: { perPizza: 8, label: "12\" medium" }, large: { perPizza: 8, label: "14\" large" }, xl: { perPizza: 12, label: "16\" extra large" } };
-      const size = sizes[option(v, "pizzaSize", "large")] ?? sizes.large;
-      const pizzas = ceil(slices / size.perPizza);
-      const lo = Math.floor(size.perPizza / 3);
-      const hi = Math.ceil(size.perPizza / 3);
-      const per = lo === hi ? `${lo} adults` : `${lo}–${hi} adults`;
-      const spare = pizzas * size.perPizza - slices;
-      return { slices, pizzas, note: `Each ${size.label} pizza has ${size.perPizza} slices — about ${per} per pizza at 3 slices each.${spare > 0 ? ` Ordering whole pizzas leaves ${spare} spare slices; odd leftovers feed the morning after.` : ""}` };
-    },
-    howItWorks: ["Count slices first: most adults eat 2–3 and kids 1–2, so the default plans 3 slices per adult and 2 per child.", "Divide total slices by the slice count for your pizza size — 6 for a 10\" small, 8 for a 12\" medium or 14\" large, 12 for a 16\" extra large — and round up to whole pizzas.", "Most U.S. chains cut a large into 8 slices; square-cut or 10-slice pizzerias yield a couple more per pie, so the estimate errs on the safe side."],
-    example: { title: "20 adults, large pizzas", inputs: "20 adults, 3 slices each, 14\" large", result: "60 slices — 8 large pizzas, with 4 slices to spare." },
-    faqs: [{ question: "How many slices of pizza per person?", answer: "Plan 2–3 slices per adult and 1–2 per child. When pizza is the only main dish, move adults up to 3–4 slices." }, { question: "How many pizzas for 20 adults?", answer: "At 3 slices each, 20 adults need 60 slices — 8 large pizzas cut into 8 slices, or 5 extra larges cut into 12. Order one more if guests are hearty or the party runs late." }, { question: "How many pizza varieties should I order?", answer: "Under 20 people, 2–3 types is plenty: cheese and pepperoni cover most guests, plus one specialty. Bigger crowds stay happy with 3–4 repeats of the bestsellers." }, { question: "What do I do with leftover pizza?", answer: "Refrigerate slices within two hours; they keep 3–4 days and freeze for about a month. Reheat in a skillet or hot oven so the crust crisps back up." }],
-    seo: { title: "Pizza Party Calculator – How Many Pizzas to Order | CalcForged", description: "Calculate how many pizzas to order for any group — adults, kids, and pizza size, from 10-inch smalls to 16-inch extra larges.", h1: "Pizza party calculator", intro: "How many pizzas for 20 adults — or any crowd — comes down to slices: adults eat 2–3, kids eat 1–2, and every pizza size cuts into a known slice count. Enter your adults and children, set the appetite, and pick the size you are ordering, from a 10\" small at 6 slices to a 16\" extra large at 12. The calculator divides total slices by slices per pizza and rounds up to whole pies, so you order a real number instead of a guess. It assumes the 8-slice large most U.S. chains ship, which errs on the safe side when a pizzeria cuts 10." },
-    related: ["taco-bar", "appetizers-per-person", "catering-food-quantity"],
-  },
-  {
-    slug: "chicken-wings", name: "Chicken Wings Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◆", description: "Turn guests into wing pieces, pounds to buy, and sauce to toss.",
-    fields: [
-      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 10 },
-      { key: "serving", label: "Serving style", type: "select", defaultValue: "main", options: [{ label: "Appetizer — 6 pieces per guest", value: "appetizer" }, { label: "Main dish — 12 pieces per guest", value: "main" }] },
-      { key: "pieceType", label: "Wing type", type: "select", defaultValue: "party", options: [{ label: "Flats & drumettes — each piece counts as 1", value: "party" }, { label: "Whole wings — each wing is 2 pieces", value: "whole" }] },
-      { key: "cupsPerLb", label: "Sauce per cooked lb", type: "number", unit: "cups", min: 0, max: 2, step: 0.125, defaultValue: 0.5, help: "Standard recipes work out to about ½ cup per cooked pound." },
-    ],
-    results: [
-      { key: "pieces", label: "Wing pieces", unit: "pieces", format: "number" },
-      { key: "cooked", label: "Cooked wings", unit: "lb", format: "number", estimate: true },
-      { key: "raw", label: "Raw wings to buy", unit: "lb", format: "number", estimate: true, interpretation: "Assumes standard-size party wings; jumbo wings run heavier." },
-      { key: "sauce", label: "Buffalo sauce", unit: "cups", format: "number", estimate: true },
-    ],
-    calculate: (v) => {
-      const guests = n(v, "guests", 10);
-      const piecesPerPerson = option(v, "serving", "main") === "appetizer" ? 6 : 12;
-      const pieces = Math.round(guests * piecesPerPerson);
-      const rawPerPiece = option(v, "pieceType", "party") === "whole" ? 1.9 : 1.6;
-      const rawBase = pieces * rawPerPiece / 16;
-      const cookedBase = rawBase * 0.68;
-      return { pieces, cooked: round(cookedBase), raw: round(rawBase), sauce: round(cookedBase * n(v, "cupsPerLb", 0.5), 1) };
-    },
-    howItWorks: ["Guests eat about 6 wing pieces when wings are an appetizer and 10–12 when they are the main dish; this calculator plans 6 and 12.", "Pieces convert to raw pounds at roughly 1.6 ounces per pre-cut piece — about 9 pieces per pound; whole wings run heavier because the tip rides along in the purchase weight.", "Bone-in wings lose about a third of their weight cooking (a 65–70% yield), so the raw figure is the buying number, and sauce is planned at about half a cup per cooked pound."],
-    example: { title: "10 guests, main-dish wings", inputs: "Main dish, flats & drumettes, ½ cup sauce per cooked lb", result: "120 pieces — about 12 lb raw to buy, 8.2 lb cooked, and 4.1 cups of sauce." },
-    faqs: [{ question: "How many wings per person as an appetizer vs a main?", answer: "About 6 pieces per person as an appetizer and 10–12 as the main dish. With hearty sides or a second main on the table, lean to the low end." }, { question: "Whole wings or pre-cut flats and drumettes?", answer: "A whole wing cuts into two pieces (flat and drumette), with the tip usually discarded. Pre-cut party wings count one piece each; this estimate assumes those unless you pick whole wings." }, { question: "Fresh or frozen wings?", answer: "Both work. Individually quick-frozen wings are often cheaper and keep until party day — thaw them in the fridge a day ahead and pat dry before cooking." }, { question: "How much sauce do wings need?", answer: "Standard recipes work out to 2–3 fluid ounces per raw pound, or about half a cup per cooked pound. Toss just before serving so the skin stays crisp, and keep extra warm for dipping." }],
-    seo: { title: "Chicken Wings Calculator – How Many Wings Per Person | CalcForged", description: "Calculate chicken wing pieces, raw pounds to buy, and buffalo sauce for any guest count — appetizer or main dish.", h1: "Chicken wings calculator", intro: "How many wings per person depends on what else is on the table: about 6 pieces when wings are an appetizer and 10–12 when they are the main dish. Enter your guest count and serving style, say whether you are buying pre-cut flats and drumettes or whole wings, and get pieces, raw pounds to buy, and the buffalo sauce to toss. The weight math uses standard party-wing averages — roughly 9 pieces per raw pound — and a 65–70% raw-to-cooked yield, so the buying number errs on the generous side." },
-    related: ["bbq-meat", "taco-bar", "pizza-party"],
-  },
-  {
-    slug: "party-ice", name: "Party Ice Calculator", category: "Events", categorySlug: "events", icon: "❄", description: "Estimate pounds of ice, bags to buy, and cost for drinks and coolers.",
-    fields: [
-      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 1000, defaultValue: 20 },
-      { key: "hours", label: "Event length", type: "number", unit: "hours", min: 1, max: 12, step: 0.5, defaultValue: 3 },
-      { key: "setting", label: "Setting", type: "select", defaultValue: "indoor", options: [{ label: "Indoor or cool", value: "indoor" }, { label: "Outdoor or warm", value: "outdoor" }] },
-      { key: "uses", label: "What the ice has to do", type: "select", defaultValue: "drinks", options: [{ label: "Drinks only", value: "drinks" }, { label: "Drinks + chilling bottles", value: "bottles" }, { label: "Everything, including displays", value: "everything" }] },
-      { key: "bagSize", label: "Bag size", type: "number", unit: "lb", min: 5, max: 40, step: 5, defaultValue: 10 },
-      { key: "bagPrice", label: "Price per bag", type: "number", unit: "$", min: 0, step: 0.25, defaultValue: 3.5, help: "Grocery-store 10 lb bags run about $3.50; gas stations are cheaper per stop, dearer per pound." },
-    ],
-    results: [
-      { key: "totalLb", label: "Ice needed", unit: "lb", format: "number", estimate: true, interpretation: "1 lb per guest for the first two hours, then 0.5 lb per extra hour." },
-      { key: "bags", label: "Bags to buy", unit: "bags", format: "number", estimate: true },
-      { key: "cost", label: "Ice cost", unit: "$", format: "currency", estimate: true },
-      { key: "note", label: "Keep it frozen", format: "text" },
-    ],
-    calculate: (v) => {
-      const guests = n(v, "guests", 20);
-      const hours = Math.max(1, n(v, "hours", 3));
-      let totalLb = guests * (Math.min(2, hours) + Math.max(0, hours - 2) * 0.5);
-      if (option(v, "setting", "indoor") === "outdoor") totalLb *= 1.5;
-      const uses = option(v, "uses", "drinks");
-      if (uses === "bottles") totalLb += guests * 0.5;
-      if (uses === "everything") totalLb += guests;
-      const bags = ceil(totalLb / Math.max(1, n(v, "bagSize", 10)));
-      return { totalLb: round(totalLb), bags, cost: round(bags * n(v, "bagPrice", 3.5), 2), note: "Buy bags a day early and store them cold and closed; pack coolers with a base layer of ice, drinks, then ice on top, and keep a spare bag for top-ups." };
-    },
-    howItWorks: ["Drinks start at 1 pound of ice per guest for the first two hours, then add half a pound per guest per extra hour.", "Warm or outdoor settings multiply the drink total by 1.5 for melt; chilling bottles in coolers adds about half a pound per guest, and food displays add the same again.", "The total converts to whole bags at your bag size and prices out at your local per-bag cost."],
-    example: { title: "20 guests, 3-hour outdoor party", inputs: "Outdoor, drinks + chilling bottles, 10 lb bags", result: "About 55 lb of ice — 6 bags, roughly $21." },
-    faqs: [{ question: "How much ice per person for a party?", answer: "The common range is 1–2 pounds per guest: about 1 lb for a short indoor drinks-only event, 1.5 lb for a typical 3-hour party, and 2 lb or more for hot outdoor events or when ice also chills bottles and displays." }, { question: "How do I keep ice from melting too fast?", answer: "Pre-chill the coolers, keep bags closed and out of the sun, and layer ice under and over the drinks. Keep the lid shut, and hold a spare bag back for top-ups late in the event." }, { question: "Should I buy bags or have ice delivered?", answer: "Grocery and warehouse bags are cheapest per pound for most parties. For long outdoor events, block ice melts far slower; for 100+ guests, delivered bulk ice saves the store runs." }, { question: "Is bagged ice safe for drinks?", answer: "Buy ice packaged and labeled for consumption. Never use ice that has touched a cooler floor or raw food, and serve with a scoop rather than hands." }],
-    seo: { title: "Party Ice Calculator – How Much Ice for a Party | CalcForged", description: "Calculate how many pounds of ice and how many bags to buy for your party — drinks, bottles, and displays included.", h1: "Party ice calculator", intro: "How much ice for a party is one of the most under-planned numbers on the shopping list. The baseline is about a pound of ice per guest for the first two hours of drinks, half a pound more per extra hour, and more again for outdoor heat, chilling bottles, and food displays. Enter your guests, hours, setting, and what the ice has to do, and get total pounds, bags to buy at your bag size, and the cost at your local bag price. Most 10-pound bags run about $3.50 at the grocery store, so a typical 20-guest afternoon lands near five bags." },
-    related: ["wedding-food", "appetizers-per-person", "bbq-meat"],
-  },
-  {
-    slug: "balloon-quantity", name: "Balloon Quantity Calculator", category: "Events", categorySlug: "events", icon: "◉", description: "Turn a room or car interior into a balloon count, helium volume, and tank count.",
-    fields: [
-      { key: "whatToFill", label: "What are you filling", type: "select", defaultValue: "room", options: [{ label: "A room", value: "room" }, { label: "A car interior", value: "car" }] },
-      { key: "lengthFt", label: "Length", type: "number", unit: "ft", min: 1, max: 120, defaultValue: 12, help: "A typical sedan's usable interior is about a 4 × 5 × 3 ft box — the full cabin measures 110–120 cu ft before seats and console eat most of it. A living room is often 12 × 10 × 8 ft." },
-      { key: "widthFt", label: "Width", type: "number", unit: "ft", min: 1, max: 120, defaultValue: 10 },
-      { key: "heightFt", label: "Height", type: "number", unit: "ft", min: 1, max: 30, defaultValue: 8 },
-      { key: "balloonSize", label: "Balloon size", type: "select", defaultValue: "11", options: [{ label: "9 in latex", value: "9" }, { label: "11 in latex", value: "11" }, { label: "12 in latex", value: "12" }, { label: "16 in latex", value: "16" }, { label: "36 in latex (giant)", value: "36" }] },
-      { key: "tankSize", label: "Tank size", type: "select", defaultValue: "14.9", options: [{ label: "8.9 cu ft — small disposable", value: "8.9" }, { label: "14.9 cu ft — standard disposable", value: "14.9" }, { label: "55 cu ft — rental cylinder", value: "55" }, { label: "110 cu ft — rental cylinder", value: "110" }, { label: "150 cu ft — rental cylinder", value: "150" }, { label: "219 cu ft — rental cylinder", value: "219" }] },
-    ],
-    results: [
-      { key: "balloons", label: "Balloons to fill it", unit: "balloons", format: "number", estimate: true, interpretation: "Usable box × 0.9 fill factor; packing gaps can swing the real count ±15%." },
-      { key: "helium", label: "Helium needed", unit: "cu ft", format: "number", estimate: true },
-      { key: "tanks", label: "Tanks to buy or rent", unit: "tanks", format: "number", estimate: true },
-      { key: "note", label: "Float time & timing", format: "text", estimate: true },
-    ],
-    calculate: (v) => {
-      const usable = Math.max(1, n(v, "lengthFt", 12)) * Math.max(1, n(v, "widthFt", 10)) * Math.max(1, n(v, "heightFt", 8)) * 0.9;
-      const perBalloon: Record<string, number> = { "9": 0.3, "11": 0.5, "12": 0.65, "16": 1.1, "36": 7.5 };
-      const size = option(v, "balloonSize", "11");
-      const per = perBalloon[size] ?? 0.5;
-      const balloons = Math.floor(usable / per);
-      const helium = balloons * per;
-      const tanks = ceil(helium / Math.max(0.5, n(v, "tankSize", 14.9)));
-      const floatTimes: Record<string, string> = { "9": "6–8 hours", "11": "10–12 hours", "12": "10–14 hours", "16": "18–24 hours", "36": "2–3 days" };
-      const carHint = option(v, "whatToFill", "room") === "car" ? " Working from the car's usable box keeps the count realistic — a typical sedan is about 4 × 5 × 3 ft." : "";
-      return { balloons, helium: round(helium), tanks, note: `Latex this size floats about ${floatTimes[size] ?? "10–12 hours"} indoors — inflate close to event time, or add Hi-Float to roughly double it. Plan 10–15% fewer balloons per tank above 4,000 ft altitude.${carHint}` };
-    },
-    howItWorks: ["The usable space is your length × width × height, times a 0.9 fill factor for the corners and odd volumes the tidy box leaves out.", "Each balloon size has a known helium appetite — about 0.5 cu ft for an 11-inch latex — and the count is usable volume divided by that number.", "Helium volume divides by your tank size and rounds up, because a tank that dies two balloons short ruins the reveal; float times come from standard latex charts."],
-    example: { title: "Fill a sedan with 11-inch balloons", inputs: "Car interior 4 × 5 × 3 ft, 11 in balloons, 14.9 cu ft disposable tank", result: "About 108 balloons — 54 cu ft of helium, or 4 disposable tanks (one 55 cu ft rental covers it)." },
-    faqs: [{ question: "How many balloons does it take to fill a car?", answer: "A typical sedan's usable interior is roughly a 4 × 5 × 3 ft box — about 60 cu ft, or 100–120 eleven-inch balloons at 0.5 cu ft each. Published cabin volumes run 110–120 cu ft, but seats, console, and sloped glass eat most of that. An SUV's cargo area alone can take 200+." }, { question: "How long will the balloons stay up?", answer: "An 11-inch latex balloon floats 10–12 hours indoors; 16-inch runs 18–24 hours and 36-inch giants 2–3 days. Hi-Float roughly doubles latex time. Inflate close to the event — balloons blown up the night before droop by the party." }, { question: "Which helium tank do I need?", answer: "The standard 14.9 cu ft disposable fills about 30 eleven-inch balloons; the smaller 8.9 cu ft fills about 18. Past roughly 50 balloons, rent: 55 and 110 cu ft cylinders cost a fraction per cubic foot and one tank covers the room." }, { question: "How many balloons for an arch or garland?", answer: "A standard garland packs 4–6 balloons per foot and lush wedding-style builds run 7–10+, so a 10-foot arch takes 40–60 balloons. Most arches are air-filled, which needs no helium and holds its shape for days." }],
-    seo: { title: "Balloon Quantity Calculator – Balloons & Helium per Room or Car | CalcForged", description: "Calculate how many balloons and how much helium fill a room or car interior — by balloon size, with tanks to buy and float time built in.", h1: "Balloon quantity calculator", intro: "How many balloons it takes to fill a room — or a car — comes down to volume: your space times a 0.9 fill factor, divided by the helium each balloon holds. An 11-inch latex balloon takes about 0.5 cubic feet of helium, a 9-inch about 0.3, and a 36-inch giant about 7.5. Pick the space, set the three dimensions, choose the balloon size and your tank, and the calculator returns a balloon count, the helium it consumes, and how many tanks that takes — disposable tanks fill roughly 30 eleven-inch balloons each, so anything past a few dozen points you at a rental cylinder. Float time is built into the note: latex runs 10–12 hours indoors untreated, so inflation timing matters as much as the count." },
-    related: ["party-ice", "appetizers-per-person", "wedding-dessert-table"],
-  },
-  {
-    slug: "fuel-mileage", name: "Fuel Mileage Calculator", category: "Automotive", categorySlug: "automotive", icon: "$", description: "Calculate miles per gallon and fuel costs, then save the latest five fill-ups to your account.",
-    fields: [
-      { key: "startOdometer", label: "Starting odometer", type: "number", unit: "mi", min: 0, max: 1000000, defaultValue: 0 },
-      { key: "endOdometer", label: "Ending odometer", type: "number", unit: "mi", min: 0, max: 1000000, defaultValue: 0 },
-      { key: "gallonsUsed", label: "Gallons used", type: "number", unit: "gal", min: 0, max: 500, defaultValue: 0 },
-      { key: "totalPaid", label: "Total paid", type: "number", unit: "USD", min: 0, max: 5000, defaultValue: 0 },
-    ],
-    results: [
-      { key: "distance", label: "Distance", unit: "mi", format: "number" },
-      { key: "mpg", label: "Fuel economy", unit: "MPG", format: "number" },
-      { key: "costPerMile", label: "Cost per mile", format: "currency" },
-      { key: "pricePerGallon", label: "Average pump price", unit: "USD/gal", format: "currency" },
-    ],
-    calculate: (v) => {
-      const start = Math.max(0, n(v, "startOdometer"));
-      const end = Math.max(0, n(v, "endOdometer"));
-      const gallons = Math.max(0, n(v, "gallonsUsed"));
-      const paid = Math.max(0, n(v, "totalPaid"));
-      const distance = Math.max(0, end - start);
-      return { distance: round(distance, 1), mpg: distance > 0 && gallons > 0 ? round(distance / gallons, 1) : 0, costPerMile: distance > 0 ? round(paid / distance, 2) : 0, pricePerGallon: gallons > 0 ? round(paid / gallons, 2) : 0 };
-    },
-    howItWorks: ["Distance is the ending odometer reading minus the starting reading.", "Fuel economy is distance divided by gallons used. For a reliable per-tank result, compare full tanks and include every partial fill between them.", "When you log a partial fill, its gallons carry forward. The log calculates MPG when you record the next full tank, then shows the last five fill-up costs."],
-    example: { title: "350 miles between fill-ups", inputs: "Starting odometer 42,180 mi, ending odometer 42,530 mi, 12.5 gallons, $45 paid", result: "350 miles, 28.0 MPG, $3.60 per gallon, and about $0.13 per mile." },
-    faqs: [{ question: "How do I calculate miles per gallon?", answer: "Subtract the starting odometer from the ending odometer, then divide the miles driven by gallons used. For the most accurate fuel economy, start and finish with a full tank and keep the fill-up method consistent." }, { question: "Can I log a partial fill-up?", answer: "Yes. Mark it as partial and enter the gallons added. The log carries those gallons into the next full-tank interval, then calculates MPG from the distance and total gallons between full tanks." }, { question: "What does the account fuel log save?", answer: "Any signed-in account can save odometer readings, gallons, and pump totals. The calculator shows the latest five fill-ups, recent spending, and full-to-full fuel economy. Manual calculations work without signing in." }, { question: "Why does the first full tank not show MPG?", answer: "The first full tank is the starting point. The next full-tank reading closes the first interval, so the calculator can divide the miles driven by the fuel added across that interval." }],
-    seo: { title: "Fuel Mileage Calculator: MPG, Fuel Cost & Fill-Up Log | CalcForged", description: "Calculate miles per gallon, pump cost, and cost per mile. Sign in to save the latest five fill-ups, including partial tanks and full-to-full MPG.", h1: "Fuel mileage calculator", intro: "Calculate miles per gallon from two odometer readings and the gallons used, then see your fuel cost and cost per mile. Sign in to save the latest five fill-ups and reuse your last odometer reading. For accurate tank-to-tank MPG, mark partial fills and let the next full tank close the interval." },
-    related: ["tire-size", "towing-capacity", "battery-runtime", "gig-driver-mileage-tracker"],
-  },
-  {
-    slug: "gig-driver-mileage-tracker", name: "Gig Driver Mileage Tracker", category: "Business", categorySlug: "business", icon: "↗", description: "Log gig-driving miles and total earnings by shift. Hours fill automatically from shift start and finish times; see fuel cost per mile and after-fuel hourly earnings.",
-    fields: [],
-    results: [],
-    calculate: () => ({}),
-    howItWorks: ["Enter start and end odometer readings for miles, or use optional GPS while this page stays open in the foreground. The trip times and input method are saved with the shift.", "Enter total shift earnings. Hours worked is calculated from the shift start and finish times. Fuel cost per mile is pump price divided by MPG; shift fuel cost is miles times that rate. After-fuel earnings per hour subtracts fuel cost from earnings, then divides by hours worked.", "MPG and pump price can prefill from Fuel Mileage or be entered for the shift. A free signed-in account keeps seven days of shift records, including the values used for each result; GPS coordinates are discarded."],
-    example: { title: "Log one delivery shift", inputs: "56.4 mi, $120 total earnings, 4.5 hours, 28 MPG, and $3.55 per gallon", result: "$7.15 fuel for the shift, $0.127 fuel cost per mile, and $112.85 after fuel, or $25.08 per hour. Fuel only; no maintenance or vehicle-wear costs." },
-    faqs: [{ question: "What does the tracker save?", answer: "It saves the mileage total, shift start and end times, input method, gross earnings, hours worked, and any MPG and pump-price values used in the shift calculation. It does not save odometer readings or route coordinates." }, { question: "How are fuel costs calculated?", answer: "Fuel cost per mile is pump price per gallon divided by MPG. Shift fuel cost is miles driven multiplied by that rate. The values come from your saved Fuel Mileage log or what you enter for the shift; actual fuel use can vary with driving conditions." }, { question: "Does this include vehicle wear or tax records?", answer: "No. The calculation covers fuel only. It does not include maintenance, vehicle wear, or tax records." }, { question: "Can I use GPS with my screen locked?", answer: "No. GPS is optional and works only while this page is open in the foreground. If location permission is denied or GPS is unavailable, enter the odometer readings manually." }, { question: "How long are shift records kept?", answer: "A free CalcForged account keeps a rolling seven-day history for this tracker. Older tracker records are removed automatically." }, { question: "Does the tracker change my Fuel Mileage log?", answer: "No. The tracker reads Fuel Mileage data to prefill MPG and pump price, but never edits its entries. Use the link on this page to open the Fuel Mileage Calculator." }],
-    seo: { title: "Gig Driver Mileage Tracker | CalcForged", description: "Log miles, earnings, and shift times. Hours are calculated automatically. See fuel-only cost per mile and after-fuel hourly earnings. Free seven-day history.", h1: "Gig driver mileage tracker", intro: "Track shift miles with an odometer or optional foreground GPS. Enter total earnings and set the shift start and finish; hours fill automatically. See fuel cost per mile and earnings per hour after fuel. MPG and pump price can prefill from Fuel Mileage or be entered for each shift. A free account keeps the last seven days of records." },
-    related: ["fuel-mileage"],
-  },
-  {
-    slug: "tire-size", name: "Tire Size Calculator", category: "Automotive", categorySlug: "automotive", icon: "◉", description: "Convert tire sizes and compare alternatives within 3% on the same rim, with diameter and speedometer estimates.",
-    fields: [
-      { key: "direction", label: "Direction", type: "select", defaultValue: "metric", options: [{ label: "Metric size → inches", value: "metric" }, { label: "Inches → matching sizes", value: "inches" }] },
-      { key: "metricWidth", label: "Section width", type: "number", unit: "mm", min: 100, max: 400, defaultValue: 225, help: "First number in 225/65R17.", visibleWhen: { key: "direction", values: ["metric"] } },
-      { key: "aspect", label: "Aspect ratio", type: "number", unit: "%", min: 20, max: 95, defaultValue: 65, help: "Sidewall height as a percentage of width — the second number.", visibleWhen: { key: "direction", values: ["metric"] } },
-      { key: "rim", label: "Rim diameter", type: "number", unit: "in", min: 8, max: 26, defaultValue: 17, help: "The R-number. In the inches direction this is your wheel size — every match stays on this rim." },
-      { key: "targetDiameter", label: "Your current tire height", type: "number", unit: "in", min: 15, max: 45, step: 0.05, defaultValue: 28.5, help: "Ground to top of the tire — measure it, or take it from the metric direction.", visibleWhen: { key: "direction", values: ["inches"] } },
-      { key: "targetWidth", label: "Your current tire width", type: "number", unit: "in", min: 4, max: 16, step: 0.05, defaultValue: 8.9, visibleWhen: { key: "direction", values: ["inches"] } },
-    ],
-    results: [
-      { key: "tireDiameter", label: "Overall diameter", unit: "in", format: "number", interpretation: "Rim diameter plus twice the sidewall height." },
-      { key: "sidewall", label: "Sidewall height", unit: "in", format: "number" },
-      { key: "sectionWidth", label: "Section width", unit: "in", format: "number" },
-      { key: "revsPerMile", label: "Revolutions per mile", unit: "revs", format: "number", interpretation: "Speedometer and odometer shift with this number." },
-      { key: "matches", label: "Options that fit", format: "text" },
-    ],
-    calculate: (v) => {
-      const mm = Math.max(100, n(v, "metricWidth", 225));
-      const aspect = Math.max(20, n(v, "aspect", 65));
-      const rim = Math.max(8, n(v, "rim", 17));
-      if (option(v, "direction", "metric") === "metric") {
-        const sidewall = round(mm * aspect / 100 / 25.4, 2);
-        const diameter = round(rim + 2 * sidewall, 2);
-        const widthIn = round(mm / 25.4, 2);
-        const revs = Math.round(63360 / (Math.PI * diameter));
-        const combos: TireSizeCandidate[] = [];
-        for (const w of [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335]) for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
-          if (w === mm && a === aspect) continue;
-          const d = rim + 2 * (w * a / 100 / 25.4);
-          const pct = round((d - diameter) / diameter * 100, 1);
-          if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(d, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * d)), verified: verifiedTireSizes.has(`${w}/${a}R${rim}`) });
-        }
-        for (const f of FLOTATION_SIZES) if (f.rim === rim) {
-          const pct = round((f.d - diameter) / diameter * 100, 1);
-          if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)), verified: verifiedTireSizes.has(`${f.d}×${f.w.toFixed(2)}R${rim}`) });
-        }
-        const score = (x: TireSizeCandidate, y: TireSizeCandidate) => (Math.abs(x.pct) + 2 * Math.abs(x.width - widthIn)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - widthIn));
-        const options = selectTireSizeCandidates(combos, 3, score);
-        const tag = (c: TireSizeCandidate) => !c.verified ? "Calculated option" : Math.abs(c.pct) <= 2 ? "Match" : "Close option";
-        const lines = [
-          `Your size: ${mm}/${aspect}R${rim} — ${diameter} in overall, ${widthIn} in wide, ${revs} revs/mile.`,
-          ...options.map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide.`),
-          "Retailer-verified sizes appear first. When needed, calculated options within 3% are added to reach four size links when possible; these are not confirmed in retailer listings. We do not widen beyond 3%. Check your vehicle’s fitment, speedometer, ABS, transmission, load rating, and clearance before buying. Same rim throughout.",
-        ];
-        return { tireDiameter: diameter, sidewall, sectionWidth: widthIn, revsPerMile: revs, matches: lines.join("\n") };
-      }
-      const target = Math.max(10, n(v, "targetDiameter", 28.5));
-      const targetWidth = Math.max(3, n(v, "targetWidth", 8.9));
-      const combos: TireSizeCandidate[] = [];
-      for (const w of [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335]) for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
-        const diameter = rim + 2 * (w * a / 100 / 25.4);
-        const pct = round((diameter - target) / target * 100, 1);
-        if (Math.abs(pct) <= 3) combos.push({ size: `${w}/${a}R${rim}`, diameter: round(diameter, 2), width: round(w / 25.4, 2), pct, revs: Math.round(63360 / (Math.PI * diameter)), verified: verifiedTireSizes.has(`${w}/${a}R${rim}`) });
-      }
-      for (const f of FLOTATION_SIZES) if (f.rim === rim) {
-        const pct = round((f.d - target) / target * 100, 1);
-        if (Math.abs(pct) <= 3) combos.push({ size: `${f.d}×${f.w.toFixed(2)}R${rim}`, diameter: f.d, width: f.w, pct, revs: Math.round(63360 / (Math.PI * f.d)), verified: verifiedTireSizes.has(`${f.d}×${f.w.toFixed(2)}R${rim}`) });
-      }
-      const score = (x: TireSizeCandidate, y: TireSizeCandidate) => (Math.abs(x.pct) + 2 * Math.abs(x.width - targetWidth)) - (Math.abs(y.pct) + 2 * Math.abs(y.width - targetWidth));
-      const options = selectTireSizeCandidates(combos, 4, score);
-      const tag = (c: TireSizeCandidate) => !c.verified ? "Calculated option" : Math.abs(c.pct) <= 2 ? "Match" : "Close option";
-      const best = options[0];
-      if (!best) return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: `No calculated tire-size candidate lands within 3% of ${target} in on this rim. The calculator keeps the 3% limit and does not widen the list.` };
-      const lines = [
-        `${tag(best)}: ${best.size} — ${best.diameter} in overall (${best.pct > 0 ? "+" : ""}${best.pct}% vs target), ${best.width} in wide, ${best.revs} revs/mile.`,
-        ...options.slice(1).map((c) => `${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide, ${c.revs} revs/mile.`),
-        "Retailer-verified sizes appear first. When needed, calculated options within 3% are added to reach four size links when possible; these are not confirmed in retailer listings. We do not widen beyond 3%. This is not vehicle-specific fitment approval. Check your vehicle’s clearance, ABS, transmission, load rating, and speedometer effect before buying.",
-      ];
-      return { tireDiameter: "", sidewall: "", sectionWidth: "", revsPerMile: "", matches: lines.join("\n") };
-    },
-    howItWorks: ["For 225/65R17, multiply section width by aspect ratio for sidewall height: 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in.", "To compare metric options, the calculator converts width to inches and estimates revolutions per mile. Retailer-verified sizes appear first; calculated options within the 3% band may be added when needed to reach four links. Added calculated sizes are not confirmed in retailer listings.", "For an inch-based tire, enter overall diameter, width, and rim. The calculator compares sizes on that rim within 3%, showing retailer-verified sizes first and adding calculated options when needed to reach four links. Calculated options are not confirmed in retailer listings. Check vehicle clearance and tire load rating before buying."],
-    example: { title: "225/65R17 Metric-to-Standard Conversion Example", inputs: "Metric size: 225/65R17 (225 mm wide, 65% aspect ratio, 17 in rim)", result: "In standard inch measurements, this tire is about 28.52 in in overall diameter, 8.86 in wide, with a 5.76 in sidewall and an estimated 707 revolutions per mile. These measurements help compare sizes; they do not confirm vehicle fitment." },
-    faqs: [{ question: "How do I convert a metric tire size like 225/65R17 to inches?", answer: "The sidewall is 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in. The calculator also shows width and revolutions per mile." }, { question: "How do I convert a standard tire size to metric?", answer: "Choose Inches → matching sizes and enter overall diameter, width, and rim. The calculator shows retailer-verified sizes first and may add calculated options within 3% when fewer than four verified alternatives are available. Calculated options are not in our verified retailer list, so check availability and vehicle fitment before buying." }, { question: "What do the numbers in a metric tire size mean?", answer: "In 225/65R17, 225 is section width in millimeters, 65 is sidewall height as a percentage of width, R means radial construction, and 17 is wheel diameter in inches." }, { question: "Do I have to keep the same rim?", answer: "If you are keeping your wheels, enter that rim size. The matching-size direction holds the rim fixed. A different rim needs a separate clearance and overall-diameter check." }, { question: "What is the 3% tire-size rule?", answer: "The 2% and 3% bands compare overall diameter, not vehicle-specific approval. Retailer-verified sizes appear first. When needed, the calculator may add calculated sizes within 3% to reach four links, but these are not confirmed in retailer listings. Check your vehicle’s fitment, load rating, and clearance before buying." }, { question: "How does tire size affect my speedometer?", answer: "A taller tire covers more ground with each wheel rotation, so a speedometer calibrated for a shorter tire can read low. The difference is approximately proportional to the diameter change." }],
-    seo: { title: "Metric to Standard Tire Size Converter | CalcForged", description: "Convert metric tire sizes to inches and compare same-rim alternatives within 3%. See diameter and speedometer differences. Unverified options are labeled.", h1: "Metric to standard tire size converter", intro: "Convert a metric tire size such as 225/65R17 into standard inch measurements, including overall diameter, section width, sidewall height, and estimated revolutions per mile. You can also start with a tire’s diameter and width in inches to compare metric alternatives on the same rim. Comparisons stay within 3%; they do not confirm vehicle fitment. Check your vehicle’s approved size, load rating, clearance, and speedometer effect before buying." },
-    related: ["weight-converter", "percentage"],
-  },
-  {
-    slug: "towing-capacity", name: "Towing Capacity & Tongue Weight Calculator", category: "Automotive", categorySlug: "automotive", icon: "↗", description: "Look up a verified towing capacity and bracket the safe tongue-weight range for your trailer.",
-    fields: [
-      { key: "make", label: "Make", type: "select", defaultValue: "", options: [{ label: "Select a make", value: "" }, ...TOWING_MAKES.map((make) => ({ label: make, value: make }))] },
-      { key: "model", label: "Model", type: "select", defaultValue: "", optionsFor: "make", optionsMap: TOWING_MODEL_OPTIONS, help: "The verified models for your make." },
-      { key: "year", label: "Year", type: "number", min: 1990, max: 2030, defaultValue: 2024, help: "Used to pick the rating for your model year — several trucks changed capacity across generations." },
-      { key: "trailerWeight", label: "Trailer weight (loaded)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 7000, help: "Trailer plus everything in it — the gross weight, not the dry weight." },
-      { key: "myTowingCapacity", label: "Your towing capacity (if known)", type: "number", unit: "lb", min: 0, max: 40000, defaultValue: 0, help: "Not listed? Enter the capacity from your door jamb or owner's manual." },
-    ],
-    results: [
-      { key: "maxTowing", label: "Max conventional towing", unit: "lb", format: "number", estimate: true, interpretation: "From the verified table or your own rating — the door jamb always wins." },
-      { key: "tongueWeightMin", label: "Tongue weight minimum (10%)", unit: "lb", format: "number", estimate: true },
-      { key: "tongueWeightMax", label: "Tongue weight maximum (15%)", unit: "lb", format: "number", estimate: true },
-      { key: "warning", label: "Before you hook up", format: "text" },
-    ],
-    calculate: (v) => {
-      const makeIn = option(v, "make", "").trim();
-      const modelIn = option(v, "model", "").trim();
-      const yearIn = Math.round(n(v, "year", 0)) || undefined;
-      const lookup = makeIn && modelIn ? lookupTowing(makeIn, modelIn, yearIn) : { row: undefined, yearInRange: true };
-      const row = lookup.row;
-      const manual = Math.max(0, n(v, "myTowingCapacity", 0));
-      const trailer = Math.max(0, n(v, "trailerWeight", 0));
-      const maxTowing = row ? row.lb : manual;
-      const tongueMin = round(trailer * 0.1);
-      const tongueMax = round(trailer * 0.15);
-      const vehicle = [makeIn, modelIn].filter(Boolean).join(" ");
-      const range = row ? yearRangeLabel(row) : "";
-      const yearNote = row && !lookup.yearInRange ? ` Your ${yearIn ?? ""} year is outside this rating's verified range (${range}) — this is the nearest year's rating, and your truck's door jamb is the final word.` : "";
-      const rangeNote = row && lookup.yearInRange && range ? ` Verified range: ${range}.` : "";
-      const warning = [
-        maxTowing > 0 && trailer > maxTowing ? `Stop: a ${trailer.toLocaleString("en-US")} lb trailer exceeds the ${maxTowing.toLocaleString("en-US")} lb rating — do not tow it.` : "",
-        row ? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the properly-equipped maximum conventional towing for the common configuration. ${row.note ?? ""}${rangeNote}${yearNote} Verified against the manufacturer's towing guide, September 2026.` : manual > 0 ? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.` : vehicle ? `No verified table match for ${vehicle} — enter the capacity from your door jamb or owner's manual above.` : `Pick your make and model from the lists to pull a verified capacity — or enter your own rating from the door jamb or owner's manual.`,
-        "Capacities vary by engine, axle, and package — your VIN's towing guide and door-jamb labels always win, and payload has to carry the tongue weight. Never exceed your hitch or receiver rating.",
-      ].filter(Boolean).join(" ");
-      return { maxTowing, tongueWeightMin: tongueMin, tongueWeightMax: tongueMax, warning };
-    },
-    howItWorks: ["A curated table of the most-towed U.S. vehicles — every domestic pickup from 1-ton down (F-150 through F-450, Silverado/Sierra 1500-3500HD, RAM 1500-3500), the full-size SUVs and vans, EV trucks, and popular imports — returns the properly-equipped maximum conventional towing for your model year; anything else uses the rating you enter from the door jamb or owner's manual.", "The year you enter picks the rating: where a truck's capacity changed across generations (RAM 1500 pre/post 2019, Tundra pre/post 2022, Super Duty refreshes), the table stores one rating per year range and matches your year to it — never an average.", "Conventional towing puts 10–15% of the loaded trailer weight on the hitch — the calculator brackets your trailer's tongue weight at exactly those bounds.", "The warning carries the fine print: ratings swing by engine, axle, and package, fifth-wheel pin weight runs 15–25% and rides on payload, and the manufacturer's labels always beat any table."],
-    example: { title: "2019 F-150, 7,000 lb trailer", inputs: "Ford F-150, year 2019, 7,000 lb loaded trailer", result: "13,200 lb (2018-2020 generation, 3.5L EcoBoost + Max Trailer Tow) — tongue weight should land between 700 and 1,050 lb." },
-    faqs: [{ question: "How much tongue weight is safe?", answer: "For a conventional ball hitch, 10–15% of the loaded trailer weight — a 7,000 lb trailer wants 700–1,050 lb on the ball. Too little invites sway; too much overloads the rear axle. Measure with a tongue-weight scale, or at a truck scale weighing the truck with and without the trailer tongue down." }, { question: "Where do I find my exact towing capacity?", answer: "The door-jamb sticker, the owner's manual, and the manufacturer's towing guide for your VIN. The table here gives the common configuration's verified maximum — engines, axle ratios, and tow packages move the real number by thousands of pounds, especially on full-size trucks." }, { question: "What's the difference between towing capacity and GCWR?", answer: "Towing capacity is what the hitch can pull; GCWR is the combined limit for the loaded truck plus trailer, passengers, and cargo. Payload is often the real-world limiter — the tongue weight rides in the bed, and it counts against payload before anything else goes in." }, { question: "When do I need a weight-distributing hitch?", answer: "When the manufacturer requires one for your trailer weight (often around 5,000 lb and up) or whenever the rear of the vehicle squats. Spring bars shift tongue weight to the front axle, restoring steering and headlight aim — sized and adjusted per the manufacturer's instructions." }],
-    seo: { title: "Towing Capacity & Tongue Weight Calculator | CalcForged", description: "Look up verified towing capacities for the most-towed vehicles — all domestic trucks from 1-ton down, SUVs, vans, EVs, and popular imports — and compute the safe 10–15% tongue-weight range.", h1: "Towing capacity & tongue weight calculator", intro: "Towing numbers are safety data, so this calculator keeps them honest. Enter your make, model, and year — every domestic truck from 1-ton down (F-150 through F-450 Dually, Silverado and Sierra 1500-3500HD, RAM 1500-3500), the full-size SUVs and vans, the EV trucks that tow, and the most-towed imports (Tacoma, Tundra, 4Runner, Grand Cherokee, Gladiator, Titan, and more) return a capacity verified against the manufacturer's own towing guide, stated for the properly-equipped configuration with the real range spelled out — and matched to your model year, because RAM 1500, Tundra, and Super Duty ratings changed across generations. Unlisted vehicles take your capacity from the door jamb or owner's manual. Add your loaded trailer weight and the calculator brackets the tongue weight at the safe 10–15% band for a conventional ball hitch — 700 to 1,050 lb on a 7,000 lb trailer — and flags it plainly if the trailer exceeds the rating. Fifth-wheel owners: pin weight runs 15–25% of trailer weight and counts against payload, and the door-jamb labels always win over any table." },
-    related: ["tire-size"],
-  },
-  {
-    slug: "battery-runtime", name: "Battery Reserve Capacity & Runtime Calculator", category: "Automotive", categorySlug: "automotive", icon: "▱", description: "Estimate accessory runtime from a battery's reserve-capacity rating and electrical load.",
-    fields: [
-      { key: "reserveCapacity", label: "Battery reserve capacity", type: "number", unit: "minutes", min: 1, max: 600, defaultValue: 120, help: "Find RC on the battery label or manufacturer specification. The standard RC test is 25 amps at 80°F (26.7°C) to 10.5 volts." },
-      { key: "loadMode", label: "How do you know the load?", type: "select", defaultValue: "amps", options: [{ label: "Current draw (amps)", value: "amps" }, { label: "Power draw (watts)", value: "watts" }] },
-      { key: "loadAmps", label: "Accessory current draw", type: "number", unit: "A", min: 0.1, max: 500, step: 0.1, defaultValue: 5, visibleWhen: { key: "loadMode", values: ["amps"] }, help: "Use the accessory label or manual. For multiple devices, add their current draws." },
-      { key: "loadWatts", label: "Accessory power draw", type: "number", unit: "W", min: 1, max: 6000, defaultValue: 60, visibleWhen: { key: "loadMode", values: ["watts"] }, help: "Enter the total watts for all accessories running at once." },
-      { key: "systemVoltage", label: "Electrical system voltage", type: "select", defaultValue: "12", options: [{ label: "12 V system", value: "12" }, { label: "24 V system", value: "24" }], visibleWhen: { key: "loadMode", values: ["watts"] } },
-      { key: "usableFraction", label: "Capacity to use in estimate", type: "select", defaultValue: "0.5", options: [{ label: "25% — conservative", value: "0.25" }, { label: "50% — cautious planning", value: "0.5" }, { label: "75% — limited reserve", value: "0.75" }, { label: "100% — full RC equivalent (not a recommended target)", value: "1" }], help: "This is a planning fraction of the simple RC equivalent, not a battery-safe discharge limit. Follow the vehicle and battery maker's guidance." },
-    ],
-    results: [
-      { key: "loadCurrent", label: "Estimated load", unit: "A", format: "number", estimate: true, interpretation: "Watts are divided by nominal system voltage when you enter power." },
-      { key: "equivalentCapacity", label: "Simple RC equivalent", unit: "Ah", format: "number", estimate: true, interpretation: "RC minutes × 25 A ÷ 60; not interchangeable with a manufacturer’s 20-hour amp-hour rating." },
-      { key: "runtimeMinutes", label: "Estimated runtime at selected fraction", unit: "min", format: "number", estimate: true, interpretation: "A rough constant-load estimate based on the standard RC test; real runtime may differ substantially." },
-      { key: "runtimeHours", label: "Estimated runtime", unit: "hours", format: "number", estimate: true },
-      { key: "warning", label: "Important battery note", format: "text", estimate: true },
-    ],
-    calculate: (v) => {
-      const rc = Math.max(1, n(v, "reserveCapacity", 120));
-      const mode = option(v, "loadMode", "amps");
-      const voltage = Math.max(1, n(v, "systemVoltage", 12));
-      const load = mode === "watts" ? Math.max(1, n(v, "loadWatts", 60)) / voltage : Math.max(0.1, n(v, "loadAmps", 5));
-      const fraction = Math.min(1, Math.max(0.1, n(v, "usableFraction", 0.5)));
-      const equivalentAh = rc * 25 / 60;
-      const minutes = equivalentAh / load * 60 * fraction;
-      const share = Math.round(fraction * 100);
-      const warning = `Planning estimate only: this scales the standardized ${rc} min reserve-capacity test (25 A to 10.5 V at 80°F) to your entered load and ${share}% fraction. It does not predict whether the vehicle will start afterward. Battery chemistry, age, temperature, charge level, wiring losses, and actual load change results. Protect starting reserve and follow your vehicle and battery manufacturer's guidance.`;
-      return { loadCurrent: round(load, 2), equivalentCapacity: round(equivalentAh, 1), runtimeMinutes: round(minutes), runtimeHours: round(minutes / 60, 2), warning };
-    },
-    howItWorks: ["Reserve capacity is the minutes a fully charged battery sustains a standardized 25-amp discharge at 80°F (26.7°C) until 10.5 volts. The calculator turns that test result into a simple amp-hour equivalent: RC minutes × 25 ÷ 60.", "For a device specified in watts, current is estimated as watts ÷ nominal system voltage. Runtime then scales the RC equivalent to your load and the capacity fraction you select.", "This is only a constant-load planning estimate — not a battery discharge test, a promise of real-world runtime, or a guarantee the vehicle will restart. Real battery behavior varies with chemistry, age, temperature, charge, and wiring."],
-    example: { title: "120-minute RC battery, 5-amp accessory", inputs: "120 min RC, 5 A load, 50% planning fraction", result: "Simple RC equivalent: 50 Ah. Estimated runtime at the selected fraction: about 5 hours. This is not a safe-discharge recommendation or a starting guarantee." },
-    faqs: [{ question: "What does reserve capacity mean on a car battery?", answer: "Reserve capacity (RC) is the number of minutes a fully charged battery can deliver 25 amps at about 80°F (26.7°C) before its voltage falls to 10.5 V under the standardized test. Check the battery maker's specification for the rating and test conditions." }, { question: "Can I convert reserve capacity directly to amp-hours?", answer: "A simple estimate is RC minutes × 25 ÷ 60. It is not an exact conversion to a battery's 20-hour amp-hour rating because the tests use different discharge rates and battery performance depends on chemistry and conditions." }, { question: "How long can I run accessories with the engine off?", answer: "This tool offers a rough constant-load estimate from reserve capacity and accessory draw. Actual runtime can vary significantly; it cannot determine whether enough charge will remain to start your specific vehicle. Follow the vehicle and battery maker's guidance." }, { question: "Does cold weather or an old battery affect runtime?", answer: "Yes. Temperature, battery age and condition, state of charge, load changes, wiring, and battery chemistry all affect performance. The calculation does not model those factors, so treat it as a planning estimate only." }],
-    seo: { title: "Battery Reserve Capacity Calculator – Estimate Accessory Runtime | CalcForged", description: "Estimate accessory runtime from a car battery's reserve-capacity rating and electrical load. Includes an approximate RC-to-Ah conversion and clear limits.", h1: "Battery reserve capacity & runtime calculator", intro: "A battery's reserve-capacity rating comes from a standardized 25-amp test — not from your specific accessories. Enter the battery's RC minutes and the load in amps or watts to see a simple runtime estimate, with an adjustable planning fraction. The calculation is a rough comparison, not a safe-discharge target or a guarantee your vehicle will start afterward; temperature, battery health, charge level, and electrical conditions all matter." },
-    related: ["tire-size", "towing-capacity"],
-  },
-  {
-    slug: "train-scale-converter", name: "Model Train Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "▬", description: "Convert real dimensions to model size — or back — across Z, N, HO, O, G, and more.",
-    fields: [
-      { key: "dimension", label: "Dimension", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 40 },
-      { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Meters", value: "m" }] },
-      { key: "scale", label: "Scale", type: "select", defaultValue: "87.1", options: [{ label: "Z — 1:220", value: "220" }, { label: "N — 1:160", value: "160" }, { label: "TT — 1:120", value: "120" }, { label: "HO — 1:87.1", value: "87.1" }, { label: "OO — 1:76 (UK)", value: "76" }, { label: "S — 1:64", value: "64" }, { label: "O — 1:48", value: "48" }, { label: "G — 1:22.5 (garden)", value: "22.5" }] },
-      { key: "direction", label: "Direction", type: "select", defaultValue: "toModel", options: [{ label: "Real → model", value: "toModel" }, { label: "Model → real", value: "toReal" }] },
-    ],
-    results: [
-      { key: "realSize", label: "Real-world size", unit: "in", format: "number", estimate: true },
-      { key: "modelSize", label: "Model size", unit: "in", format: "number", estimate: true },
-      { key: "modelMm", label: "Model size", unit: "mm", format: "number", estimate: true },
-      { key: "comparison", label: "Same object in other scales", format: "text", estimate: true },
-    ],
-    calculate: (v) => {
-      const ratio = Math.max(1, n(v, "scale", 87.1));
-      const raw = Math.max(0.01, n(v, "dimension", 40));
-      const unit = option(v, "unit", "ft");
-      const toInches = unit === "ft" ? raw * 12 : unit === "in" ? raw : unit === "cm" ? raw / 2.54 : raw * 39.3701;
-      const toReal = option(v, "direction", "toModel") === "toReal";
-      const realIn = toReal ? raw * ratio : toInches;
-      const modelIn = toReal ? raw : toInches / ratio;
-      const comparison = `Same real object: Z ≈ ${round(realIn / 220, 2)} in · N ≈ ${round(realIn / 160, 2)} in · O ≈ ${round(realIn / 48, 2)} in · G ≈ ${round(realIn / 22.5, 2)} in.`;
-      return { realSize: round(realIn, 2), modelSize: round(modelIn, 2), modelMm: round(modelIn * 25.4, 1), comparison };
-    },
-    howItWorks: ["Each scale is a ratio — HO runs 1:87.1 (3.5 mm to the foot), N 1:160, O 1:48, OO 1:76, G 1:22.5.", "Real → model divides your dimension by the ratio after converting to inches; model → real multiplies back out.", "The comparison line sizes the same real object in Z, N, O, and G so you can see at a glance which scale fits the shelf you actually have."],
-    example: { title: "40 ft boxcar in HO", inputs: "40 ft, HO (1:87.1)", result: "About 5.5 in long (140 mm) — the same boxcar is 3.0 in in N and 10.0 in in O." },
-    faqs: [{ question: "What's the difference between HO and OO?", answer: "Both run on the same 16.5 mm track. OO is 1:76 (4 mm to the foot — the UK standard), so its bodies are about 15% larger than HO's 1:87.1 — which is why British stock looks chunky next to continental equipment on a shared layout." }, { question: "Which scales are the biggest?", answer: "G at 1:22.5 is the common garden scale, running outdoors on 45 mm track; #1 gauge and 1:20.3 live nearby. At the other end, Z at 1:220 fits a complete layout on a door or coffee table." }, { question: "How much space does N save over HO?", answer: "N is about half the linear size of HO (1:160 vs 1:87.1), so the same real-world scene covers roughly 30% of the footprint — about four times the railroad in the same room, or the same railroad in a quarter of it." }, { question: "Why is G listed at 1:22.5?", answer: "G is really a track gauge, not one ratio: LGB's 1:22.5 is the most common, but 1:20.3, 1:24, and 1:29 all share the same 45 mm rails. Narrow-gauge prototypes account for most of the mixing, and modelers choose knowingly." }],
-    seo: { title: "Model Train Scale Converter – Z, N, HO, O & G Ratios | CalcForged", description: "Convert real dimensions to model train size in Z, N, TT, HO, OO, S, O, and G scales — or model size back to the real world.", h1: "Model train scale converter", intro: "Every model railroad question starts with the same arithmetic: a 40-foot boxcar is 5.5 inches long in HO, and everything else follows from the ratio. This train scale converter handles Z (1:220), N (1:160), TT (1:120), HO (1:87.1), OO (1:76), S (1:64), O (1:48), and G (1:22.5) in both directions — type a real dimension in feet, inches, centimeters, or meters and get the model size in inches and millimeters, or measure a model and recover the real-world size. The comparison line sizes the same object in Z, N, O, and G at once, so deciding whether a helper yard fits on the shelf takes one glance instead of six divisions." },
-    related: ["yarn-yardage", "filament-cost"],
-  },
-  {
-    slug: "miniature-scale-converter", name: "Miniature Scale Converter", category: "Hobbies", categorySlug: "hobbies", icon: "◆", description: "Convert real-world heights to 1:50, 1:56, 1:64, and 1:100 miniature scales, or convert a figure back to real size.",
-    fields: [
-      { key: "height", label: "Height", type: "number", min: 0.1, max: 10000, step: "any", defaultValue: 6 },
-      { key: "unit", label: "Unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }, { label: "Millimeters", value: "mm" }] },
-      { key: "figureScale", label: "Figure scale", type: "select", defaultValue: "56", options: [{ label: "15 mm — ~1:100 (big historical battles)", value: "100" }, { label: "25 mm — ~1:64 (classic lines)", value: "64" }, { label: "28 mm heroic — ~1:56 (D&D, fantasy standard)", value: "56" }, { label: "32 mm — ~1:50 (newer Warhammer)", value: "50" }] },
-      { key: "direction", label: "Direction", type: "select", defaultValue: "toModel", options: [{ label: "Real → figure", value: "toModel" }, { label: "Figure → real", value: "toReal" }] },
-    ],
-    results: [
-      { key: "realSize", label: "Real-world height", unit: "in", format: "number", estimate: true },
-      { key: "modelMm", label: "Figure height", unit: "mm", format: "number", estimate: true },
-      { key: "modelIn", label: "Figure height", unit: "in", format: "number", estimate: true },
-      { key: "note", label: "Proportions note", format: "text", estimate: true },
-    ],
-    calculate: (v) => {
-      const ratio = Math.max(1, n(v, "figureScale", 56));
-      const raw = Math.max(0.1, n(v, "height", 6));
-      const unit = option(v, "unit", "ft");
-      const toReal = option(v, "direction", "toModel") === "toReal";
-      const realMm = toReal ? raw * ratio : unit === "ft" ? raw * 304.8 : unit === "in" ? raw * 25.4 : unit === "cm" ? raw * 10 : raw;
-      const modelMm = toReal ? raw : realMm / ratio;
-      const scaleNames: Record<string, string> = { "100": "15 mm", "64": "25 mm", "56": "28 mm heroic", "50": "32 mm" };
-      const ranges: Record<string, string> = { "100": "about 1:100", "64": "about 1:64 (some lines run 1:72)", "56": "about 1:56 (some lines run 1:60–61)", "50": "about 1:50 (some lines run 1:48–54)" };
-      const name = scaleNames[String(ratio)] ?? "figure scale";
-      return { realSize: round(realMm / 25.4, 2), modelMm: round(modelMm, 1), modelIn: round(modelMm / 25.4, 2), note: `${name} corresponds to ${ranges[String(ratio)] ?? "its nominal ratio"}. "Heroic" lines run chunkier than true scale — oversized heads, hands, and weapons so the figure reads at arm's length — which is why a 6-ft human lands near 32 mm in 28 mm heroic.` };
-    },
-    howItWorks: ["Figure scales are ratios: 15 mm runs about 1:100, 25 mm about 1:64, 28 mm heroic about 1:56, and 32 mm about 1:50.", "Real → figure divides your height by the ratio after converting to millimeters; figure → real multiplies back out.", "The proportions note flags the heroic caveat — oversized heads and hands mean a printed true-scale figure looks lanky next to heroic metal or plastic."],
-    example: { title: "6 ft human in 28 mm heroic", inputs: "6 ft, 28 mm heroic (~1:56)", result: "About 33 mm tall (1.3 in) — chunkier proportions than a true 1:56 figure." },
-    faqs: [{ question: "What scale are D&D miniatures?", answer: "Most official and third-party D&D minis are 28–32 mm heroic: a Medium human stands roughly 30–33 mm tall on a 25 mm (1 inch) base. The base is a game convention, not a scale measurement." }, { question: "28 mm or 32 mm — which do I buy?", answer: "They mix fine on the table. 32 mm runs a slightly larger ratio (about 1:50) with beefier proportions; modern Warhammer moved to 32 mm while D&D and most fantasy lines sit at 28 mm heroic. Pick one for a rank-and-file army, mix freely for an adventuring party." }, { question: "Can I 3D print true-scale miniatures?", answer: "Yes — rescale a 32 mm sculpt to 1:56 for true proportions, but heads and weapons will look small next to heroic metal or plastic. Many printers compromise around 1:50–52 for 'heroic-plus' that matches a mixed collection." }, { question: "Do bases tell me the scale?", answer: "No — bases follow game rules (25 mm rounds for Medium D&D creatures, 32 mm under newer editions), not figure height. Judge scale by the figure's overall height, and remember manufacturers often measure foot-to-eye, which is one more reason ratios are approximate." }],
-    seo: { title: "Miniature Scale Converter: 1:50, 1:56, 1:100 | CalcForged", description: "Convert real heights to 15, 25, 28 mm heroic, or 32 mm miniatures. See 1:50, 1:56, 1:64, and 1:100 ratios, or convert a figure back to real size.", h1: "Miniature scale converter", intro: "Use this miniature scale converter for common ratios, including 1:50, 1:56, 1:64, and 1:100. Enter a real-world height to calculate a figure’s model size, or enter the miniature’s height to estimate its real-world size. Choose 15 mm, 25 mm, 28 mm heroic, or 32 mm figures. Heroic miniatures have intentionally chunkier proportions than true-scale models, so treat the result as a scale estimate." },
-    related: ["train-scale-converter", "filament-cost", "resin-cost"],
-  },
-  {
-    slug: "filament-cost", name: "Filament Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▤", description: "Price a 3D print from slicer weight, spool price, and your failure rate.",
-    fields: [
-      { key: "modelWeight", label: "Model weight", type: "number", unit: "g", min: 1, max: 5000, defaultValue: 50, help: "Read it from your slicer after slicing — it includes supports and multi-color purge." },
-      { key: "spoolPrice", label: "Spool price", type: "number", unit: "$", min: 0, step: 0.5, defaultValue: 20 },
-      { key: "spoolWeight", label: "Spool weight", type: "number", unit: "g", min: 50, max: 10000, defaultValue: 1000 },
-      { key: "failPct", label: "Failure allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 10, help: "Covers spaghetti prints and aborted starts; drop toward 0% once your first layer is dialed in." },
-    ],
-    results: [
-      { key: "costPerPrint", label: "Filament cost per print", unit: "$", format: "currency", estimate: true },
-      { key: "costPerGram", label: "Cost per gram", unit: "$", format: "currency", estimate: true },
-      { key: "printsPerSpool", label: "Prints per spool", unit: "prints", format: "number", estimate: true },
-      { key: "note", label: "Electricity & reality check", format: "text", estimate: true },
-    ],
-    calculate: (v) => {
-      const weight = Math.max(1, n(v, "modelWeight", 50));
-      const price = Math.max(0, n(v, "spoolPrice", 20));
-      const spool = Math.max(1, n(v, "spoolWeight", 1000));
-      const fail = Math.min(100, Math.max(0, n(v, "failPct", 10))) / 100;
-      const costPerGram = price / spool;
-      const costPerPrint = weight * costPerGram * (1 + fail);
-      const printsPerSpool = Math.floor(spool / (weight * (1 + fail)));
-      return { costPerPrint: round(costPerPrint, 2), costPerGram: round(costPerGram, 3), printsPerSpool, note: `The ${Math.round(fail * 100)}% allowance covers spaghetti and aborted first layers — drop it toward 0% once the machine is dialed in. Electricity is typically pennies: a desktop FDM printer draws 50–150 W and a typical print uses about 0.4 kWh, roughly 6¢ at common U.S. rates.` };
-    },
-    howItWorks: ["Cost per gram is spool price divided by spool weight; a print's share is that number times the slicer's weight estimate.", "The failure allowance inflates each print's cost and deflates prints-per-spool by the same factor, so the math absorbs the spaghetti you know is coming.", "Electricity barely registers — desktop printers draw 50–150 W, and a typical print consumes around 0.4 kWh, a few cents at most."],
-    example: { title: "50 g mini on a $20 spool", inputs: "50 g model, $20 per 1,000 g spool, 10% failure allowance", result: "$1.10 per print at $0.02 per gram — about 18 prints from one spool." },
-    faqs: [{ question: "PLA vs PETG — does the price differ?", answer: "Both run about $15–25 per kilogram in standard colors, with PETG typically a dollar or two higher. Specialty filaments — carbon-fiber blends, silk, wood-fill — run $30–50, which is why the calculator takes your actual spool price." }, { question: "Where do I read the print weight?", answer: "From your slicer after slicing — it reports filament grams used, already including supports and multi-color purge. Use that number rather than the model file's own weight." }, { question: "What failure rate should I use?", answer: "New setups see 10–20% failed prints; a well-tuned machine sits at 2–5%. The 10% default splits the difference and self-corrects as your first layers improve — set it honestly and the per-print cost stays real." }, { question: "Does wet filament change the math?", answer: "It changes the failure rate, not the price per gram: moist PLA strings, pops, and snaps mid-print. Dry it (PLA at 45–50 °C for 4–6 hours, PETG hotter at 55–65 °C) and your allowance can drop." }],
-    seo: { title: "Filament Cost Calculator – 3D Print Cost per Print | CalcForged", description: "Calculate what a 3D print costs in filament — cost per gram, cost per print, and prints per spool, with a failure allowance built in.", h1: "Filament cost calculator", intro: "What does a 3D print actually cost? Take the slicer's weight estimate — it already includes supports and purge — multiply by your spool's price per gram, and add a failure allowance so the prints that end as spaghetti still get paid for. This filament cost calculator does that arithmetic and tells you the other number everyone forgets: prints per spool, so a 50-gram mini on a $20 spool runs about $1.10 with a 10% allowance and one kilogram covers roughly 18 of them. Electricity is in the note too, because it barely matters — desktop printers draw 50–150 W and a typical print consumes around 0.4 kWh, a few cents at U.S. rates." },
-    related: ["resin-cost", "miniature-scale-converter"],
-  },
-  {
-    slug: "resin-cost", name: "Resin Print Cost Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "◈", description: "Price a resin print from slicer volume, supports, and bottle cost.",
-    fields: [
-      { key: "volumeMl", label: "Model volume", type: "number", unit: "ml", min: 0.1, max: 5000, step: "any", defaultValue: 40, help: "From your slicer's resin-usage estimate." },
-      { key: "density", label: "Resin density", type: "number", unit: "g/ml", min: 0.8, max: 1.5, step: 0.01, defaultValue: 1.1, help: "Standard resins run about 1.05–1.12 g/ml — check your resin's data sheet." },
-      { key: "bottleSize", label: "Bottle size", type: "number", unit: "g", min: 100, max: 10000, defaultValue: 1000 },
-      { key: "bottlePrice", label: "Bottle price", type: "number", unit: "$", min: 0, step: 0.5, defaultValue: 35 },
-      { key: "supportPct", label: "Support allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 15, help: "Supports typically add 10–30% resin; tree supports sit at the low end." },
-      { key: "failPct", label: "Failure allowance", type: "number", unit: "%", min: 0, max: 100, defaultValue: 10 },
-    ],
-    results: [
-      { key: "resinGrams", label: "Resin per print", unit: "g", format: "number", estimate: true },
-      { key: "costPerPrint", label: "Resin cost per print", unit: "$", format: "currency", estimate: true },
-      { key: "printsPerBottle", label: "Prints per bottle", unit: "prints", format: "number", estimate: true },
-      { key: "note", label: "Safety & extras", format: "text" },
-    ],
-    calculate: (v) => {
-      const volume = Math.max(0.1, n(v, "volumeMl", 40));
-      const density = Math.max(0.5, n(v, "density", 1.1));
-      const bottle = Math.max(1, n(v, "bottleSize", 1000));
-      const price = Math.max(0, n(v, "bottlePrice", 35));
-      const support = Math.min(100, Math.max(0, n(v, "supportPct", 15))) / 100;
-      const fail = Math.min(100, Math.max(0, n(v, "failPct", 10))) / 100;
-      const grams = volume * density * (1 + support);
-      const costPerPrint = grams * (price / bottle) * (1 + fail);
-      const printsPerBottle = Math.floor(bottle / grams);
-      return { resinGrams: round(grams, 1), costPerPrint: round(costPerPrint, 2), printsPerBottle, note: "Wash-and-cure consumables (IPA, filters, FEP film) add a little per print. Uncured resin is safe for nobody's skin: nitrile gloves, ventilation, and no bare-hand handling until it's cured." };
-    },
-    howItWorks: ["Slicer volume converts to grams through the resin's density — standard resins run about 1.05–1.12 g/ml — then the support allowance adds its share.", "Cost per print is grams times price per gram, inflated by the failure allowance the way failed exposures eat resin and time.", "Prints per bottle divides bottle size by per-print grams and rounds down — the bottom of the bottle always stays dirty."],
-    example: { title: "40 ml mini on a $35 bottle", inputs: "40 ml model, 1.1 g/ml density, 15% supports, 10% failures", result: "About 51 g of resin per print — $1.95 each, roughly 19 minis per 1 kg bottle." },
-    faqs: [{ question: "Is resin printing cheaper than filament?", answer: "Per gram, no — resin runs roughly double filament's price. But minis and detailed parts are small: a 1 kg bottle covers about 19 typical 40 ml prints at $1–2 of resin each. Big functional parts stay filament territory." }, { question: "How much resin do supports add?", answer: "Typically 10–30% on top of the model, depending on overhangs and support style — tree supports sit at the low end, heavy full-contact supports at the top. Hollowing a model cuts it further, but always add drain holes." }, { question: "What's resin density, and why does it matter?", answer: "Slicers report volume while resin is sold by weight, so density is the bridge. Standard resins run about 1.05–1.12 g/ml in the bottle (cured parts end up denser still); the exact number is on the technical data sheet." }, { question: "How long does resin keep?", answer: "Sealed bottles last 1–2 years in a cool, dark place; an opened bottle is best within 6–12 months. Stir well before every pour — settled pigment throws your exposure settings off." }],
-    seo: { title: "Resin Print Cost Calculator – Cost per Mini & Bottle | CalcForged", description: "Calculate resin cost per print from slicer volume, density, supports, and bottle price — plus prints per bottle and safe-handling notes.", h1: "Resin print cost calculator", intro: "Resin math has one extra step filament doesn't: slicers report volume, but resin is sold by weight, and density is the bridge. This resin cost calculator takes your model's volume, applies a density of about 1.05–1.12 g/ml for standard resins, adds the 10–30% that supports typically consume, and prices the print against your bottle — a 40 ml mini lands near 51 grams and about $1.95 on a $35 bottle, with roughly 19 prints to the kilogram. The failure allowance is there because failed exposures waste resin and time the same way spaghetti prints waste filament. The note carries the part that isn't optional: uncured resin needs nitrile gloves and ventilation, every time." },
-    related: ["filament-cost", "miniature-scale-converter"],
-  },
-  {
-    slug: "sandwich-quantity", name: "Sandwich Quantity Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "▤", description: "Estimate whole sandwiches and serving pieces for a lunch, light meal, or buffet.",
-    fields: [
-      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 10000, defaultValue: 30 },
-      { key: "plan", label: "How sandwiches fit the menu", type: "select", defaultValue: "main", options: [{ label: "Main meal - 1 full sandwich per guest", value: "main" }, { label: "Light meal with sides - 3/4 per guest", value: "sides" }, { label: "Appetizer beside other food - 1/2 per guest", value: "appetizer" }], help: "Serving amounts are planning estimates. Adjust for appetite and the rest of the menu." },
-      { key: "cut", label: "Cut each sandwich into", type: "select", defaultValue: "2", options: [{ label: "1 whole piece", value: "1" }, { label: "2 halves", value: "2" }, { label: "4 quarters", value: "4" }] },
-      { key: "buffer", label: "Extra for seconds and surprises", type: "select", defaultValue: "10", options: [{ label: "No extra", value: "0" }, { label: "10% extra", value: "10" }, { label: "15% extra", value: "15" }] },
-    ],
-    results: [
-      { key: "baseEquivalents", label: "Base sandwich equivalents", unit: "sandwiches", format: "number", estimate: true },
-      { key: "wholeSandwiches", label: "Whole sandwiches to prepare", unit: "sandwiches", format: "number", estimate: true },
-      { key: "servingPieces", label: "Pieces to serve", unit: "pieces", format: "number", estimate: true },
-      { key: "extraSandwiches", label: "Extra sandwiches in buffer", unit: "sandwiches", format: "number", estimate: true },
-    ],
-    calculate: (v) => {
-      const guests = Math.max(0, n(v, "guests", 30));
-      const plan = option(v, "plan", "main");
-      const perGuest: Record<string, number> = { main: 1, sides: 0.75, appetizer: 0.5 };
-      const base = guests * (perGuest[plan] ?? 1);
-      const buffer = Math.max(0, n(v, "buffer", 10));
-      const wholeSandwiches = ceil(base * (1 + buffer / 100));
-      const cutCounts: Record<string, number> = { "1": 1, "2": 2, "4": 4 };
-      const cutPieces = cutCounts[option(v, "cut", "2")] ?? 2;
-      return { baseEquivalents: round(base, 1), wholeSandwiches, servingPieces: wholeSandwiches * cutPieces, extraSandwiches: Math.max(0, wholeSandwiches - ceil(base)) };
-    },
-    howItWorks: ["Multiply the guest count by the selected full-sandwich portion: 1 for a main meal, 0.75 for a light meal with sides, or 0.5 for an appetizer spread.", "Add the selected buffer and round up to whole sandwiches.", "The cut setting changes the piece count only. Halves and quarters do not change the amount of food you prepare."],
-    example: { title: "30-person lunch", inputs: "30 guests, sandwiches as the main meal, 10% extra, cut in half", result: "Prepare 33 whole sandwiches, or 66 halves." },
-    faqs: [{ question: "How many sandwiches should I plan per person?", answer: "For a standard meal, a practical catering starting point is one full sandwich per guest, or two halves, plus a 10% to 15% buffer. Choose a lighter plan when sandwiches share the menu with substantial sides or other mains." }, { question: "Does cutting sandwiches in half mean I need twice as much food?", answer: "No. The tool counts full-sandwich equivalents first. Halves and quarters only change the number of pieces on the platter." }, { question: "Should I always add a buffer?", answer: "No. The buffer is optional. Ten to fifteen percent gives a cushion for seconds and an uncertain headcount; use zero when portions and attendance are firm." }, { question: "Are these exact portions?", answer: "No. Guest appetites, sandwich size, event length, and the rest of the menu vary. Use the result as a planning estimate and adjust the serving plan to fit your event." }],
-    seo: { title: "Sandwich Quantity Calculator - Sandwiches & Pieces | CalcForged", description: "Estimate how many whole sandwiches to prepare, how many halves or quarters to serve, and an optional event buffer.", h1: "Sandwich quantity calculator", intro: "Planning sandwiches for a group is easier when the serving plan is clear. Enter your guest count, choose whether sandwiches are the main meal or part of a larger spread, then set a buffer and serving cut. The calculator rounds up to whole sandwiches and shows the piece count for your platter. Treat the portions as planning estimates; appetites, sandwich size, and other food on the table all matter." },
-    related: ["catering-food-quantity", "appetizers-per-person", "charcuterie-board"],
-  },
-  {
-    slug: "charcuterie-board", name: "Charcuterie Board Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "◈", description: "Turn a guest count into cheese, meat, cracker, and filler amounts for a board that holds.",
-    fields: [
-      { key: "guests", label: "Guests", type: "number", unit: "people", min: 1, max: 500, defaultValue: 12 },
-      { key: "boardStyle", label: "Role of the board", type: "select", defaultValue: "appetizer", options: [{ label: "Appetizer alongside dinner — 2 oz each of cheese and meat", value: "appetizer" }, { label: "The board IS the meal — 3.5 oz each", value: "meal" }] },
-      { key: "cheeseVarieties", label: "Cheese varieties", type: "number", unit: "kinds", min: 1, max: 10, defaultValue: 3 },
-      { key: "meatVarieties", label: "Meat varieties", type: "number", unit: "kinds", min: 0, max: 10, defaultValue: 2 },
-    ],
-    results: [
-      { key: "cheeseLb", label: "Cheese total", unit: "lb", format: "number", estimate: true },
-      { key: "meatLb", label: "Meat total", unit: "lb", format: "number", estimate: true },
-      { key: "crackers", label: "Crackers", format: "text", estimate: true },
-      { key: "shoppingList", label: "Shopping list", format: "text", estimate: true },
-    ],
-    calculate: (v) => {
-      const guests = Math.max(1, n(v, "guests", 12));
-      const meal = option(v, "boardStyle", "appetizer") === "meal";
-      const ozCheese = meal ? 3.5 : 2;
-      const ozMeat = meal ? 3.5 : 2;
-      const cheeseLb = round(guests * ozCheese / 16, 1);
-      const meatLb = round(guests * ozMeat / 16, 1);
-      const crackerOz = meal ? 2 : 1.5;
-      const crackerLb = round(guests * crackerOz / 16, 1);
-      const crackerBoxes = ceil(guests * crackerOz / 8);
-      const cheeseVarieties = Math.max(1, n(v, "cheeseVarieties", 3));
-      const meatVarieties = Math.max(0, n(v, "meatVarieties", 2));
-      const cheesePer = Math.ceil(guests * ozCheese / cheeseVarieties / 4) * 4;
-      const meatPer = Math.ceil(guests * ozMeat / Math.max(1, meatVarieties) / 2) * 2;
-      const fillLb = round(guests * 3 / 16, 1);
-      const lines = [
-        `Cheese — ${cheeseLb} lb total: ${cheeseVarieties} varieties × ~${cheesePer} oz each (round up to whole blocks at the counter).`,
-        meatVarieties > 0 ? `Meat — ${meatLb} lb total: ${meatVarieties} varieties × ~${meatPer} oz each (an 8 oz pack covers about ${Math.max(1, Math.round(8 * meatVarieties / ozMeat))} guests per variety).` : "Meat — none planned; a spread or pâté makes a good savory anchor instead.",
-        `Crackers — ${crackerLb} lb total: about ${crackerBoxes} standard 8 oz boxes.`,
-        `Fillers — about ${fillLb} lb combined of fruit, nuts, and olives or pickles (2–3 oz per person) to plug the gaps.`,
-      ];
-      return { cheeseLb, meatLb, crackers: `${crackerLb} lb — about ${crackerBoxes} standard boxes (${crackerOz} oz per guest).`, shoppingList: lines.join("\n") };
-    },
-    howItWorks: ["Appetizer boards plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each — 7 oz of board per person.", "Crackers run 1.5–2 oz per guest, and fruit, nuts, and olives add another 2–3 oz per person to fill the visual gaps.", "The shopping list divides totals across your variety counts and rounds up to store-friendly packages — whole blocks and 8 oz meat packs, never 4.7 oz."],
-    example: { title: "12 guests, board is dinner", inputs: "12 guests, the board IS the meal, 3 cheeses, 2 meats", result: "About 2.6 lb each of cheese and meat — 16 oz wedges ×3, ~22 oz meat packs ×2, plus 3 cracker boxes and 2.3 lb of fillers." },
-    faqs: [{ question: "How much charcuterie per person?", answer: "For an appetizer board alongside dinner, 2 oz of cheese and 2 oz of meat per guest. When the board is the meal, 3–4 oz each — the calculator plans 3.5 — plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the board." }, { question: "How far ahead can I buy?", answer: "Hard cheeses keep 1–2 weeks (rewrap in parchment, not plastic) and unopened cured meats keep for weeks. Buy soft cheeses and cut fruit 1–2 days out, and slice cured meats the day of for the best look." }, { question: "How long can a board sit out?", answer: "Follow the 2-hour rule: perishable food is safe at room temperature about two hours (one hour above 90 °F). Set out half the meat and refill from the fridge, and keep soft cheeses chilled until the last minute." }, { question: "How many cheeses and meats for a good board?", answer: "Three cheeses and two meats cover most parties: one soft, one firm, one blue or aged; one salami-style, one prosciutto-style. Bigger crowds scale quantities before varieties — more of what worked beats a crowded board." }],
-    seo: { title: "Charcuterie Board Calculator – Amounts Per Person | CalcForged", description: "Calculate cheese, meat, crackers, and fillers per person for a charcuterie board — appetizer or board-as-meal — rounded to store-friendly packages.", h1: "Charcuterie board calculator", intro: "How much charcuterie per person is the difference between a board that holds and a board that gets picked clean in ten minutes. For an appetizer spread alongside dinner, plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each, plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the gaps. Enter your guest count, the board's role, and how many cheeses and meats you want, and the calculator returns totals in pounds plus a shopping list divided by variety and rounded up to store-friendly packages — whole cheese blocks, 8 oz meat packs, full cracker boxes. The buying-ahead and 2-hour-room rules are in the FAQs, because a board is only as good as when it was built." },
-    related: ["appetizers-per-person", "wedding-dessert-table", "pizza-party"],
-  },
-  {
-    slug: "christmas-lights", name: "Christmas Lights Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "✳", description: "Estimate strand feet, sets to buy, and outlet load for a Christmas tree or a full roofline outline.",
-    fields: [
-      { key: "mode", label: "Where are you hanging lights?", type: "select", defaultValue: "tree", options: [{ label: "A Christmas tree", value: "tree" }, { label: "Roofline & house outline", value: "roofline" }] },
-      { key: "treeHeight", label: "Tree height", type: "number", unit: "ft", min: 2, max: 15, defaultValue: 7, help: "Floor to tip of the tree, not to the star.", visibleWhen: { key: "mode", values: ["tree"] } },
-      { key: "fullness", label: "How full should it look?", type: "select", defaultValue: "classic", options: [{ label: "Sparse — branches show through", value: "sparse" }, { label: "Classic — the standard glow", value: "classic" }, { label: "Full — lush and bright", value: "full" }, { label: "Showstopper — wall of light", value: "showstopper" }], visibleWhen: { key: "mode", values: ["tree"] } },
-      { key: "bulbSpacing", label: "Bulb spacing on the strand", type: "select", defaultValue: "4", options: [{ label: "2.5 in — dense mini sets", value: "2.5" }, { label: "4 in — standard mini sets", value: "4" }, { label: "6 in — wide-spaced sets", value: "6" }], help: "Usually on the box: strand length divided by light count.", visibleWhen: { key: "mode", values: ["tree"] } },
-      { key: "eaves", label: "Straight edges to outline", type: "number", unit: "ft", min: 0, max: 2000, defaultValue: 120, help: "Eaves, porch, garage — walk the run and add the lengths together.", visibleWhen: { key: "mode", values: ["roofline"] } },
-      { key: "gableCount", label: "Triangle gables to outline", type: "number", unit: "gables", min: 0, max: 6, defaultValue: 2, help: "Set 0 if you're lighting only the flat edges.", visibleWhen: { key: "mode", values: ["roofline"] } },
-      { key: "gableWidth", label: "Gable width", type: "number", unit: "ft", min: 0, max: 60, defaultValue: 24, help: "Across the base of one triangle.", visibleWhen: { key: "mode", values: ["roofline"] } },
-      { key: "gableRise", label: "Gable rise", type: "number", unit: "ft", min: 0, max: 30, defaultValue: 8, help: "From the eave line up to the peak.", visibleWhen: { key: "mode", values: ["roofline"] } },
-      { key: "waste", label: "Extra for corners & the outlet run", type: "select", defaultValue: "15", options: [{ label: "10% — simple straight runs", value: "10" }, { label: "15% — corners, typical house", value: "15" }, { label: "20% — many corners, long outlet run", value: "20" }], visibleWhen: { key: "mode", values: ["roofline"] } },
-      { key: "strandLength", label: "Length per strand or reel", type: "number", unit: "ft", min: 5, max: 200, defaultValue: 25, help: "On the box — 25 ft is a typical 100-count mini set." },
-      { key: "bulbType", label: "Bulb type", type: "select", defaultValue: "led", options: [{ label: "LED — low draw, more strands per outlet", value: "led" }, { label: "Incandescent — traditional warm glow", value: "inc" }] },
-    ],
-    results: [
-      { key: "bulbs", label: "Bulbs needed", unit: "bulbs", format: "number", estimate: true, interpretation: "From the classic rule of about 100 lights per vertical foot; sparse or fuller shifts that." },
-      { key: "strandFeet", label: "Lit length needed", unit: "ft", format: "number", estimate: true },
-      { key: "strands", label: "Strands to buy", unit: "strands", format: "number", estimate: true, interpretation: "Rounded up — one spare strand is never wasted at clipping-up height." },
-      { key: "watts", label: "Estimated total draw", unit: "W", format: "number", estimate: true, interpretation: "From typical per-foot wattage; the label on your sets is the real number." },
-      { key: "power", label: "Power plan", format: "text" },
-    ],
-    calculate: (v) => {
-      const mode = option(v, "mode", "tree");
-      const strandLength = Math.max(5, n(v, "strandLength", 25));
-      const led = option(v, "bulbType", "led") === "led";
-      let bulbs: string | number = "";
-      let strandFeet = 0;
-      let perFoot = 0;
-      if (mode === "tree") {
-        const height = Math.max(2, n(v, "treeHeight", 7));
-        const rates: Record<string, number> = { sparse: 50, classic: 100, full: 150, showstopper: 200 };
-        const spacing = Math.max(1, n(v, "bulbSpacing", 4));
-        const bulbCount = Math.round(height * (rates[option(v, "fullness", "classic")] ?? 100));
-        bulbs = bulbCount;
-        strandFeet = (bulbCount * spacing) / 12;
-        perFoot = led ? 0.25 : 1.6;
-      } else {
-        const rakePerGable = n(v, "gableWidth", 0) > 0 ? 2 * Math.sqrt((n(v, "gableWidth", 0) / 2) ** 2 + n(v, "gableRise", 0) ** 2) : 0;
-        strandFeet = (n(v, "eaves", 0) + rakePerGable * Math.max(0, n(v, "gableCount", 0))) * (1 + n(v, "waste", 15) / 100);
-        perFoot = led ? 1 : 7;
-      }
-      const strands = ceil(strandFeet / strandLength);
-      const watts = Math.round(strandFeet * perFoot);
-      const wattsPerStrand = Math.max(1, Math.round(perFoot * strandLength));
-      const maxPerCircuit = Math.floor(1440 / wattsPerStrand);
-      const circuits = Math.max(1, ceil(strands / Math.max(1, maxPerCircuit)));
-      let power: string;
-      if (strandFeet < 1) {
-        power = "Enter the lengths you plan to light and the numbers will fill in.";
-      } else if (led) {
-        power = `About ${watts}W total — LED sets draw roughly ${wattsPerStrand}W per ${strandLength}-ft strand, so one standard outdoor outlet carries this with room to spare. Check each set's label for its own end-to-end connection limit.`;
-      } else if (mode === "tree") {
-        power = `About ${watts}W total — incandescent minis run near ${wattsPerStrand}W per strand, so keep the tree on its own outlet and mind what else shares the circuit. Check each set's label for its end-to-end limit.`;
-      } else if (circuits > 1) {
-        power = `About ${watts}W — incandescent C9s run near ${wattsPerStrand}W per strand, and a standard 15-amp circuit plans to about 1,440W, so split this display across ${circuits} outdoor outlets. Check each set's label for its end-to-end limit.`;
-      } else {
-        power = `About ${watts}W — incandescent C9s run near ${wattsPerStrand}W per strand; one standard 15-amp outlet (about 1,440W planning limit) can carry it, but nothing else should share the circuit. Check each set's label for its end-to-end limit.`;
-      }
-      return { bulbs, strandFeet: round(strandFeet), strands, watts, power };
-    },
-    howItWorks: ["Tree mode starts from the classic rule of thumb — about 100 mini lights per vertical foot for the standard look, from 50 for sparse branches to 200 for a full wall of light — then converts bulbs to feet of strand using the bulb spacing printed on the box.", "Roofline mode adds up your straight edges and computes each gable's two sloped sides from width and rise with basic geometry, then pads the total by 10–20% for corners, plug ends, and the run back to the outlet.", "Both modes estimate total wattage from typical per-foot draw (LED minis ~0.25 W/ft, incandescent minis ~1.6, LED C9 ~1, incandescent C9 ~7) against the roughly 1,440W planning limit of a standard 15-amp circuit, so you know how many outlets the display needs."],
-    example: { title: "A 7 ft tree and a two-gable roofline", inputs: "Tree: 7 ft, classic, 4-inch spacing. Roofline: 120 ft of eaves, two 24-ft gables with 8-ft rise, 15% extra. 25-ft strands.", result: "Tree: about 700 bulbs ≈ 233 ft of strand — 10 strands. Roofline: about 204 ft — 9 strands. In LED that draws roughly 200W on one outlet; in incandescent C9s it's ~1,430W, split across two." },
-    faqs: [{ question: "How many feet of lights for a 7-foot tree?", answer: "A classic 7-foot tree wants about 700 mini lights — roughly 100 per vertical foot. In strand feet that's about 145 ft at 2.5-inch spacing, 230 ft at 4-inch, or 350 ft at 6-inch, which is why two people with the same tree buy different amounts. Match your strand's spacing and the calculator does the rest." }, { question: "How many strings of Christmas lights can I connect end to end?", answer: "Follow the limit printed on the set — the plugs, wiring, and fuse are rated for it. As a planning figure, a standard 15-amp circuit carries about 1,440W for sustained loads: 40W incandescent sets use that up quickly, while LED sets barely register. Count what else shares the circuit, too." }, { question: "LED or incandescent Christmas lights?", answer: "LED draws a fraction of the power, runs cooler, and lets one outlet carry far more strands; incandescent gives the traditional warm glow but adds real wattage fast. For a whole roofline, LED usually pays for itself in fewer cords, clips, and outlets." }, { question: "How do I measure my roofline for lights?", answer: "Walk the edges you'll light with a tape, or measure along the ground and add the overhang. For a gable, measure the base width and the peak height — each sloped side is the square root of half-the-width squared plus the rise squared. Add 10–15% for corners and the run back to the outlet." }],
-    seo: { title: "Christmas Lights Calculator – Tree & Roofline Feet | CalcForged", description: "How many feet of Christmas lights do you need? Estimate bulbs, strand length, sets to buy, and outlet load for a tree or a full roofline outline.", h1: "Christmas lights calculator", intro: "How many feet of Christmas lights you need comes down to two very different measurements: the tree and the roofline. A classic tree wants about 100 mini lights per vertical foot — 700 bulbs on a 7-footer — but the same 700 bulbs is 145 feet of strand at 2.5-inch spacing or 230 feet at 4-inch, so spacing decides what you actually buy. A roofline is pure geometry: straight eave runs plus each gable's two sloped sides, padded 10–15% for corners and the plug run. This calculator handles both, then estimates the total wattage against a standard outdoor outlet, so you know whether one cord carries the whole display or it needs a second one." },
-    related: ["party-ice", "balloon-quantity", "pizza-party"],
-  },
-  {
-    slug: "christmas-tree-water", name: "Christmas Tree Water & Stand Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "✳", description: "Check a fresh-cut Christmas tree's stand water capacity, trunk fit, and ceiling clearance.",
-    fields: [
-      { key: "treeHeight", label: "Tree height to the tip", type: "number", unit: "ft", min: 2, max: 20, step: 0.5, defaultValue: 7 },
-      { key: "ceilingHeight", label: "Room ceiling height", type: "number", unit: "ft", min: 6, max: 20, step: 0.5, defaultValue: 9 },
-      { key: "topperHeight", label: "Topper height", type: "number", unit: "in", min: 0, max: 36, step: 0.5, defaultValue: 6 },
-      { key: "clearance", label: "Space wanted above topper", type: "number", unit: "in", min: 0, max: 24, step: 0.5, defaultValue: 6 },
-      { key: "trunkDiameter", label: "Trunk diameter", type: "number", unit: "in", min: 1, max: 12, step: 0.25, defaultValue: 3 },
-      { key: "standCapacity", label: "Stand usable water capacity", type: "number", unit: "gal", min: 0, max: 20, step: 0.25, defaultValue: 1, help: "Use the capacity from the stand's product details." },
-      { key: "standMaxTrunk", label: "Stand's rated maximum trunk diameter", type: "number", unit: "in", min: 1, max: 12, step: 0.25, defaultValue: 4, help: "Check the stand label. Do not shave the tree trunk to make it fit." },
-    ],
-    results: [
-      { key: "minimumCapacity", label: "Minimum stand water capacity", unit: "gal", format: "number", estimate: true, interpretation: "Based on one quart of capacity per inch of trunk diameter." },
-      { key: "capacityCheck", label: "Water capacity check", format: "text" },
-      { key: "trunkCheck", label: "Trunk fit check", format: "text" },
-      { key: "clearanceAbove", label: "Space above topper", unit: "in", format: "number" },
-      { key: "heightCheck", label: "Height check", format: "text" },
-    ],
-    calculate: (v) => {
-      const treeHeight = Math.max(0, n(v, "treeHeight", 7));
-      const ceilingHeight = Math.max(0, n(v, "ceilingHeight", 9));
-      const topperHeight = Math.max(0, n(v, "topperHeight", 6));
-      const wantedClearance = Math.max(0, n(v, "clearance", 6));
-      const trunkDiameter = Math.max(0, n(v, "trunkDiameter", 3));
-      const standCapacity = Math.max(0, n(v, "standCapacity", 1));
-      const standMaxTrunk = Math.max(0, n(v, "standMaxTrunk", 4));
-      const minimumCapacity = trunkDiameter / 4;
-      const capacityDifference = round(standCapacity - minimumCapacity, 2);
-      const capacityCheck = standCapacity >= minimumCapacity
-        ? `Meets the minimum, with ${capacityDifference} gal above the guideline.`
-        : `Short by ${round(minimumCapacity - standCapacity, 2)} gal. Choose a stand with more usable capacity.`;
-      const trunkCheck = trunkDiameter <= standMaxTrunk
-        ? `Fits the stand rating of up to ${round(standMaxTrunk, 2)} in.`
-        : `Does not fit: the trunk is ${round(trunkDiameter - standMaxTrunk, 2)} in wider than the stand rating. Do not shave the trunk.`;
-      const clearanceAbove = round((ceilingHeight - treeHeight) * 12 - topperHeight, 1);
-      const heightCheck = clearanceAbove >= wantedClearance
-        ? `Fits with ${clearanceAbove} in above the topper.`
-        : `Needs ${round(wantedClearance - clearanceAbove, 1)} more in of room. Choose a shorter tree or topper.`;
-      return { minimumCapacity: round(minimumCapacity, 2), capacityCheck, trunkCheck, clearanceAbove, heightCheck };
-    },
-    howItWorks: ["The National Christmas Tree Association's stand guideline is 1 quart of water capacity per inch of trunk diameter. The result converts that to gallons and compares it with your stand's usable capacity.", "The trunk-fit check compares the tree's measured diameter with the maximum printed for your stand. The stand must support the trunk without trimming away its outer wood.", "Ceiling space is room height minus tree height and topper height. The height check compares that space with the clearance you want."],
-    example: { title: "7-foot tree in a 9-foot room", inputs: "3-inch trunk, 6-inch topper, 6-inch clearance, 1-gallon stand rated for a 4-inch trunk", result: "Minimum stand capacity: 0.75 gal. The stand meets the water guideline and trunk rating; 18 inches remain above the topper." },
-    faqs: [{ question: "How much water capacity should a Christmas tree stand have?", answer: "The National Christmas Tree Association recommends stand capacity of about 1 quart per inch of stem diameter. This is a capacity guideline, not a promise of daily water use. Check the stand each day and keep the cut end under water." }, { question: "How do I know if my tree trunk fits the stand?", answer: "Compare the trunk diameter with the stand's rated size range. The National Christmas Tree Association advises against whittling the sides of the trunk because the outer wood takes up water efficiently." }, { question: "How much room should I leave above a Christmas tree?", answer: "Measure from the floor to the ceiling, then subtract the tree height and topper height. Add the clearance you want before deciding whether the tree will fit." }, { question: "Does this apply to an artificial tree?", answer: "No. The water-capacity estimate is for a fresh-cut tree in a reservoir stand. Artificial trees do not need a water reservoir." }],
-    seo: { title: "Christmas Tree Water & Stand Size Calculator | CalcForged", description: "Check Christmas tree stand water capacity, trunk fit, and room clearance for a fresh-cut tree.", h1: "Christmas tree water and stand calculator", intro: "A real Christmas tree needs a stand that fits its trunk and holds enough water. Enter the trunk diameter and the stand's usable capacity to compare it with the National Christmas Tree Association's one-quart-per-inch capacity guideline. Add your room height, tree height, topper, and preferred clearance to check whether the tree fits. Check the reservoir daily and keep the cut end submerged; this is a planning check, not a substitute for the stand maker's size rating." },
-    related: ["christmas-lights"],
-  },
-  {
-    slug: "unit-price-comparison", name: "Price Per Ounce / Unit Price Comparison Calculator", category: "Everyday Life", categorySlug: "everyday-life", icon: "$", description: "Compare grocery package prices by weight, volume, or count using the same unit basis.",
-    fields: [
-      { key: "productA", label: "Product A name", type: "text", defaultValue: "Product A" },
-      { key: "priceA", label: "Product A price", type: "number", unit: "$", min: 0, max: 1000000, step: 0.01, defaultValue: 2.49 },
-      { key: "sizeA", label: "Product A package size", type: "number", min: 0, max: 1000000, step: "any", defaultValue: 16 },
-      { key: "unitA", label: "Product A size unit", type: "select", defaultValue: "oz", options: UNIT_PRICE_UNITS, help: "Ounces (oz) measure weight; fluid ounces (fl oz) measure volume." },
-      { key: "productB", label: "Product B name", type: "text", defaultValue: "Product B" },
-      { key: "priceB", label: "Product B price", type: "number", unit: "$", min: 0, max: 1000000, step: 0.01, defaultValue: 3.5 },
-      { key: "sizeB", label: "Product B package size", type: "number", min: 0, max: 1000000, step: "any", defaultValue: 24 },
-      { key: "unitB", label: "Product B size unit", type: "select", defaultValue: "oz", options: UNIT_PRICE_UNITS, help: "Choose a unit with the same dimension as Product A." },
-    ],
-    results: [{ key: "validation", label: "Comparison", format: "text" }, { key: "unitPriceA", label: "Product A unit price", format: "text" }, { key: "unitPriceB", label: "Product B unit price", format: "text" }, { key: "lowerPrice", label: "Lower unit-price option", format: "text" }, { key: "difference", label: "Difference per unit", format: "text" }, { key: "workings", label: "Workings", format: "text" }],
-    calculate: calculateUnitPrice,
-    howItWorks: ["Enter each package's shelf price, size, and printed unit. Use the same price basis for both products.", "Each package is converted to a common basis: weight to ounces, volume to US fluid ounces, and count to items. Weight ounces and fluid ounces are different dimensions; this calculator never estimates ingredient density or converts weight into volume.", "Divide package price by its normalized size. The lower price is selected before rounding; displayed unit rates round to four decimal places."],
-    example: { title: "Two sizes, one price basis", inputs: "Illustrative inputs: $2.49 for 16 oz and $3.50 for 24 oz, both by weight.", result: "Product A: $0.1556/oz. Product B: $0.1458/oz. Product B is lower by $0.0098/oz." },
-    faqs: [{ question: "Is an ounce the same as a fluid ounce?", answer: "No. An ounce (oz) measures weight; a US fluid ounce (fl oz) measures volume. They are not interchangeable. Choose units of the same dimension to compare packages." }, { question: "Which package units can I compare?", answer: "Compare weight with weight, volume with volume, or count with count. Supported weight units convert to ounces, supported US volume units convert to US fluid ounces, and each stays an individual count." }, { question: "How is the lower price chosen?", answer: "The comparison uses the full converted values before rounding. Unit prices are displayed to four decimal places so small differences remain visible." }, { question: "Can it convert cups or fluid ounces into ounces by weight?", answer: "No. That would require a density for the specific product. Use the weight converter or volume converter for conversions within one dimension; neither assumes a product's density." }],
-    seo: { title: "Price Per Ounce and Unit Price Comparison Calculator | CalcForged", description: "Compare grocery package prices by weight, volume, or count. Convert compatible units exactly, see unit prices, and identify the lower-cost package.", h1: "Compare prices by unit", intro: "Two packages can carry different sizes and different units. Enter each price and package size to compare by ounce, US fluid ounce, or item. Weight and volume stay separate, so an ounce by weight is never treated as a fluid ounce. Sample prices are illustrative; replace them with the shelf prices you see." },
-    related: ["weight-converter", "volume-converter"],
-  },
-  {
-    slug: "equipment-operating-cost-per-hour", name: "Equipment Operating Cost Per Hour Calculator", category: "Business", categorySlug: "business", icon: "◷", description: "Estimate equipment cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor.",
-    fields: [
-      { key: "purchaseCost", label: "Purchase or replacement cost", type: "number", unit: "$", min: 0, max: 1000000000, step: 0.01, defaultValue: 25000 },
-      { key: "resaleValue", label: "Expected resale value", type: "number", unit: "$", min: 0, max: 1000000000, step: 0.01, defaultValue: 5000, help: "Expected value at the end of the assumed useful life." },
-      { key: "lifetimeHours", label: "Lifetime operating hours", type: "number", unit: "hr", min: 0, max: 1000000000, step: 1, defaultValue: 5000, help: "Total operating hours expected over the machine's useful life." },
-      { key: "fuelUse", label: "Fuel consumption per hour", type: "number", unit: "gal/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 2, help: "Enter 0 for both fuel fields if the machine has no fuel cost; electricity is not included." },
-      { key: "fuelPrice", label: "Fuel price per gallon", type: "number", unit: "$/gal", min: 0, max: 1000000, step: 0.01, defaultValue: 3.5 },
-      { key: "maintenanceCost", label: "Maintenance and repair cost per hour", type: "number", unit: "$/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 5, help: "Enter your own average maintenance and repair cost per operating hour." },
-      { key: "annualOverhead", label: "Annual fixed overhead (optional)", type: "number", unit: "$/yr", min: 0, max: 1000000000, step: 0.01, defaultValue: 1200, help: "Leave at $0 when you are not allocating annual overhead to this machine." },
-      { key: "annualHours", label: "Annual operating hours (optional)", type: "number", unit: "hr/yr", min: 0, max: 1000000000, step: 1, defaultValue: 600, help: "Required above 0 if annual fixed overhead is greater than $0." },
-      { key: "operatorLabor", label: "Operator labor per hour (optional)", type: "number", unit: "$/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 25, help: "Enter $0 to exclude operator labor." },
-      { key: "billingRate", label: "Billing rate per machine hour (optional)", type: "number", unit: "$/hr", min: 0, max: 1000000, step: 0.01, defaultValue: 65, help: "Enter $0 or leave blank to hide gross-dollar and margin results." },
-    ],
-    results: [
-      { key: "validation", label: "Estimate", format: "text" },
-      { key: "depreciationPerHour", label: "Depreciation cost per hour", format: "currency", estimate: true },
-      { key: "fuelPerHour", label: "Fuel cost per hour", format: "currency", estimate: true },
-      { key: "maintenancePerHour", label: "Maintenance and repair per hour", format: "currency", estimate: true },
-      { key: "overheadPerHour", label: "Fixed overhead per hour", format: "currency", estimate: true },
-      { key: "operatorLaborPerHour", label: "Operator labor per hour", format: "currency", estimate: true },
-      { key: "totalPerHour", label: "Total operating cost per hour", format: "currency", estimate: true },
-      { key: "grossDollarsPerHour", label: "Gross dollars after listed costs per hour", format: "currency", estimate: true, interpretation: "Billing rate - entered hourly costs, before other expenses and taxes." },
-      { key: "marginPercent", label: "Margin after listed costs", format: "percent", estimate: true, interpretation: "(Billing rate - total cost) ÷ billing rate × 100." },
-      { key: "workings", label: "Cost breakdown and formulas", format: "text" },
-    ],
-    calculate: calculateEquipmentCost,
-    howItWorks: ["Depreciation per hour is (purchase or replacement cost - expected resale value) divided by lifetime operating hours.", "Fuel cost per hour is fuel consumed per hour multiplied by fuel price per gallon. Add your maintenance and repair cost per operating hour.", "Optional annual fixed overhead is divided by annual operating hours. Optional operator labor is added per hour; leave optional costs at $0 to exclude them.", "Total operating cost per hour is the sum of the displayed components. If you enter a billing rate, gross dollars per hour equal billing rate minus listed costs; margin is gross dollars divided by billing rate."],
-    example: { title: "Illustrative machine estimate", inputs: "$25,000 cost, $5,000 resale, 5,000 lifetime hours; 2 gal/hr at $3.50/gal; $5/hr maintenance; $1,200 annual overhead over 600 hours; $25/hr labor; $65/hr billing rate.", result: "$43.00 estimated operating cost per hour. After the listed costs, gross dollars are $22.00/hr and margin is 33.85%." },
-    faqs: [{ question: "How is depreciation spread across hours?", answer: "Subtract expected resale value from purchase or replacement cost, then divide the difference by lifetime operating hours. The inputs are your assumptions, not a resale-value forecast." }, { question: "What happens when I leave optional costs out?", answer: "Annual overhead, annual operating hours, operator labor, and billing rate may be left blank or set to $0. Omitted optional costs count as zero. If overhead is greater than $0, annual operating hours must also be greater than 0." }, { question: "What is included in gross dollars and margin?", answer: "Gross dollars per hour are your billing rate minus the costs entered here. Margin is that amount divided by the billing rate. Other expenses, fees, and taxes are not included unless you add them to your own cost inputs." }, { question: "Is this accounting or tax advice?", answer: "No. This is an estimate based on your inputs, not accounting or tax advice. Check your records and consult a qualified professional for accounting or tax treatment." }],
-    seo: { title: "Equipment Operating Cost Per Hour Calculator | CalcForged", description: "Estimate machinery cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor. Add a billing rate to see gross dollars and margin.", h1: "Equipment operating cost per hour", intro: "Price an operating hour from the costs you enter: depreciation, fuel, maintenance and repairs, optional annual overhead, and optional operator labor. Add a billing rate to compare it with the listed hourly cost. Results are estimates based on your inputs, not accounting or tax advice. The prefilled values are illustrative; replace them with your own." },
-    related: ["gig-driver-mileage-tracker", "fuel-mileage"],
-  },
-  {
-    slug: "board-feet", name: "Board Feet Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▤", description: "Calculate board-foot volume for lumber pieces, with an optional material-cost estimate.",
-    fields: [{ key: "thickness", label: "Thickness", type: "number", unit: "in", min: 0.01, max: 1000, step: "any", defaultValue: 1.5 }, { key: "width", label: "Width", type: "number", unit: "in", min: 0.01, max: 1000, step: "any", defaultValue: 5.5 }, { key: "length", label: "Length", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 8 }, { key: "lengthUnit", label: "Length unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }] }, { key: "pieces", label: "Identical pieces", type: "number", unit: "pieces", min: 1, max: 1000000, step: 1, defaultValue: 10, help: "Use one set of dimensions for pieces that are the same size." }, { key: "pricePerBoardFoot", label: "Price per board foot (optional)", type: "number", unit: "$ / BF", min: 0, max: 1000000, step: 0.01, help: "Leave blank to skip the material-cost estimate." }],
-    results: [{ key: "validation", label: "Check", format: "text" }, { key: "perPiece", label: "Board feet per piece", unit: "BF", format: "number" }, { key: "total", label: "Total board feet", unit: "BF", format: "number" }, { key: "materialCost", label: "Material cost estimate", format: "currency", estimate: true }],
-    calculate: calculateBoardFeet,
-    howItWorks: ["Enter one set of thickness and width dimensions in inches, then choose whether the piece length is in feet or inches. Use the dimensions relevant to the order; this is geometric volume, not a log-scale estimate.", "One board foot is 144 cubic inches. For one piece, multiply thickness × width × length (all in inches) and divide by 144.", "Multiply board feet per piece by the count of identical pieces. Enter a price per board foot only when you want a material-cost estimate. This is different from a deck-board count, which estimates how many boards cover an area."],
-    example: { title: "Ten matching boards", inputs: "Illustrative dimensions: 1.5 in thick × 5.5 in wide × 8 ft long, quantity 10.", result: "Each piece is 5.5 board feet; the total is 55 board feet." },
-    faqs: [{ question: "What is one board foot?", answer: "A board foot is a volume of 144 cubic inches, such as a piece 1 inch thick, 12 inches wide, and 12 inches long. This calculator applies that definition to the dimensions you enter." }, { question: "Should I use nominal or actual lumber dimensions?", answer: "Use the dimensions that match the basis of your order or quote. The calculator does not convert a nominal label to actual dimensions." }, { question: "How is this different from a deck-board calculator?", answer: "This tool calculates lumber volume in board feet. A deck-board calculator estimates the number of boards needed to cover a deck area." }],
-    sources: [{ label: "Utah State University Forestry Extension — board-foot definition", url: "https://extension.usu.edu/forestry/publications/utah-forest-facts/007-forestry-terms" }],
-    seo: { title: "Board Feet Calculator: Lumber Volume & Cost | CalcForged", description: "Calculate board feet for one or more matching lumber pieces from thickness, width, length, and quantity. Add a price per board foot for an optional cost estimate.", h1: "Board feet calculator", intro: "Estimate lumber volume from the dimensions on your cut list. Enter thickness and width in inches, choose feet or inches for length, and set the number of matching pieces. The calculator uses the standard 144-cubic-inch board-foot unit; it does not estimate log yield or replace a deck-board count." },
-    related: ["deck-boards", "area"],
-  },
-  {
-    slug: "soap", name: "Soap Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "◒", description: "Estimate lye and water for a blend of common soapmaking oils, with a superfat and solution setting.",
-    fields: [{ key: "oils", label: "Oil blend", type: "ingredient-list", ingredientSchema: { first: "Oil blend", amount: "Weight (g)", unit: "", name: "Oil", amountPlaceholder: "500", namePlaceholder: "Choose an oil" }, ingredientOptions: SOAP_OIL_OPTIONS, ingredientUnit: "g", help: "Enter each oil weight in grams. The reference table covers seven common oils and fats." }, { key: "lyeType", label: "Lye type", type: "select", defaultValue: "naoh", options: [{ label: "NaOH (sodium hydroxide)", value: "naoh" }, { label: "KOH (potassium hydroxide)", value: "koh" }], help: "NaOH and KOH use different reference SAP values." }, { key: "superfat", label: "Superfat / lye discount", type: "number", unit: "%", min: 0, max: 50, step: 0.1, defaultValue: 5 }, { key: "waterMode", label: "Water setting", type: "select", defaultValue: "concentration", options: [{ label: "Lye concentration", value: "concentration" }, { label: "Water-to-lye ratio", value: "ratio" }] }, { key: "lyeConcentration", label: "Lye concentration", type: "number", unit: "%", min: 1, max: 99, step: 0.1, defaultValue: 33, visibleWhen: { key: "waterMode", values: ["concentration"] }, help: "Lye weight ÷ (lye weight + water weight)." }, { key: "waterToLyeRatio", label: "Water-to-lye ratio", type: "number", unit: ": 1 lye", min: 0.1, max: 20, step: 0.1, defaultValue: 2, visibleWhen: { key: "waterMode", values: ["ratio"] }, help: "Enter water weight per 1 part lye by weight." }],
-    results: [{ key: "validation", label: "Note", format: "text" }, { key: "totalOils", label: "Total oil blend", unit: "g", format: "number" }, { key: "lyeKind", label: "Lye type", format: "text" }, { key: "lye", label: "Lye required", unit: "g", format: "number" }, { key: "water", label: "Water for solution", unit: "g", format: "number" }, { key: "concentration", label: "Resulting lye concentration", format: "percent" }, { key: "workings", label: "SAP values and calculation", format: "text" }],
-    calculate: calculateSoap,
-    howItWorks: ["Choose each oil from the reference list and enter its weight in grams. The list uses the published NaOH and KOH SAP values shown by SoapCalc; the table is intentionally limited to seven common oils and fats.", "For each oil, multiply its weight by its selected lye-type SAP value and add the results. Apply the superfat discount: base lye × (1 − superfat ÷ 100).", "Set water by lye concentration or by a water-to-lye weight ratio. For concentration, water = lye × (100 − concentration) ÷ concentration. The lye amount assumes 100% lye purity; natural oil batches and supplier lye purity can vary, so independently verify the full formula before making soap."],
-    example: { title: "An illustrative olive-oil batch", inputs: "1,000 g olive oil, NaOH, 5% superfat, and a 33% lye concentration.", result: "Using the listed 0.135 NaOH SAP value: 128.25 g NaOH and about 260.39 g water. The published reference values are rounded; this is a formulation estimate, not a safety certification." },
-    faqs: [{ question: "Are the SAP values exact for every oil?", answer: "No. The selected values are reference values published by SoapCalc, and natural oils can vary by crop and supplier. We show the source and the selected table value in the calculation details; confirm the specific oil and lye information you use." }, { question: "Does this account for lye purity?", answer: "No. It assumes 100% lye purity. Supplier specifications and calculators may use a different purity assumption, especially for potassium hydroxide. Recheck the complete recipe against your supplier's specifications and a trusted soapmaking reference before use." }, { question: "What safety steps should I follow?", answer: "Lye is corrosive. Follow the current safety information for your lye, use protective gloves and eye protection, and work with suitable ventilation. Always add lye to water, never water to lye. This calculator does not certify a recipe as safe." }, { question: "Does this calculator include every soapmaking oil or the liquid-soap process?", answer: "No. It offers a limited list of seven common oils and fats from the linked reference table. It does not accept custom oils, dual-lye recipes, additives, fragrance limits, a lye-purity adjustment, or the separate cooking and dilution stages used in liquid-soap recipes." }],
-    sources: [{ label: "SoapCalc — oil chart and published NaOH/KOH SAP values", url: "https://soapcalc.net/oil-list" }, { label: "SoapCalc — lye calculator and recipe method", url: "https://soapcalc.net/calculator" }, { label: "Handcrafted Soap & Cosmetic Guild — superfatting and lye discount", url: "https://www.soapguild.org/tools-and-resources/resource-center/166/superfatting-lye-discount/" }, { label: "Handcrafted Soap & Cosmetic Guild — beginner cold-process soap guide and lye handling", url: "https://www.soapguild.org/tools-and-resources/resource-center/42/make-cp-soap/" }],
-    seo: { title: "Soap Calculator: Lye, Water & Superfat | CalcForged", description: "Calculate NaOH or KOH for a blend of seven common oils, with adjustable superfat and lye concentration or water-to-lye ratio. Includes SAP sources and safety limits.", h1: "Soap calculator", intro: "Build a simple oil blend and estimate lye and water by weight. Choose NaOH or KOH, set a superfat, and pick lye concentration or water-to-lye ratio. The limited SAP values vary by oil and supplier, and the calculation assumes 100% lye purity. Lye is corrosive: wear gloves and eye protection, use ventilation, and always add lye to water, never water to lye. Verify the complete recipe before use." },
-    related: ["weight-converter", "cups-to-grams"],
-  },
-  {
-    slug: "aquarium-volume", name: "Aquarium Volume Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▱", description: "Estimate the geometric capacity of a rectangular aquarium from inside dimensions, in US gallons and liters.",
-    fields: [{ key: "length", label: "Inside length", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 36 }, { key: "width", label: "Inside width", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 18 }, { key: "height", label: "Inside height", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 18 }, { key: "dimensionUnit", label: "Dimension unit", type: "select", defaultValue: "in", options: [{ label: "Inches", value: "in" }, { label: "Centimeters", value: "cm" }], help: "Use inside dimensions. Outside measurements include the tank walls." }],
-    results: [{ key: "validation", label: "Check", format: "text" }, { key: "gallons", label: "US gallons", unit: "US gal", format: "number" }, { key: "liters", label: "Liters", unit: "L", format: "number" }],
-    calculate: calculateAquarium,
-    howItWorks: ["Enter inside length, width, and height for a rectangular tank. Convert all three measurements using the same unit.", "Multiply the dimensions to get cubic inches, then divide by 231 cubic inches per US liquid gallon. Convert US gallons to liters using 3.785411784 L per gallon, derived from the exact U.S. customary volume definition and metric units.", "This is the geometric volume of the rectangular space. The actual water amount can be lower because of substrate, equipment, decorations, and the space left below the rim. No livestock, medication, or animal-health advice is included."],
-    example: { title: "A 36 × 18 × 18 inch rectangle", inputs: "Inside dimensions: 36 in × 18 in × 18 in.", result: "About 50.49 US gallons, or 191.14 liters of geometric capacity." },
-    faqs: [{ question: "Should I use inside or outside tank dimensions?", answer: "Use the inside dimensions to estimate the space available within a rectangular tank. Outside dimensions include the glass or acrylic walls and give a larger geometric result." }, { question: "Does this show the actual water volume?", answer: "It shows the geometric capacity of the empty rectangular space. It does not subtract substrate, decorations, equipment, or the unfilled space at the top, so the amount of water in a filled tank can be lower." }, { question: "Does it work for bow-front, cylindrical, or hexagonal tanks?", answer: "No. The formula assumes a rectangular prism. Non-rectangular tanks need a shape-specific formula." }, { question: "Does this recommend stocking or medication amounts?", answer: "No. It only calculates geometric volume from the dimensions you enter." }],
-    sources: [{ label: "NIST Handbook 44, Appendix C — U.S. customary units, including 231 cubic inches per gallon", url: "https://www.nist.gov/document/2026-nist-handbook-44-appendix-c" }, { label: "NIST Guide to the SI, Appendix B.8 — U.S. gallon-to-liter conversion", url: "https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8" }],
-    seo: { title: "Aquarium Volume Calculator: Gallons & Liters | CalcForged", description: "Calculate the geometric volume of a rectangular aquarium from inside dimensions in inches or centimeters. See US gallons and liters, with the assumptions stated clearly.", h1: "Aquarium volume calculator", intro: "Measure the inside length, width, and height of a rectangular tank to estimate its geometric capacity in US gallons and liters. The result is the empty rectangular volume, not the actual water left after substrate, equipment, decorations, or fill level." },
-    related: ["volume-converter", "area"],
-  },
-  {
-    slug: "sourdough", name: "Sourdough Calculator", category: "Food & Catering", categorySlug: "food-catering", icon: "⌁", description: "Scale sourdough ingredients by total flour, hydration, starter percentage, starter hydration, and salt.",
-    fields: [{ key: "totalFlour", label: "Total flour (including starter flour)", type: "number", unit: "g", min: 1, max: 1000000, step: "any", defaultValue: 500, help: "This is the complete flour basis. Flour already inside the starter counts toward it." }, { key: "hydration", label: "Target total hydration", type: "number", unit: "%", min: 0, max: 500, step: 0.1, defaultValue: 75, help: "Total water ÷ total flour, including water and flour from the starter." }, { key: "starterPercent", label: "Starter weight as % of total flour", type: "number", unit: "%", min: 0, max: 500, step: 0.1, defaultValue: 20, help: "Starter's full weight divided by total flour weight." }, { key: "starterHydration", label: "Starter hydration", type: "number", unit: "%", min: 0, max: 1000, step: 0.1, defaultValue: 100, help: "Starter water weight ÷ starter flour weight. 100% means equal weights of water and flour." }, { key: "saltPercent", label: "Salt as % of total flour", type: "number", unit: "%", min: 0, max: 100, step: 0.1, defaultValue: 2 }],
-    results: [{ key: "validation", label: "Check", format: "text" }, { key: "flourToAdd", label: "Flour to add", unit: "g", format: "number" }, { key: "starter", label: "Starter to add", unit: "g", format: "number" }, { key: "starterBreakdown", label: "Flour + water inside starter", format: "text" }, { key: "waterToAdd", label: "Water to add", unit: "g", format: "number" }, { key: "salt", label: "Salt to add", unit: "g", format: "number" }, { key: "doughWeight", label: "Total dough weight", unit: "g", format: "number" }, { key: "hydrationResult", label: "Target total hydration", format: "percent" }],
-    calculate: calculateSourdough,
-    howItWorks: ["Enter the target total flour weight. This basis includes the flour already in your starter; the tool then shows how much additional flour to add.", "Starter weight is the entered percentage of total flour. Its hydration splits that weight into starter flour and starter water. Those parts are counted toward total flour and target total water, so the added amounts subtract them.", "Salt is calculated as a percentage of total flour. Overall hydration is total water divided by total flour. All weights are grams; a 100%-hydration starter contains equal weights of flour and water."],
-    example: { title: "500 g total flour, including starter", inputs: "75% total hydration, starter at 20% of total flour and 100% hydration, salt at 2%.", result: "Add 450 g flour, 100 g starter (50 g flour + 50 g water), 325 g water, and 10 g salt. Total dough weight: 885 g." },
-    faqs: [{ question: "Does total flour include the flour in the starter?", answer: "Yes. The input is the total flour for the whole dough, including starter flour. The result separates the flour already in the starter from the flour you still need to add." }, { question: "What does starter percentage mean here?", answer: "It is the full starter weight divided by the total flour weight. Starter hydration then divides that starter weight into flour and water." }, { question: "How is total hydration calculated?", answer: "Total hydration is total water divided by total flour. Both the water and flour carried by the starter count, following the standard sourdough hydration convention." }, { question: "Can the target hydration be lower than the water already in my starter?", answer: "No. The calculator reports a validation message if the starter already contributes more water than the target allows. Raise the target hydration or adjust the starter settings." }],
-    sources: [{ label: "King Arthur Baking — baker's percentage", url: "https://www.kingarthurbaking.com/pro/reference/bakers-percentage" }, { label: "King Arthur Baking — hydration and starter flour/water accounting", url: "https://www.kingarthurbaking.com/blog/2023/01/11/bread-hydration" }],
-    seo: { title: "Sourdough Calculator: Flour, Water, Starter & Salt | CalcForged", description: "Scale sourdough ingredients from total flour, target hydration, starter percentage and hydration, and salt. Starter flour and water are counted in the totals.", h1: "Sourdough calculator", intro: "Scale a sourdough formula in grams without losing track of the starter. Enter total flour (including the flour in your starter), target total hydration, starter weight as a percentage of total flour, starter hydration, and salt percentage. The results separate what is already in the starter from what you still need to add." },
-    related: ["recipe-scaling", "cups-to-grams", "volume-converter"],
-  },
-  {
-    slug: "firewood", name: "Firewood Calculator", category: "Hobbies", categorySlug: "hobbies", icon: "▧", description: "Calculate stacked firewood volume in cubic feet and cords, with an optional price estimate.",
-    fields: [{ key: "length", label: "Stack length", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 8 }, { key: "width", label: "Stack width", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 4 }, { key: "height", label: "Stack height", type: "number", min: 0.01, max: 100000, step: "any", defaultValue: 4 }, { key: "dimensionUnit", label: "Dimension unit", type: "select", defaultValue: "ft", options: [{ label: "Feet", value: "ft" }, { label: "Inches", value: "in" }] }, { key: "pricePerCord", label: "Price per cord (optional)", type: "number", unit: "$ / cord", min: 0, max: 1000000, step: 0.01, help: "Leave blank to skip the cost estimate." }],
-    results: [{ key: "validation", label: "Check", format: "text" }, { key: "cubicFeet", label: "Stacked volume", unit: "cu ft", format: "number" }, { key: "cords", label: "Cord equivalent", unit: "cord", format: "number"}, { key: "cost", label: "Cost estimate", format: "currency", estimate: true }],
-    calculate: calculateFirewood,
-    howItWorks: ["Measure the full stack's length, width, and height in feet or inches. Use consistent units for all three dimensions.", "Multiply the dimensions after converting inches to feet to get stacked cubic feet. One standard cord is 128 stacked cubic feet, so divide the stack volume by 128 to find the cord equivalent.", "A stacked-cord measurement includes the air spaces between pieces; it is not the volume of solid wood alone. Add a price per cord only for an optional estimate. No heating-value or BTU estimate is included."],
-    example: { title: "A full cord-sized stack", inputs: "8 ft long × 4 ft wide × 4 ft high.", result: "128 cubic feet of stacked volume, equal to 1 cord." },
-    faqs: [{ question: "What is one standard cord?", answer: "One standard cord is the volume of a stack 8 feet long, 4 feet high, and 4 feet wide: 128 cubic feet." }, { question: "Does a cord mean 128 cubic feet of solid wood?", answer: "No. The 128 cubic feet describes the stacked pile, including spaces between pieces. Solid-wood volume is lower and varies with the size and shape of the pieces." }, { question: "Can I estimate price?", answer: "Yes. Enter your own quoted price per cord; the calculator multiplies it by the stack's cord equivalent. It does not provide market prices." }, { question: "Does this estimate heat output?", answer: "No. It only estimates stacked volume and cord equivalent. It makes no BTU or heating-performance claim." }],
-    sources: [{ label: "University of Minnesota Extension — standard cord dimensions and stacked volume", url: "https://extension.umn.edu/natural-resources/forestry-and-wildlife/forestry/managing-woodlands/sampling-and-measuring-timber" }],
-    seo: { title: "Firewood Calculator: Cords & Stacked Volume | CalcForged", description: "Calculate stacked firewood volume from length, width, and height. Convert cubic feet to cords and optionally estimate cost from your price per cord.", h1: "Firewood calculator", intro: "Measure a firewood stack and see its volume in cubic feet and standard cord equivalents. The cord result is stacked volume, which includes air spaces between pieces; it is not a solid-wood measurement or a heat-output estimate." },
-    related: ["board-feet", "deck-boards"],
-  },
+	{
+		slug: "catering-food-quantity",
+		name: "Catering Food Quantity Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◉",
+		description:
+			"Estimate how much food to plan for a catered meal without overbuying.",
+		fields: [
+			{
+				key: "guests",
+				label: "Adult guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 10000,
+				defaultValue: 50,
+			},
+			{
+				key: "eventType",
+				label: "Event type",
+				type: "select",
+				defaultValue: "dinner",
+				options: [
+					{ label: "Dinner", value: "dinner" },
+					{ label: "Lunch", value: "lunch" },
+					{ label: "Cocktail reception", value: "cocktail" },
+				],
+			},
+			{
+				key: "mealType",
+				label: "Meal format",
+				type: "select",
+				defaultValue: "full",
+				options: [
+					{ label: "Full meal", value: "full" },
+					{ label: "Light meal", value: "light" },
+					{ label: "Heavy appetizers", value: "appetizers" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "total",
+				label: "Total food",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation: "A planning estimate for the entire meal.",
+			},
+			{
+				key: "protein",
+				label: "Protein",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "sides",
+				label: "Sides",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "salads",
+				label: "Salads",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "dessert",
+				label: "Dessert",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "beverages",
+				label: "Beverages",
+				unit: "servings",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 50);
+			const multiplier =
+				option(v, "mealType", "full") === "light"
+					? 1
+					: option(v, "mealType", "full") === "appetizers"
+						? 0.75
+						: 1.25;
+			const total = guests * multiplier;
+			return {
+				total: round(total),
+				protein: round(total * 0.35),
+				sides: round(total * 0.35),
+				salads: round(total * 0.15),
+				dessert: round(total * 0.1),
+				beverages: ceil(guests * 2),
+			};
+		},
+		howItWorks: [
+			"Start with roughly 1 to 1.5 pounds of food per adult for a full meal.",
+			"This estimate uses 1.25 pounds per adult, then allocates the total across protein, sides, salads, and dessert.",
+			"Beverages are planned at about two servings per guest; add more for long events or hot weather.",
+		],
+		example: {
+			title: "50-person dinner",
+			inputs: "50 adults, full meal",
+			result:
+				"About 62.5 lb of food, including 21.9 lb protein and 21.9 lb sides.",
+		},
+		faqs: [
+			{
+				question: "How much food should I plan per person?",
+				answer:
+					"A common catering planning range is about 1 to 1.5 pounds of food per adult per meal. This calculator uses 1.25 pounds for a full meal.",
+			},
+			{
+				question: "Does this include beverages?",
+				answer:
+					"Yes. The beverage result is shown separately at an estimate of two servings per guest.",
+			},
+			{
+				question: "Should I add a buffer?",
+				answer:
+					"For buffet service, large appetites, or events longer than three hours, consider adding 5 to 10 percent.",
+			},
+			{
+				question: "Are these exact quantities?",
+				answer:
+					"No. Catering quantities vary by menu, service style, guest mix, and event length, so treat the results as planning estimates.",
+			},
+		],
+		seo: {
+			title: "Catering Food Quantity Calculator | CalcForged",
+			description:
+				"Estimate food, protein, sides, salads, dessert, and beverages for your next catered meal.",
+			h1: "Catering food quantity calculator",
+			intro:
+				"Planning a catered meal is easier when every menu category has a number behind it. Enter your adult guest count and meal format to get a practical estimate for total food, protein, sides, salads, dessert, and beverages. The calculator follows a common catering guideline of roughly 1 to 1.5 pounds of food per adult per meal, then breaks that total into useful buying categories. Use it for a family gathering, office lunch, graduation party, or any event where you need a clear starting point before you build the menu.",
+		},
+		related: ["bbq-meat", "taco-bar", "wedding-food"],
+	},
+	{
+		slug: "bbq-meat",
+		name: "BBQ Meat Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◆",
+		description:
+			"Work backward from servings to the raw meat weight you need to buy.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 10000,
+				defaultValue: 30,
+			},
+			{
+				key: "meat",
+				label: "Meat selection",
+				type: "select",
+				defaultValue: "brisket",
+				options: [
+					{ label: "Brisket", value: "brisket" },
+					{ label: "Pulled pork", value: "pork" },
+					{ label: "Ribs", value: "ribs" },
+					{ label: "Sausage", value: "sausage" },
+					{ label: "Chicken", value: "chicken" },
+				],
+			},
+			{
+				key: "serving",
+				label: "Cooked meat per guest",
+				type: "number",
+				unit: "oz",
+				min: 2,
+				max: 24,
+				step: 0.5,
+				defaultValue: 6,
+			},
+		],
+		results: [
+			{
+				key: "raw",
+				label: "Raw meat to buy",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation: "Includes the selected cooking yield.",
+			},
+			{ key: "cooked", label: "Cooked meat", unit: "lb", format: "number" },
+			{ key: "yield", label: "Expected yield", unit: "%", format: "percent" },
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 30);
+			const cooked = (guests * n(v, "serving", 6)) / 16;
+			const meat = option(v, "meat", "brisket");
+			const yields: Record<string, number> = {
+				brisket: 0.5,
+				pork: 0.575,
+				ribs: 0.525,
+				sausage: 0.8,
+				chicken: 0.675,
+			};
+			const y = yields[meat] ?? 0.5;
+			return { raw: round(cooked / y), cooked: round(cooked), yield: y };
+		},
+		howItWorks: [
+			"Multiply guests by the cooked ounces each person will eat, then convert ounces to pounds.",
+			"Divide cooked pounds by the typical raw-to-cooked yield for the selected meat.",
+			"The yield accounts for trimming, moisture loss, and bones where applicable.",
+		],
+		example: {
+			title: "30 guests with brisket",
+			inputs: "30 guests at 6 oz cooked each",
+			result: "About 22.5 lb raw brisket at a 50% yield.",
+		},
+		faqs: [
+			{
+				question: "Why do I need more raw brisket than cooked meat?",
+				answer:
+					"Brisket loses weight from trimming and cooking. A 50% yield is a common planning estimate, so two raw pounds produces about one cooked pound.",
+			},
+			{
+				question: "Are ribs calculated by edible meat?",
+				answer:
+					"This estimate uses a lower yield to account for bones and cooking loss. Buy extra if ribs are the only main dish.",
+			},
+			{
+				question: "How much BBQ meat is one serving?",
+				answer:
+					"Six cooked ounces is a practical starting point for a meal with sides; use 8 ounces for meat-forward events.",
+			},
+			{
+				question: "Should I add a safety margin?",
+				answer:
+					"Add 5 to 10 percent if guests are heavy eaters or you want leftovers.",
+			},
+		],
+		seo: {
+			title: "BBQ Meat Calculator – How Much Meat Per Person | CalcForged",
+			description:
+				"Calculate raw brisket, pork, ribs, sausage, or chicken to buy for any BBQ guest count.",
+			h1: "BBQ meat calculator",
+			intro:
+				"Buying BBQ meat is a yield problem: the weight you put on the smoker is not the weight that reaches the plate. Enter your guest count, choose a meat, and set the cooked serving size to estimate how many raw pounds to buy. CalcForged uses common raw-to-cooked yield ranges—about 50% for brisket, 55–60% for pork butt, 50–55% for ribs, and 65–70% for chicken—so the result is a practical starting point rather than a false promise of precision.",
+		},
+		related: ["catering-food-quantity", "taco-bar", "wedding-food"],
+	},
+	{
+		slug: "taco-bar",
+		name: "Taco Bar Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◒",
+		description:
+			"Plan tacos, cooked meat, tortillas, toppings, and sides for a crowd.",
+		fields: [
+			{
+				key: "adults",
+				label: "Adults",
+				type: "number",
+				unit: "people",
+				min: 0,
+				max: 10000,
+				defaultValue: 25,
+			},
+			{
+				key: "children",
+				label: "Children",
+				type: "number",
+				unit: "people",
+				min: 0,
+				max: 10000,
+				defaultValue: 10,
+			},
+			{
+				key: "ozPerTaco",
+				label: "Cooked meat per taco",
+				type: "number",
+				unit: "oz",
+				min: 2,
+				max: 4,
+				step: 0.5,
+				defaultValue: 3,
+			},
+		],
+		results: [
+			{
+				key: "tacos",
+				label: "Tacos",
+				unit: "tacos",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "meat",
+				label: "Cooked meat",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "tortillas",
+				label: "Tortillas",
+				unit: "tortillas",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "toppings",
+				label: "Topping servings",
+				unit: "servings",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "sides",
+				label: "Side servings",
+				unit: "servings",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const adults = n(v, "adults", 25);
+			const children = n(v, "children", 10);
+			const tacos = adults * 2 + children;
+			const meat = (tacos * n(v, "ozPerTaco", 3)) / 16;
+			return {
+				tacos: ceil(tacos),
+				meat: round(meat),
+				tortillas: ceil(tacos * 1.2),
+				toppings: ceil((adults + children) * 3),
+				sides: ceil((adults + children) * 0.75),
+			};
+		},
+		howItWorks: [
+			"Plan about two tacos per adult and one taco per child.",
+			"Multiply tacos by 2 to 4 ounces of cooked meat per taco; this calculator starts at 3 ounces.",
+			"Tortillas include a 20% cushion for breakage, and toppings are estimated at three servings per guest across the topping spread.",
+		],
+		example: {
+			title: "35-person taco bar",
+			inputs: "25 adults, 10 children, 3 oz meat per taco",
+			result: "60 tacos, about 11.3 lb cooked meat, and 72 tortillas.",
+		},
+		faqs: [
+			{
+				question: "How many tacos does each person eat?",
+				answer:
+					"Two tacos per adult and one per child is a common planning baseline. Increase it for a late-night or taco-only meal.",
+			},
+			{
+				question: "How much meat goes in a taco?",
+				answer:
+					"Two to four ounces of cooked meat per taco is a useful range, depending on shell size and toppings.",
+			},
+			{
+				question: "Why are extra tortillas included?",
+				answer:
+					"Tortillas tear and people often take a second shell. The 20% cushion is an estimate.",
+			},
+			{
+				question: "Does the result include chips and salsa?",
+				answer:
+					"It provides a separate side-serving estimate, which you can use for chips, beans, rice, or a similar side.",
+			},
+		],
+		seo: {
+			title: "Taco Bar Calculator – Tacos, Meat & Toppings | CalcForged",
+			description:
+				"Plan tacos, cooked meat, tortillas, toppings, and sides for adults and children.",
+			h1: "Taco bar calculator",
+			intro:
+				"A taco bar is easy to serve but surprisingly easy to underbuy. Enter how many adults and children are coming to get a clear estimate for tacos, cooked meat, tortillas, toppings, and sides. The planning baseline is two tacos per adult and one per child, with a small tortilla cushion for breakage and seconds. Use the result as your shopping list starting point, then adjust for other mains, large appetites, or a long event.",
+		},
+		related: ["catering-food-quantity", "bbq-meat", "wedding-food"],
+	},
+	{
+		slug: "wedding-food",
+		name: "Wedding Food Calculator",
+		category: "Events",
+		categorySlug: "events",
+		icon: "◈",
+		description:
+			"Estimate wedding food quantities and a rough catering budget range.",
+		fields: [
+			{
+				key: "guests",
+				label: "Wedding guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 5000,
+				defaultValue: 100,
+			},
+			{
+				key: "style",
+				label: "Meal style",
+				type: "select",
+				defaultValue: "buffet",
+				options: [
+					{ label: "Plated dinner", value: "plated" },
+					{ label: "Buffet", value: "buffet" },
+					{ label: "Cocktail-only", value: "cocktail" },
+				],
+			},
+			{
+				key: "drinks",
+				label: "Drinks service",
+				type: "select",
+				defaultValue: "beer-wine",
+				options: [
+					{ label: "Non-alcoholic", value: "none" },
+					{ label: "Beer and wine", value: "beer-wine" },
+					{ label: "Full bar", value: "full-bar" },
+				],
+			},
+			{
+				key: "dessert",
+				label: "Dessert",
+				type: "select",
+				defaultValue: "cake",
+				options: [
+					{ label: "Wedding cake", value: "cake" },
+					{ label: "Dessert table", value: "table" },
+					{ label: "Both", value: "both" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "servings",
+				label: "Meal servings",
+				unit: "servings",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "desserts",
+				label: "Dessert servings",
+				unit: "servings",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "budgetLow",
+				label: "Catering budget from",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "budgetHigh",
+				label: "Catering budget to",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 100);
+			const style = option(v, "style", "buffet");
+			const factor = style === "cocktail" ? 1.25 : 1;
+			const perPerson =
+				style === "plated"
+					? [75, 150]
+					: style === "cocktail"
+						? [45, 95]
+						: [55, 110];
+			const drinksFactor =
+				option(v, "drinks", "beer-wine") === "full-bar"
+					? 1.25
+					: option(v, "drinks", "beer-wine") === "none"
+						? 0.85
+						: 1;
+			const dessertFactor = option(v, "dessert", "cake") === "both" ? 1.25 : 1;
+			return {
+				servings: ceil(guests * factor),
+				desserts: ceil(guests * dessertFactor),
+				budgetLow: Math.round(guests * perPerson[0] * drinksFactor),
+				budgetHigh: Math.round(guests * perPerson[1] * drinksFactor),
+			};
+		},
+		howItWorks: [
+			"Meal servings are based on the guest count and service style; cocktail-only service gets a small buffer because food is the event.",
+			"Dessert is planned at one serving per guest, with a 25% bump when serving both cake and a dessert table.",
+			"Budget ranges are rough planning estimates and vary widely by city, menu, staffing, rentals, and bar package.",
+		],
+		example: {
+			title: "100-person buffet wedding",
+			inputs: "Buffet, beer and wine, cake",
+			result:
+				"100 meal servings, 100 dessert servings, and a rough $5,500–$11,000 catering range.",
+		},
+		faqs: [
+			{
+				question: "How much wedding food should I order?",
+				answer:
+					"For a plated or buffet meal, start with one meal serving per guest and add a service-style buffer where appropriate.",
+			},
+			{
+				question: "What does the budget estimate include?",
+				answer:
+					"It is a broad food-and-service planning range, not a quote. Ask caterers what staffing, rentals, tax, gratuity, and bar service add.",
+			},
+			{
+				question: "Should I plan dessert for every guest?",
+				answer:
+					"Yes. One serving per guest is a good baseline, with extra if you offer a dessert table alongside cake.",
+			},
+			{
+				question: "Why can wedding catering costs vary so much?",
+				answer:
+					"Region, menu ingredients, staffing, rentals, service format, and bar choices can all materially change the final quote.",
+			},
+		],
+		seo: {
+			title:
+				"Wedding Food Calculator – Quantities & Catering Budget | CalcForged",
+			description:
+				"Estimate wedding meal and dessert servings from guest count, meal style, drinks, and dessert plan, plus a rough catering budget before requesting quotes.",
+			h1: "Wedding food calculator",
+			intro:
+				"Wedding food planning has two separate jobs: figuring out how much to serve and setting a realistic budget range before you call caterers. Enter your guest count, meal style, drinks, and dessert plan for a practical estimate. The result is intentionally labeled as a planning range because local labor, menu choices, rentals, tax, and gratuity can move a real quote far beyond a simple per-person formula.",
+		},
+		related: ["catering-food-quantity", "taco-bar", "restaurant-food-cost"],
+	},
+	{
+		slug: "restaurant-food-cost",
+		name: "Restaurant Food Cost Calculator",
+		category: "Business",
+		categorySlug: "business",
+		icon: "▦",
+		description:
+			"See your cost per portion, food cost percentage, and gross margin at a glance.",
+		fields: [
+			{
+				key: "ingredientCost",
+				label: "Total ingredient cost",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 42,
+			},
+			{
+				key: "portions",
+				label: "Portions produced",
+				type: "number",
+				unit: "portions",
+				min: 1,
+				defaultValue: 10,
+			},
+			{
+				key: "menuPrice",
+				label: "Menu price per item",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 16,
+			},
+		],
+		results: [
+			{
+				key: "costPerServing",
+				label: "Cost per serving",
+				unit: "$",
+				format: "currency",
+			},
+			{ key: "foodCostPct", label: "Food cost", unit: "%", format: "percent" },
+			{
+				key: "grossMargin",
+				label: "Gross margin per item",
+				unit: "$",
+				format: "currency",
+			},
+			{ key: "targetNote", label: "Industry reference", format: "text" },
+		],
+		calculate: (v) => {
+			const cost = n(v, "ingredientCost", 42);
+			const portions = n(v, "portions", 10);
+			const price = n(v, "menuPrice", 16);
+			const cps = cost / portions;
+			return {
+				costPerServing: round(cps, 2),
+				foodCostPct: price ? round((cps / price) * 100, 1) : 0,
+				grossMargin: round(price - cps, 2),
+				targetNote: "Common target: 28–35%",
+			};
+		},
+		howItWorks: [
+			"Divide total ingredient cost by the number of portions to get cost per serving.",
+			"Divide cost per serving by menu price to get food cost percentage.",
+			"Gross margin per item is menu price minus ingredient cost per serving; it does not include labor, rent, packaging, or overhead.",
+		],
+		example: {
+			title: "10-portion recipe",
+			inputs: "$42 ingredient cost, 10 portions, $16 menu price",
+			result:
+				"$4.20 cost per serving, 26.3% food cost, and $11.80 gross margin.",
+		},
+		faqs: [
+			{
+				question: "What is a good restaurant food cost percentage?",
+				answer:
+					"Many operators use roughly 28% to 35% as a planning target, but the right number depends on concept, labor, rent, and pricing strategy.",
+			},
+			{
+				question: "Does this include labor?",
+				answer:
+					"No. This tool measures ingredient cost only. Add labor and overhead separately when you calculate true profitability.",
+			},
+			{
+				question: "What if my menu price changes?",
+				answer:
+					"Edit the menu price and the food cost percentage and gross margin update instantly.",
+			},
+			{
+				question: "Can I use this for a batch recipe?",
+				answer:
+					"Yes. Enter the total ingredient cost for the batch and how many sellable portions it creates.",
+			},
+		],
+		seo: {
+			title: "Restaurant Food Cost Calculator – Cost per Serving | CalcForged",
+			description:
+				"Calculate cost per serving, food cost percentage, and gross margin for a restaurant menu item.",
+			h1: "Restaurant food cost calculator",
+			intro:
+				"Pricing a menu item starts with knowing what it costs to make. Enter the total ingredient cost for a batch, the number of portions it produces, and the menu price per item. CalcForged shows your cost per serving, food cost percentage, and gross margin per item instantly. Use it for recipe costing, menu engineering, catering packages, or a quick check before a price change. The result covers ingredients only, so keep labor, rent, packaging, and other operating costs in your broader margin model.",
+		},
+		related: ["catering-food-quantity", "wedding-food", "recipe-scaling"],
+	},
+	{
+		slug: "recipe-scaling",
+		name: "Recipe Scaling Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "⌁",
+		description:
+			"Scale a recipe, convert supported weights and volumes between US and metric, and scan a photo to fill in the ingredient list.",
+		photoScan: true,
+		fields: [
+			{
+				key: "originalServings",
+				label: "Original servings",
+				type: "number",
+				unit: "servings",
+				min: 1,
+				defaultValue: 4,
+			},
+			{
+				key: "newServings",
+				label: "New servings",
+				type: "number",
+				unit: "servings",
+				min: 1,
+				defaultValue: 8,
+			},
+			{
+				key: "ingredients",
+				label: "Ingredients",
+				type: "ingredient-list",
+				help: "Add the amount, unit, and ingredient name for each row.",
+			},
+		],
+		results: [
+			{ key: "factor", label: "Scale factor", format: "number" },
+			{ key: "scaled", label: "Scaled ingredients", format: "text" },
+			{ key: "note", label: "Baking note", format: "text" },
+		],
+		calculate: (v) => {
+			const factor = n(v, "newServings", 8) / n(v, "originalServings", 4);
+			const rows = Array.isArray(v.ingredients) ? v.ingredients : [];
+			const system = v.__recipeUnitSystem === "metric" ? "metric" : "us";
+			const scaled = rows
+				.map((r) =>
+					formatScaledRecipeIngredient(
+						r.amount,
+						r.unit,
+						r.ingredient,
+						factor,
+						system,
+					),
+				)
+				.filter(Boolean);
+			return {
+				factor: round(factor, 2),
+				scaled: scaled.join("\n") || "Add ingredients above",
+				note: "For baking, scale pan size and time carefully; doubling a recipe rarely means doubling bake time.",
+			};
+		},
+		howItWorks: [
+			"The scale factor is new servings divided by original servings.",
+			"Choose US or Metric above the results. Supported weight and volume units convert between systems, while weight stays weight and volume stays volume.",
+			"Cooking time and pan size do not always scale linearly, especially for baking; use the note as a prompt to check the recipe.",
+		],
+		example: {
+			title: "4 servings to 8",
+			inputs: "Original 4 servings, new 8 servings",
+			result:
+				"A 2× scale factor. A 1/2 cup ingredient becomes 1 cup, and 4 tablespoons become 1/2 cup.",
+		},
+		faqs: [
+			{
+				question: "How do I scale a recipe down?",
+				answer:
+					"Enter a smaller new serving count. The scale factor will be below 1 and each ingredient will shrink proportionally.",
+			},
+			{
+				question: "Can I scan a photo of my recipe?",
+				answer:
+					"Yes. Use the scan box in the calculator to upload a photo of a recipe page, handwritten card, or screenshot. The scanner reads the ingredients and original servings, fills them in, and then you pick the new serving count as usual. Always glance over the rows it fills in — photos and handwriting vary.",
+			},
+			{
+				question: "Does cooking time double?",
+				answer:
+					"Usually not. Watch doneness and use the recipe's pan-size guidance, especially for baking.",
+			},
+			{
+				question: "Can I scale spices exactly?",
+				answer:
+					"Start with the calculated amount, then adjust to taste. Salt, chili, and strong spices may not scale perfectly.",
+			},
+			{
+				question: "What units can I enter?",
+				answer:
+					"Choose US or Metric above the results. Recognized weights and volumes convert within their own type, so grams do not turn into cups; units the calculator does not recognize stay as entered.",
+			},
+		],
+		seo: {
+			title: "Recipe Scaling Calculator: Scale Servings | CalcForged",
+			description:
+				"Scale recipe ingredients for more or fewer servings. Enter your current and desired serving counts to recalculate amounts, with supported US and metric weight and volume conversions.",
+			h1: "Recipe scaling calculator",
+			intro:
+				"Scaling a recipe should be simple: divide the servings you want by the servings you have, then multiply each ingredient by that factor. Snap a photo of any recipe — a cookbook page, a handwritten card, a screenshot — and the scanner reads it and fills the list in for you, then you pick the new serving count. You can also add the ingredients by hand. The calculator does the arithmetic and formats common results as useful fractions so your shopping list stays readable. Use the US/Metric switch above the results to convert supported weights and volumes; it keeps weight and volume separate. For baking, use the result as a starting point and remember that pan size, oven time, and leavening often need their own judgment.",
+		},
+		related: ["restaurant-food-cost", "catering-food-quantity", "wedding-food"],
+	},
+	{
+		slug: "cups-to-grams",
+		name: "Cups to Grams Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◉",
+		description:
+			"Convert a recipe volume to grams using a measured value for the selected ingredient.",
+		fields: [
+			{
+				key: "amount",
+				label: "Amount",
+				type: "number",
+				min: 0,
+				max: 100000,
+				step: 0.01,
+				defaultValue: 1,
+			},
+			{
+				key: "volumeUnit",
+				label: "Volume unit",
+				type: "select",
+				defaultValue: "cup",
+				options: [
+					{ label: "US cups", value: "cup" },
+					{ label: "Tablespoons", value: "tbsp" },
+					{ label: "Teaspoons", value: "tsp" },
+					{ label: "US fluid ounces", value: "floz" },
+					{ label: "Milliliters", value: "ml" },
+					{ label: "Liters", value: "l" },
+				],
+			},
+			{
+				key: "ingredient",
+				label: "Ingredient and preparation",
+				type: "select",
+				defaultValue: "all-purpose-flour",
+				options: COMMON_CUP_WEIGHTS.map(({ id, label }) => ({
+					label,
+					value: id,
+				})),
+			},
+		],
+		results: [
+			{
+				key: "grams",
+				label: "Estimated weight",
+				unit: "g",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "cupEquivalent",
+				label: "Volume in US cups",
+				unit: "cups",
+				format: "number",
+			},
+			{
+				key: "gramsPerCup",
+				label: "Reference weight",
+				unit: "g per US cup",
+				format: "number",
+			},
+		],
+		calculate: (v) => {
+			const ingredient =
+				COMMON_CUP_WEIGHTS.find(
+					(item) => item.id === option(v, "ingredient", "all-purpose-flour"),
+				) ?? COMMON_CUP_WEIGHTS[0];
+			const amount = Math.max(0, n(v, "amount", 1));
+			const cups =
+				amount * (CUP_VOLUME_EQUIVALENTS[option(v, "volumeUnit", "cup")] ?? 1);
+			const gramsPerCup = ingredient.grams / ingredient.cups;
+			return {
+				grams: Math.round(cups * gramsPerCup),
+				cupEquivalent: round(cups, 3),
+				gramsPerCup: Math.round(gramsPerCup),
+			};
+		},
+		howItWorks: [
+			"Choose the ingredient and the preparation that match your recipe; these are ingredient-specific reference weights, not a universal volume-to-weight rule.",
+			"The calculator converts the entered amount to US cups, then multiplies by the published grams-per-cup equivalent. Smaller chart measures are scaled proportionally to a cup.",
+			"The displayed gram result is rounded to the nearest whole gram. For baking precision, weigh the ingredient and follow your recipe's measuring method.",
+		],
+		example: {
+			title: "Half a cup of all-purpose flour",
+			inputs: "0.5 US cup, all-purpose flour",
+			result: "About 60 g using the chart reference of 120 g per US cup.",
+		},
+		faqs: [
+			{
+				question: "Why does the ingredient matter?",
+				answer:
+					"A cup measures volume, while grams measure mass. Flour, sugar, honey, and other ingredients occupy the same volume but have different weights.",
+			},
+			{
+				question: "Are these gram weights universal?",
+				answer:
+					"No. The references come from King Arthur Baking's ingredient chart. Flour brand, packing, sifting, particle size, moisture, and preparation change the result. Match the listed preparation and use a scale when precision matters.",
+			},
+			{
+				question: "Which cup and volume conversions are used?",
+				answer:
+					"The calculator uses a US cup: 16 tablespoons, 48 teaspoons, 8 US fluid ounces, or about 236.588 milliliters. A recipe using a metric 250 ml cup may give a different result.",
+			},
+			{
+				question: "Can I convert the result back to cups?",
+				answer:
+					"This tool starts with volume and estimates a weight for the selected ingredient. For other recipe scaling and supported unit changes, use Recipe Scaling; for volume or mass alone, use the Volume Converter or Weight Converter.",
+			},
+		],
+		sources: [
+			{
+				label: "King Arthur Baking, Ingredient Weight Chart",
+				url: "https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+			},
+		],
+		seo: {
+			title: "Cups to Grams Calculator by Ingredient | CalcForged",
+			description:
+				"Convert US cups, spoons, fluid ounces, milliliters, or liters to grams using ingredient-specific reference weights.",
+			h1: "Cups to grams, by ingredient",
+			intro:
+				"A cup of flour does not weigh the same as a cup of sugar. Choose a listed ingredient, enter a volume, and get a gram estimate based on a published kitchen weight chart. Brand, packing, sifting, and preparation change the result, so treat each value as a reference and weigh ingredients when precision matters.",
+		},
+		related: ["recipe-scaling", "volume-converter", "weight-converter"],
+	},
+	{
+		slug: "paint",
+		name: "Paint Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "▰",
+		description:
+			"Estimate gallons of paint for a room, including doors, windows, and coats.",
+		fields: [
+			{
+				key: "length",
+				label: "Room length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.1,
+				defaultValue: 12,
+			},
+			{
+				key: "width",
+				label: "Room width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.1,
+				defaultValue: 10,
+			},
+			{
+				key: "height",
+				label: "Wall height",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.1,
+				defaultValue: 8,
+			},
+			{
+				key: "doors",
+				label: "Doors",
+				type: "number",
+				unit: "doors",
+				min: 0,
+				defaultValue: 1,
+			},
+			{
+				key: "windows",
+				label: "Windows",
+				type: "number",
+				unit: "windows",
+				min: 0,
+				defaultValue: 2,
+			},
+			{
+				key: "coats",
+				label: "Coats",
+				type: "number",
+				unit: "coats",
+				min: 1,
+				max: 5,
+				defaultValue: 2,
+			},
+		],
+		results: [
+			{ key: "area", label: "Paintable area", unit: "sq ft", format: "number" },
+			{
+				key: "gallons",
+				label: "Paint to buy",
+				unit: "gal",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "sheen", label: "Practical sheen", format: "text" },
+		],
+		calculate: (v) => {
+			const l = n(v, "length", 12),
+				w = n(v, "width", 10),
+				h = n(v, "height", 8);
+			const area =
+				2 * (l + w) * h - n(v, "doors", 1) * 21 - n(v, "windows", 2) * 12;
+			const gallons = (Math.max(0, area) * n(v, "coats", 2)) / 375;
+			return {
+				area: round(Math.max(0, area)),
+				gallons: round(gallons, 1),
+				sheen: "Eggshell for most living spaces",
+			};
+		},
+		howItWorks: [
+			"Wall area is the room perimeter multiplied by wall height.",
+			"This estimate subtracts 21 square feet per door and 12 square feet per window.",
+			"Paint needed is paintable area × coats ÷ 375 square feet per gallon, rounded up when buying whole gallons.",
+		],
+		example: {
+			title: "12 × 10 room",
+			inputs: "8 ft walls, 1 door, 2 windows, 2 coats",
+			result:
+				"About 307 sq ft of paintable area and 1.6 gallons, so buy 2 gallons.",
+		},
+		faqs: [
+			{
+				question: "How much area does a gallon of paint cover?",
+				answer:
+					"Many interior paints cover about 350 to 400 square feet per gallon. This calculator uses 375 as a midpoint estimate.",
+			},
+			{
+				question: "Should I always use two coats?",
+				answer:
+					"Two coats are a common starting point for a consistent finish, especially over a different color.",
+			},
+			{
+				question: "What sheen should I choose?",
+				answer:
+					"Eggshell is a practical general-purpose choice. Use satin for higher-traffic or moisture-prone areas and flat for ceilings.",
+			},
+			{
+				question: "Does this include the ceiling?",
+				answer:
+					"No. It calculates walls and subtracts common door and window openings. Add ceiling area separately if needed.",
+			},
+		],
+		seo: {
+			title: "Paint Calculator – How Many Gallons Do I Need? | CalcForged",
+			description:
+				"Calculate paintable wall area and gallons needed for a room, with doors, windows, and coats.",
+			h1: "Paint calculator",
+			intro:
+				"Buying paint is easier when you know the wall area instead of guessing by room size. Enter your room dimensions, doors, windows, and number of coats to estimate paintable square footage and gallons needed. The formula uses a common coverage range of about 350 to 400 square feet per gallon and subtracts standard openings. Use the result to plan your shopping list, then check the label on your chosen paint because coverage varies with color, surface, and application method.",
+		},
+		related: ["flooring", "concrete", "mulch"],
+	},
+	{
+		slug: "area",
+		name: "Area Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "◫",
+		description:
+			"Find the area of common shapes in square feet, square yards, and square meters.",
+		fields: [
+			{
+				key: "shape",
+				label: "Shape",
+				type: "select",
+				defaultValue: "rectangle",
+				options: [
+					{ label: "Rectangle", value: "rectangle" },
+					{ label: "Square", value: "square" },
+					{ label: "Circle", value: "circle" },
+					{ label: "Triangle", value: "triangle" },
+					{ label: "Trapezoid", value: "trapezoid" },
+					{ label: "Ellipse", value: "ellipse" },
+				],
+			},
+			{
+				key: "dimensionUnit",
+				label: "Dimension unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Feet (ft)", value: "ft" },
+					{ label: "Meters (m)", value: "m" },
+				],
+				help: "Use the selected unit for every dimension below.",
+			},
+			{
+				key: "length",
+				label: "Length",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 12,
+				visibleWhen: { key: "shape", values: ["rectangle"] },
+			},
+			{
+				key: "width",
+				label: "Width",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 10,
+				visibleWhen: { key: "shape", values: ["rectangle"] },
+			},
+			{
+				key: "side",
+				label: "Side",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 10,
+				visibleWhen: { key: "shape", values: ["square"] },
+			},
+			{
+				key: "diameter",
+				label: "Diameter",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 10,
+				visibleWhen: { key: "shape", values: ["circle"] },
+			},
+			{
+				key: "base",
+				label: "Base",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 8,
+				visibleWhen: { key: "shape", values: ["triangle"] },
+			},
+			{
+				key: "triangleHeight",
+				label: "Height",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 6,
+				visibleWhen: { key: "shape", values: ["triangle"] },
+			},
+			{
+				key: "baseA",
+				label: "Shorter parallel side",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 8,
+				visibleWhen: { key: "shape", values: ["trapezoid"] },
+			},
+			{
+				key: "baseB",
+				label: "Longer parallel side",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 12,
+				visibleWhen: { key: "shape", values: ["trapezoid"] },
+			},
+			{
+				key: "trapezoidHeight",
+				label: "Height",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 5,
+				visibleWhen: { key: "shape", values: ["trapezoid"] },
+			},
+			{
+				key: "majorAxis",
+				label: "Major diameter",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 10,
+				visibleWhen: { key: "shape", values: ["ellipse"] },
+			},
+			{
+				key: "minorAxis",
+				label: "Minor diameter",
+				type: "number",
+				unit: "ft or m",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 6,
+				visibleWhen: { key: "shape", values: ["ellipse"] },
+			},
+		],
+		results: [
+			{ key: "squareFeet", label: "Area", unit: "sq ft", format: "number" },
+			{ key: "squareYards", label: "Area", unit: "sq yd", format: "number" },
+			{ key: "squareMeters", label: "Area", unit: "sq m", format: "number" },
+		],
+		calculate: (v) => {
+			const scale =
+				option(v, "dimensionUnit", "ft") === "m" ? 3.280839895013123 : 1;
+			const dim = (key: string, fallback: number) =>
+				Math.max(0, n(v, key, fallback)) * scale;
+			const shape = option(v, "shape", "rectangle");
+			const areaSqFt =
+				shape === "square"
+					? dim("side", 10) ** 2
+					: shape === "circle"
+						? Math.PI * (dim("diameter", 10) / 2) ** 2
+						: shape === "triangle"
+							? (dim("base", 8) * dim("triangleHeight", 6)) / 2
+							: shape === "trapezoid"
+								? ((dim("baseA", 8) + dim("baseB", 12)) / 2) *
+									dim("trapezoidHeight", 5)
+								: shape === "ellipse"
+									? (Math.PI * dim("majorAxis", 10) * dim("minorAxis", 6)) / 4
+									: dim("length", 12) * dim("width", 10);
+			return {
+				squareFeet: round(areaSqFt, 2),
+				squareYards: round(areaSqFt / 9, 2),
+				squareMeters: round(areaSqFt / 10.763910416709722, 2),
+			};
+		},
+		howItWorks: [
+			"Choose a shape; the calculator shows only the dimensions needed for that formula.",
+			"Enter all dimensions in the selected unit. Meter inputs are converted before the area is calculated.",
+			"The result is shown in square feet, square yards, and square meters.",
+		],
+		example: {
+			title: "12 × 10 ft rectangle",
+			inputs: "Length 12 ft, width 10 ft",
+			result: "120 sq ft, 13.33 sq yd, or 11.15 sq m.",
+		},
+		faqs: [
+			{
+				question: "Which shapes can I calculate?",
+				answer:
+					"Choose a rectangle, square, circle, triangle, trapezoid, or ellipse. Each shape shows the dimensions its formula needs.",
+			},
+			{
+				question: "Can I calculate an irregular outline?",
+				answer:
+					"Split it into simple shapes, calculate each piece separately, add the areas, and subtract any openings. This calculator handles one shape at a time.",
+			},
+			{
+				question: "Does a circle use its radius or diameter?",
+				answer:
+					"Enter the diameter, the full distance across the circle. The formula uses half of it as the radius.",
+			},
+			{
+				question: "Can I enter meters?",
+				answer:
+					"Yes. Select meters and enter every dimension in meters. Results are still provided in square feet, square yards, and square meters.",
+			},
+		],
+		seo: {
+			title: "Area Calculator for 6 Shapes | CalcForged",
+			description:
+				"Calculate the area of a rectangle, square, circle, triangle, trapezoid, or ellipse in square feet, square yards, and square meters.",
+			h1: "Area calculator for common shapes",
+			intro:
+				"Get the area without swapping formulas. Choose a rectangle, square, circle, triangle, trapezoid, or ellipse, enter dimensions in feet or meters, and see the result in square feet, square yards, and square meters. For an irregular outline, split it into simple shapes, calculate each piece, then add the areas and subtract openings.",
+		},
+		related: ["patio-pavers", "flooring", "concrete"],
+	},
+	{
+		slug: "patio-pavers",
+		name: "Patio Paver Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "▦",
+		description:
+			"Estimate patio pavers from dimensions or known area, with an adjustable extra allowance.",
+		fields: [
+			{
+				key: "measureBy",
+				label: "Patio measurement",
+				type: "select",
+				defaultValue: "rectangle",
+				options: [
+					{ label: "Rectangle dimensions", value: "rectangle" },
+					{ label: "Known area", value: "area" },
+				],
+			},
+			{
+				key: "length",
+				label: "Patio length",
+				type: "number",
+				unit: "ft",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 12,
+				visibleWhen: { key: "measureBy", values: ["rectangle"] },
+			},
+			{
+				key: "width",
+				label: "Patio width",
+				type: "number",
+				unit: "ft",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				defaultValue: 10,
+				visibleWhen: { key: "measureBy", values: ["rectangle"] },
+			},
+			{
+				key: "knownArea",
+				label: "Patio area",
+				type: "number",
+				unit: "sq ft",
+				min: 0.1,
+				max: 100000000,
+				step: 0.1,
+				defaultValue: 120,
+				visibleWhen: { key: "measureBy", values: ["area"] },
+			},
+			{
+				key: "paverLength",
+				label: "Paver length",
+				type: "number",
+				unit: "in",
+				min: 0.1,
+				max: 48,
+				step: 0.125,
+				defaultValue: 12,
+			},
+			{
+				key: "paverWidth",
+				label: "Paver width",
+				type: "number",
+				unit: "in",
+				min: 0.1,
+				max: 48,
+				step: 0.125,
+				defaultValue: 12,
+			},
+			{
+				key: "allowance",
+				label: "Extra allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 50,
+				step: 1,
+				defaultValue: 10,
+				help: "Adjust for your layout, cuts, and breakage; confirm unusual patterns with your supplier or installer.",
+			},
+		],
+		results: [
+			{ key: "area", label: "Patio area", unit: "sq ft", format: "number" },
+			{
+				key: "coverage",
+				label: "Coverage per paver",
+				unit: "sq ft",
+				format: "number",
+			},
+			{
+				key: "pavers",
+				label: "Pavers to cover area",
+				unit: "pavers",
+				format: "number",
+			},
+			{
+				key: "order",
+				label: "Pavers to order",
+				unit: "pavers",
+				format: "number",
+				estimate: true,
+				interpretation: "Includes the extra allowance you selected.",
+			},
+			{
+				key: "extra",
+				label: "Extra pavers",
+				unit: "pavers",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const measureBy = option(v, "measureBy", "rectangle");
+			const area = Math.max(
+				0,
+				measureBy === "area"
+					? n(v, "knownArea", 120)
+					: n(v, "length", 12) * n(v, "width", 10),
+			);
+			const paverLength = Math.max(0.1, n(v, "paverLength", 12));
+			const paverWidth = Math.max(0.1, n(v, "paverWidth", 12));
+			const coverage = (paverLength * paverWidth) / 144;
+			const rawPavers = area / coverage;
+			const pavers = ceil(rawPavers);
+			const allowance = Math.min(50, Math.max(0, n(v, "allowance", 10))) / 100;
+			const order = ceil(rawPavers * (1 + allowance));
+			return {
+				area: round(area, 2),
+				coverage: round(coverage, 3),
+				pavers,
+				order,
+				extra: Math.max(0, order - pavers),
+			};
+		},
+		howItWorks: [
+			"For a rectangle, multiply patio length by width. You can also enter a known area calculated elsewhere, including a combined area for an irregular layout.",
+			"Multiply each paver's face length by its face width in inches, then divide by 144 to get square feet per paver.",
+			"Divide patio area by paver coverage, add your editable allowance, and round up to whole pavers. Joint spacing and pattern-specific cuts are not modeled separately.",
+		],
+		example: {
+			title: "12 × 10 ft patio",
+			inputs: "120 sq ft area, 12 × 12 in pavers, 10% extra allowance",
+			result: "120 pavers to cover the area; order 132, including 12 extra.",
+		},
+		faqs: [
+			{
+				question: "Can I use this for an irregular patio?",
+				answer:
+					"Yes. Split the outline into simple shapes with the Area Calculator, add the sections and subtract openings, then enter the total under Known area.",
+			},
+			{
+				question: "Does it account for paver joints?",
+				answer:
+					"It uses the paver's face dimensions and does not model joint spacing separately. Follow your supplier or installer's layout guidance for a precise order.",
+			},
+			{
+				question: "What is the extra allowance for?",
+				answer:
+					"It adds the percentage you choose to cover cuts or breakage. The default 10% is an editable planning starting point, not a guarantee.",
+			},
+			{
+				question: "Does this estimate the base, sand, or edging?",
+				answer:
+					"No. It estimates paver pieces only; base material, bedding sand, edge restraints, labor, and cost are not included.",
+			},
+		],
+		seo: {
+			title: "Patio Paver Calculator – Paver Count & Allowance | CalcForged",
+			description:
+				"Estimate how many patio pavers to buy from rectangle dimensions or a known area, paver size, and an adjustable extra allowance.",
+			h1: "Patio paver calculator",
+			intro:
+				"Plan a rectangular patio from its length and width, or enter an area you already calculated. Add paver face dimensions in inches and an editable allowance for cuts or breakage. CalcForged estimates the pieces needed to cover the area and the quantity to order. The calculation does not estimate base material, sand, edging, or labor.",
+		},
+		related: ["area", "flooring", "concrete"],
+	},
+	{
+		slug: "flooring",
+		name: "Flooring Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "▤",
+		description:
+			"Calculate flooring square footage, waste allowance, boxes, and material cost.",
+		fields: [
+			{
+				key: "length",
+				label: "Room length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.1,
+				defaultValue: 12,
+			},
+			{
+				key: "width",
+				label: "Room width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.1,
+				defaultValue: 10,
+			},
+			{
+				key: "waste",
+				label: "Waste factor",
+				type: "select",
+				defaultValue: "10",
+				options: [
+					{ label: "10% — straight lay", value: "10" },
+					{ label: "15% — diagonal or herringbone", value: "15" },
+				],
+			},
+			{
+				key: "boxCoverage",
+				label: "Coverage per box",
+				type: "number",
+				unit: "sq ft",
+				min: 1,
+				step: 0.1,
+				defaultValue: 20,
+			},
+			{
+				key: "price",
+				label: "Price per box",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 42,
+			},
+		],
+		results: [
+			{ key: "area", label: "Room area", unit: "sq ft", format: "number" },
+			{
+				key: "orderArea",
+				label: "Order with waste",
+				unit: "sq ft",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "boxes",
+				label: "Boxes to buy",
+				unit: "boxes",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "cost",
+				label: "Material estimate",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const area = n(v, "length", 12) * n(v, "width", 10);
+			const orderArea = area * (1 + n(v, "waste", 10) / 100);
+			const boxes = ceil(orderArea / n(v, "boxCoverage", 20));
+			return {
+				area: round(area),
+				orderArea: round(orderArea),
+				boxes,
+				cost: round(boxes * n(v, "price", 42), 2),
+			};
+		},
+		howItWorks: [
+			"Multiply length by width to get floor area.",
+			"Add 10% waste for a standard straight installation or 15% for diagonal and herringbone layouts.",
+			"Divide the order area by the box coverage and round up to whole boxes.",
+		],
+		example: {
+			title: "120 sq ft room",
+			inputs: "12 × 10 ft, 10% waste, 20 sq ft per box",
+			result: "132 sq ft to order, or 7 boxes.",
+		},
+		faqs: [
+			{
+				question: "How much flooring waste should I add?",
+				answer:
+					"10% is a common planning allowance for a straightforward layout. Use 15% for diagonal, herringbone, or rooms with many cuts.",
+			},
+			{
+				question: "Why do I need whole boxes?",
+				answer:
+					"Flooring is sold by the box, so always round up. Keep extra planks for future repairs.",
+			},
+			{
+				question: "Does this work for irregular rooms?",
+				answer:
+					"Break the room into rectangles, calculate each one, and add the areas together for a better estimate.",
+			},
+			{
+				question: "Does cost include installation?",
+				answer:
+					"No. It estimates material cost from the number of boxes and the price per box.",
+			},
+		],
+		seo: {
+			title: "Flooring Calculator – Square Footage, Boxes & Cost | CalcForged",
+			description:
+				"Calculate flooring area, waste, boxes needed, and material cost for a room.",
+			h1: "Flooring calculator",
+			intro:
+				"Flooring orders need to account for waste, packaging, and the actual layout—not just the room's raw square footage. Enter room dimensions, choose a waste allowance, and add the coverage and price printed on your flooring box. CalcForged gives you room area, the recommended order area, whole boxes to buy, and a material cost estimate. Use 10% for a simple straight lay and 15% for diagonal or herringbone patterns.",
+		},
+		related: ["paint", "concrete", "mulch"],
+	},
+	{
+		slug: "concrete",
+		name: "Concrete Calculator",
+		category: "Construction",
+		categorySlug: "construction",
+		icon: "▥",
+		description:
+			"Estimate concrete volume in cubic yards, plus waste and bag equivalents.",
+		fields: [
+			{
+				key: "shape",
+				label: "Project shape",
+				type: "select",
+				defaultValue: "slab",
+				options: [
+					{ label: "Rectangular slab or footing", value: "slab" },
+					{ label: "Round column", value: "column" },
+				],
+			},
+			{
+				key: "length",
+				label: "Length",
+				type: "number",
+				unit: "ft",
+				min: 0.1,
+				step: 0.1,
+				defaultValue: 12,
+			},
+			{
+				key: "width",
+				label: "Width / diameter",
+				type: "number",
+				unit: "ft",
+				min: 0.1,
+				step: 0.1,
+				defaultValue: 10,
+			},
+			{
+				key: "thickness",
+				label: "Thickness / height",
+				type: "number",
+				unit: "in",
+				min: 0.1,
+				step: 0.1,
+				defaultValue: 4,
+			},
+			{
+				key: "waste",
+				label: "Waste allowance",
+				type: "select",
+				defaultValue: "10",
+				options: [
+					{ label: "5%", value: "5" },
+					{ label: "10%", value: "10" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "cubicFeet",
+				label: "Concrete volume",
+				unit: "cu ft",
+				format: "number",
+			},
+			{
+				key: "yards",
+				label: "Order volume",
+				unit: "cu yd",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "bags",
+				label: "80 lb bag equivalent",
+				unit: "bags",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const a = n(v, "length", 12),
+				b = n(v, "width", 10),
+				thicknessFt = n(v, "thickness", 4) / 12;
+			const base =
+				option(v, "shape", "slab") === "column"
+					? Math.PI * (b / 2) ** 2 * a
+					: a * b * thicknessFt;
+			const order = base * (1 + n(v, "waste", 10) / 100);
+			return {
+				cubicFeet: round(base, 2),
+				yards: round(order / 27, 2),
+				bags: ceil(order / 0.6),
+			};
+		},
+		howItWorks: [
+			"A slab or footing uses length × width × thickness, with thickness converted from inches to feet.",
+			"A round column uses π × radius² × height.",
+			"Cubic feet are divided by 27 to convert to cubic yards, then a 5–10% waste allowance is added for ordering. One 80-pound bag is treated as about 0.6 cubic feet.",
+		],
+		example: {
+			title: "12 × 10 slab",
+			inputs: "4-inch thickness and 10% waste",
+			result: "40.00 cu ft base volume, about 1.63 cu yd to order, or 74 bags.",
+		},
+		faqs: [
+			{
+				question: "How many cubic feet are in a cubic yard?",
+				answer: "One cubic yard contains 27 cubic feet.",
+			},
+			{
+				question: "How much concrete waste should I plan?",
+				answer:
+					"Five to ten percent is a common ordering allowance for uneven subgrade, spillage, and measurement variation.",
+			},
+			{
+				question: "How many 80-pound bags equal a cubic yard?",
+				answer:
+					"Using roughly 0.6 cubic feet per bag, one cubic yard is about 45 bags before waste. Check the product label for exact yield.",
+			},
+			{
+				question: "Can I calculate a round column?",
+				answer:
+					"Yes. Choose Round column and enter diameter and height in feet.",
+			},
+		],
+		seo: {
+			title: "Concrete Calculator – Cubic Yards, Bags & Waste | CalcForged",
+			description:
+				"Estimate concrete for slabs, footings, or round columns in cubic feet and yards. Compare bag equivalents and waste, then check mix yield before ordering.",
+			h1: "Concrete calculator",
+			intro:
+				"Concrete is sold by volume, so the most useful estimate converts your dimensions into cubic feet and cubic yards before you order. Choose a rectangular slab or footing, or a round column, then enter your dimensions and waste allowance. The calculator uses standard geometry, converts 27 cubic feet to one cubic yard, and shows an 80-pound bag equivalent using an approximate 0.6 cubic-foot yield. Always compare the result with the yield printed on your specific mix.",
+		},
+		related: ["flooring", "paint", "mulch"],
+	},
+	{
+		slug: "mulch",
+		name: "Mulch Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "⌇",
+		description:
+			"Estimate cubic yards of mulch and compare a bulk order with bagged mulch.",
+		fields: [
+			{
+				key: "area",
+				label: "Bed area",
+				type: "number",
+				unit: "sq ft",
+				min: 1,
+				step: 1,
+				defaultValue: 250,
+			},
+			{
+				key: "depth",
+				label: "Mulch depth",
+				type: "number",
+				unit: "in",
+				min: 1,
+				max: 12,
+				step: 0.5,
+				defaultValue: 3,
+			},
+			{
+				key: "bagSize",
+				label: "Bag size",
+				type: "number",
+				unit: "cu ft",
+				min: 0.1,
+				step: 0.1,
+				defaultValue: 2,
+			},
+			{
+				key: "bagPrice",
+				label: "Price per bag",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 4.5,
+			},
+			{
+				key: "bulkPrice",
+				label: "Bulk price per cu yd",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 1,
+				defaultValue: 45,
+			},
+		],
+		results: [
+			{
+				key: "yards",
+				label: "Bulk mulch",
+				unit: "cu yd",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "bags",
+				label: "Bagged mulch",
+				unit: "bags",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "bagCost",
+				label: "Bagged cost",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "bulkCost",
+				label: "Bulk cost",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const area = n(v, "area", 250),
+				depth = n(v, "depth", 3);
+			const yards = (area * depth) / 324;
+			const bags = ceil((yards * 27) / n(v, "bagSize", 2));
+			return {
+				yards: round(yards, 2),
+				bags,
+				bagCost: round(bags * n(v, "bagPrice", 4.5), 2),
+				bulkCost: round(yards * n(v, "bulkPrice", 45), 2),
+			};
+		},
+		howItWorks: [
+			"Multiply bed area in square feet by depth in inches.",
+			"Divide by 324 to convert the result to cubic yards.",
+			"The bag comparison converts cubic yards to cubic feet (27 cubic feet per yard), then divides by the bag size and rounds up.",
+		],
+		example: {
+			title: "250 sq ft garden bed",
+			inputs: "3-inch depth, 2 cu ft bags",
+			result: "2.31 cubic yards, or 32 bags before delivery considerations.",
+		},
+		faqs: [
+			{
+				question: "How deep should mulch be?",
+				answer:
+					"Two to three inches is a common recommendation for garden beds. Avoid piling mulch against tree trunks or plant stems.",
+			},
+			{
+				question: "Why divide by 324?",
+				answer:
+					"The constant combines the inches-to-feet conversion with 27 cubic feet per cubic yard.",
+			},
+			{
+				question: "Is bulk mulch cheaper?",
+				answer:
+					"It often can be for larger beds, but delivery fees and your local prices matter. Use the side-by-side estimate as a starting point.",
+			},
+			{
+				question: "Should I use the same depth everywhere?",
+				answer:
+					"Not always. Use a lighter layer around shallow-rooted plants and follow local horticulture guidance.",
+			},
+		],
+		seo: {
+			title: "Mulch Calculator – Cubic Yards, Bags & Cost | CalcForged",
+			description:
+				"Calculate mulch cubic yards, bags, and a bagged-versus-bulk cost estimate for garden beds.",
+			h1: "Mulch calculator",
+			intro:
+				"A mulch order is easiest to plan from area and depth. Enter your garden bed's square footage, choose a depth in inches, and add local prices for bags and bulk mulch. CalcForged uses the standard formula area × depth ÷ 324 to estimate cubic yards, then shows how many bags you would need and a simple cost comparison. Two to three inches is a common bed depth, but adjust for the plants and soil conditions in your yard.",
+		},
+		related: ["paint", "flooring", "concrete"],
+	},
+	{
+		slug: "ac-size",
+		name: "AC Size Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "❄",
+		description:
+			"Work out the cooling load in BTU and the air conditioner size a room actually needs.",
+		fields: [
+			{
+				key: "area",
+				label: "Room area",
+				type: "number",
+				unit: "sq ft",
+				min: 50,
+				max: 5000,
+				defaultValue: 300,
+			},
+			{
+				key: "ceilingHeight",
+				label: "Ceiling height",
+				type: "number",
+				unit: "ft",
+				min: 7,
+				max: 12,
+				step: 0.5,
+				defaultValue: 8,
+			},
+			{
+				key: "sun",
+				label: "Sun exposure",
+				type: "select",
+				defaultValue: "average",
+				options: [
+					{ label: "Heavily shaded", value: "shaded" },
+					{ label: "Average", value: "average" },
+					{ label: "Very sunny", value: "sunny" },
+				],
+			},
+			{
+				key: "insulation",
+				label: "Insulation",
+				type: "select",
+				defaultValue: "average",
+				options: [
+					{ label: "Good", value: "good" },
+					{ label: "Average", value: "average" },
+					{ label: "Poor", value: "poor" },
+				],
+			},
+			{
+				key: "occupants",
+				label: "People usually in the room",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 50,
+				defaultValue: 2,
+			},
+			{
+				key: "isKitchen",
+				label: "Is it a kitchen?",
+				type: "select",
+				defaultValue: "no",
+				options: [
+					{ label: "No", value: "no" },
+					{ label: "Yes", value: "yes" },
+				],
+			},
+			{
+				key: "climate",
+				label: "Climate",
+				type: "select",
+				defaultValue: "temperate",
+				options: [
+					{ label: "Temperate", value: "temperate" },
+					{ label: "Hot", value: "hot" },
+					{ label: "Very hot & humid", value: "extreme" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "coolingLoad",
+				label: "Cooling load",
+				unit: "BTU/hr",
+				format: "number",
+				estimate: true,
+				interpretation: "The heat the room adds on a hot day.",
+			},
+			{
+				key: "tons",
+				label: "Cooling load",
+				unit: "tons",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "recommendedUnit", label: "Unit to buy", format: "text" },
+			{ key: "guidanceNote", label: "Scope note", format: "text" },
+		],
+		calculate: (v) => {
+			const area = n(v, "area", 300);
+			const ceilingFactor = n(v, "ceilingHeight", 8) / 8;
+			const sunFactor =
+				option(v, "sun", "average") === "sunny"
+					? 1.1
+					: option(v, "sun", "average") === "shaded"
+						? 0.9
+						: 1;
+			const insulationFactor =
+				option(v, "insulation", "average") === "poor"
+					? 1.15
+					: option(v, "insulation", "average") === "good"
+						? 0.9
+						: 1;
+			const climateFactor =
+				option(v, "climate", "temperate") === "extreme"
+					? 1.2
+					: option(v, "climate", "temperate") === "hot"
+						? 1.1
+						: 1;
+			const occupants = n(v, "occupants", 2);
+			const base = area * 20 * ceilingFactor * sunFactor * insulationFactor;
+			const load =
+				(base +
+					Math.max(0, occupants - 2) * 600 +
+					(option(v, "isKitchen", "no") === "yes" ? 4000 : 0)) *
+				climateFactor;
+			const sizes = [
+				5000, 6000, 8000, 9000, 10000, 12000, 15000, 18000, 21000, 24000, 30000,
+				36000, 48000, 60000,
+			];
+			const unit = sizes.find((size) => size >= load) ?? 60000;
+			return {
+				coolingLoad: Math.round(load / 100) * 100,
+				tons: round(load / 12000, 1),
+				recommendedUnit: `Buy a ${unit.toLocaleString("en-US")} BTU (${round(unit / 12000, 1)}-ton) unit`,
+				guidanceNote:
+					"Simplified heat load for one room. Whole-house systems and professional installs need a full Manual J calculation.",
+			};
+		},
+		howItWorks: [
+			"Start from 20 BTU per square foot of floor space — the standard room-cooling baseline.",
+			"Scale for ceiling height, sun, and insulation, then add 600 BTU per person beyond two and 4,000 BTU for a kitchen.",
+			"The load converts to tons (12,000 BTU per ton) and rounds up to the next unit size you can actually buy.",
+		],
+		example: {
+			title: "Sunny kitchen, 3 people",
+			inputs: "300 sq ft, 8 ft ceilings, very sunny, kitchen, 3 people",
+			result: "About 11,200 BTU (0.9 tons) — buy a 12,000 BTU (1-ton) unit.",
+		},
+		faqs: [
+			{
+				question: "How many BTU do I need per square foot?",
+				answer:
+					"A common baseline is 20 BTU per square foot of floor space, adjusted for sun, ceiling height, occupants, and kitchen heat. This calculator applies those standard adjustments for you.",
+			},
+			{
+				question: "What is a ton of cooling?",
+				answer:
+					"One ton equals 12,000 BTU per hour of cooling. Window and portable units are rated in BTU; central systems are usually rated in tons.",
+			},
+			{
+				question: "Is this a Manual J load calculation?",
+				answer:
+					"No. It is a simplified room heat load built on standard rules of thumb — right for picking a room unit or a mini-split. A professional whole-house installation should size from a full Manual J that models every window, wall, and duct.",
+			},
+			{
+				question: "Is it bad to oversize an air conditioner?",
+				answer:
+					"Usually yes. An oversized unit cools fast, shuts off early, and never runs long enough to pull humidity out — the room ends up cold and clammy. Size to the load, and step up one size only for unusual conditions.",
+			},
+		],
+		seo: {
+			title: "AC Size Calculator – BTU & Heat Load | CalcForged",
+			description:
+				"Calculate the heat load in BTU and the right air conditioner size for any room — sun, ceiling height, occupants, insulation, and kitchen heat included.",
+			h1: "AC size calculator",
+			intro:
+				"Air conditioners are sized by heat load: the number of BTU per hour the room adds on a hot day. Enter the room's area, ceiling height, sun exposure, insulation, and how many people use it, and the calculator applies the standard adjustments to the 20 BTU per square foot baseline. The result converts to tons and points at the next unit size you can actually buy — so you neither undersize a room into misery nor oversize it into a clammy, short-cycling machine.",
+		},
+		related: ["paint", "flooring", "concrete"],
+	},
+	{
+		slug: "deck-boards",
+		name: "Deck Board Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "▬",
+		description:
+			"Count deck board rows, linear feet, and whole boards to buy from deck size, board width, and gaps.",
+		fields: [
+			{
+				key: "length",
+				label: "Deck length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 12,
+			},
+			{
+				key: "width",
+				label: "Deck width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 16,
+			},
+			{
+				key: "boardWidth",
+				label: "Board width",
+				type: "select",
+				defaultValue: "5.5",
+				options: [
+					{ label: '5.5 in — nominal 6"', value: "5.5" },
+					{ label: '3.5 in — nominal 4"', value: "3.5" },
+					{ label: '7.25 in — nominal 8"', value: "7.25" },
+				],
+			},
+			{
+				key: "gap",
+				label: "Gap between boards",
+				type: "number",
+				unit: "in",
+				min: 0,
+				max: 1,
+				step: 0.0625,
+				defaultValue: 0.125,
+			},
+			{
+				key: "stockLength",
+				label: "Board stock length",
+				type: "select",
+				defaultValue: "12",
+				options: [
+					{ label: "8 ft", value: "8" },
+					{ label: "12 ft", value: "12" },
+					{ label: "16 ft", value: "16" },
+				],
+			},
+			{
+				key: "waste",
+				label: "Waste allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 25,
+				step: 1,
+				defaultValue: 10,
+			},
+		],
+		results: [
+			{ key: "rows", label: "Board rows", format: "number" },
+			{
+				key: "linearFt",
+				label: "Total linear ft",
+				unit: "ft",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "boards",
+				label: "Boards to buy",
+				unit: "boards",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "fastenerNote", label: "Fasteners", format: "text" },
+		],
+		calculate: (v) => {
+			const rows = ceil(
+				(n(v, "width", 16) * 12) /
+					(n(v, "boardWidth", 5.5) + n(v, "gap", 0.125)),
+			);
+			const linearFt = rows * n(v, "length", 12);
+			const boards = ceil(
+				(linearFt * (1 + n(v, "waste", 10) / 100)) / n(v, "stockLength", 12),
+			);
+			return {
+				rows,
+				linearFt: round(linearFt),
+				boards,
+				fastenerNote:
+					"Two fasteners per joist crossing; plan screws off your joist layout",
+			};
+		},
+		howItWorks: [
+			"Rows are the deck width in inches divided by board width plus gap, rounded up.",
+			"Total linear feet is rows × deck length — set length as the direction your boards run. Waste covers crosscuts, defects, and butt joints.",
+			"Boards to buy is linear feet with waste divided by your stock length, rounded up to whole boards.",
+		],
+		example: {
+			title: "12 × 16 deck",
+			inputs: '6" boards, 1/8-in gaps, 12-ft stock, 10% waste',
+			result: "35 rows, about 420 linear ft, and 39 twelve-foot boards.",
+		},
+		faqs: [
+			{
+				question: "How much gap should I leave between deck boards?",
+				answer:
+					"Pressure-treated lumber is commonly gapped at about 1/8 inch because it shrinks as it dries. Composite manufacturers specify their own spacing — often 1/8 to 1/4 inch — so follow the label.",
+			},
+			{
+				question: "Which direction do I enter as deck length?",
+				answer:
+					"Enter the direction your boards will run as length. The row count comes from the span the boards cross, so a 12 × 16 deck with boards running the long way is entered as length 16, width 12.",
+			},
+			{
+				question: "How much waste should I add?",
+				answer:
+					"10% covers crosscuts and defects on a straight rectangular deck. Bump it to 15% if you are sorting boards for grain, working around curves, or making lots of angle cuts.",
+			},
+			{
+				question: "Does this include stairs, fascia, or railings?",
+				answer:
+					"No — it plans the flat field of the deck. Add stair treads, fascia, and railing boards separately, or raise the waste allowance to cover them.",
+			},
+		],
+		seo: {
+			title: "Deck Board Calculator – Linear Feet & Boards to Buy | CalcForged",
+			description:
+				"Calculate deck board rows, total linear feet, and how many boards to buy, with gap spacing and waste.",
+			h1: "Deck board calculator",
+			intro:
+				"Deck board counts are a row problem, not an area problem: rows come from board width plus gap spacing across the deck, and linear feet come from rows times the run. Enter your deck dimensions, board width, gap, stock length, and a waste allowance to get rows, total linear feet, and whole boards to buy. The fastener note keeps screws honest — two per joist crossing, planned from your joist layout, not from the deck's area.",
+		},
+		related: ["deck-stain", "concrete", "paint"],
+	},
+	{
+		slug: "deck-stain",
+		name: "Deck Stain Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "◩",
+		description:
+			"Estimate stain gallons and cost for a deck, including railings and coats.",
+		fields: [
+			{
+				key: "length",
+				label: "Deck length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 12,
+			},
+			{
+				key: "width",
+				label: "Deck width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 16,
+			},
+			{
+				key: "railings",
+				label: "Include railings?",
+				type: "select",
+				defaultValue: "no",
+				options: [
+					{ label: "No — deck floor only", value: "no" },
+					{ label: "Yes — add rail area", value: "yes" },
+				],
+			},
+			{
+				key: "coats",
+				label: "Coats",
+				type: "number",
+				unit: "coats",
+				min: 1,
+				max: 2,
+				step: 1,
+				defaultValue: 2,
+			},
+			{
+				key: "coverage",
+				label: "Coverage per gallon",
+				type: "number",
+				unit: "sq ft",
+				min: 50,
+				step: 10,
+				defaultValue: 250,
+			},
+			{
+				key: "price",
+				label: "Price per gallon",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 35,
+			},
+		],
+		results: [
+			{ key: "area", label: "Area to stain", unit: "sq ft", format: "number" },
+			{
+				key: "gallons",
+				label: "Stain to buy",
+				unit: "gal",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"Rounded up to whole gallons; the can's label wins on coverage.",
+			},
+			{
+				key: "cost",
+				label: "Material estimate",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const l = n(v, "length", 12),
+				w = n(v, "width", 16);
+			const rail = option(v, "railings", "no") === "yes" ? 12 * (l + w) : 0;
+			const area = l * w + rail;
+			const gallons = ceil((area * n(v, "coats", 2)) / n(v, "coverage", 250));
+			return {
+				area: round(area),
+				gallons,
+				cost: round(gallons * n(v, "price", 35), 2),
+			};
+		},
+		howItWorks: [
+			"Deck floor area is length × width; railings add roughly 12 square feet per foot of perimeter, counting both faces of rails and balusters.",
+			"Gallons are area × coats ÷ coverage per gallon, rounded up to whole gallons.",
+			"Most stains cover 150 to 300 square feet per gallon depending on product and wood condition — enter your can's coverage and let it override the default.",
+		],
+		example: {
+			title: "12 × 16 deck with railings",
+			inputs: "2 coats, 250 sq ft per gallon",
+			result:
+				"About 528 sq ft to stain — 5 gallons, roughly $175 at $35 per gallon.",
+		},
+		faqs: [
+			{
+				question: "How much area does a gallon of deck stain cover?",
+				answer:
+					"Most products cover 150 to 300 square feet per gallon per coat; semi-transparent stains on weathered, porous wood land at the low end. The coverage printed on your can beats any default.",
+			},
+			{
+				question: "Do railings really add that much surface?",
+				answer:
+					"Yes. Rails have two faces plus edges, and every baluster has two faces — on a small deck the railing can add as much paintable surface as the floor itself.",
+			},
+			{
+				question: "Should I stain the underside of the deck boards?",
+				answer:
+					"Usually no. Coat the walking surface and the exposed edges; airflow dries the underside, and the wear you are protecting against happens on top.",
+			},
+			{
+				question: "One coat or two?",
+				answer:
+					"Two coats are the norm on bare wood — the first soaks in, the second builds color and protection. A single maintenance coat is common on a deck that was already stained.",
+			},
+		],
+		seo: {
+			title: "Deck Stain Calculator – Gallons & Cost | CalcForged",
+			description:
+				"Estimate deck stain gallons and cost from floor area, railings, coats, and coverage printed on your can. Enter dimensions and price to plan what to buy.",
+			h1: "Deck stain calculator",
+			intro:
+				"Stain runs out at the worst time — halfway through a deck, with the sun moving and half the boards wet. This calculator works from real surface area instead of deck size: the floor, both faces of the railings when you include them, and your coat count, divided by the coverage on your actual can of stain. Most products cover 150 to 300 square feet per gallon, so the label wins; the result is whole gallons to buy and what they cost.",
+		},
+		related: ["deck-boards", "paint", "concrete"],
+	},
+	{
+		slug: "sod",
+		name: "Sod Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "▧",
+		description:
+			"Calculate sod rolls, pallets, and cost for a lawn, with delivery-day waste built in.",
+		fields: [
+			{
+				key: "length",
+				label: "Lawn length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 40,
+			},
+			{
+				key: "width",
+				label: "Lawn width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 30,
+			},
+			{
+				key: "waste",
+				label: "Waste allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 20,
+				step: 1,
+				defaultValue: 5,
+			},
+			{
+				key: "rollSize",
+				label: "Roll size",
+				type: "number",
+				unit: "sq ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 10,
+			},
+			{
+				key: "palletSize",
+				label: "Pallet size",
+				type: "number",
+				unit: "sq ft",
+				min: 100,
+				step: 25,
+				defaultValue: 500,
+			},
+			{
+				key: "price",
+				label: "Price per roll",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 4,
+			},
+		],
+		results: [
+			{
+				key: "orderArea",
+				label: "Order with waste",
+				unit: "sq ft",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "rolls",
+				label: "Rolls to order",
+				unit: "rolls",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "palletsNote", label: "Pallets", format: "text" },
+			{
+				key: "cost",
+				label: "Material estimate",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const area = n(v, "length", 40) * n(v, "width", 30);
+			const orderArea = area * (1 + n(v, "waste", 5) / 100);
+			const rolls = ceil(orderArea / n(v, "rollSize", 10));
+			const pallets = ceil(orderArea / n(v, "palletSize", 500));
+			return {
+				orderArea: round(orderArea),
+				rolls,
+				palletsNote: `About ${pallets} pallet${pallets === 1 ? "" : "s"} at ${n(v, "palletSize", 500)} sq ft — pallets run 400–600 sq ft by farm.`,
+				cost: round(rolls * n(v, "price", 4), 2),
+			};
+		},
+		howItWorks: [
+			"Order area is lawn area plus a small waste allowance — sod is perishable, so it needs less buffer than lumber or stone.",
+			"Rolls are order area ÷ roll size, rounded up. The standard US roll is 2 × 5 ft, or 10 square feet.",
+			"Cost is rolls × price per roll; the pallet count is shown as a note because most sod farms sell — and price — by the pallet.",
+		],
+		example: {
+			title: "40 × 30 lawn",
+			inputs: "5% waste, 10 sq ft rolls",
+			result:
+				"Order 1,260 sq ft — 126 rolls, about 3 pallets, roughly $504 at $4 per roll.",
+		},
+		faqs: [
+			{
+				question: "How much extra sod should I order?",
+				answer:
+					"Five percent covers cuts around edges and garden beds on a simple rectangle; use 10% for curved borders, islands, and obstacles. Unlike most materials, don't stack a big buffer on top — sod doesn't store.",
+			},
+			{
+				question: "How long can sod sit on the pallet?",
+				answer:
+					"Hours, not days. Rolled sod heats up fast, especially in summer, and starts to yellow within a day. Schedule delivery for the day you install and water it as soon as it's down.",
+			},
+			{
+				question: "What size is a roll of sod?",
+				answer:
+					"The common US roll is 2 × 5 feet — 10 square feet. Farms also sell big rolls of roughly 360 square feet that are machine-installed. Pallets commonly carry 400 to 600 square feet depending on the farm and grass type.",
+			},
+			{
+				question: "Which way should the rolls face?",
+				answer:
+					"Lay strips in rows with staggered end joints like brickwork, edges snug but never overlapping, and run the rows across a slope on hillsides so they can't creep downhill.",
+			},
+		],
+		seo: {
+			title: "Sod Calculator – Rolls, Pallets & Cost | CalcForged",
+			description:
+				"Calculate sod rolls, pallets, and cost for your lawn, with a waste allowance sized for delivery day.",
+			h1: "Sod calculator",
+			intro:
+				"Sod is the one landscape material with a deadline: it arrives alive and needs to be in the ground the same day. So the order has to be right the first time. Enter your lawn dimensions and this calculator returns the order area with a small waste allowance, whole rolls at the standard 10-square-foot size, a pallet count for farms that sell by the pallet, and the cost. Five percent waste covers a clean rectangle; curved beds and obstacles deserve ten.",
+		},
+		related: ["mulch", "gravel-driveway", "flooring"],
+	},
+	{
+		slug: "rebar",
+		name: "Rebar Calculator",
+		category: "Construction",
+		categorySlug: "construction",
+		icon: "#",
+		description:
+			"Count rebar bars, linear feet, sticks, and weight for a reinforced concrete slab.",
+		fields: [
+			{
+				key: "length",
+				label: "Slab length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 20,
+			},
+			{
+				key: "width",
+				label: "Slab width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 24,
+			},
+			{
+				key: "spacing",
+				label: "Rebar spacing",
+				type: "number",
+				unit: "in",
+				min: 6,
+				max: 36,
+				step: 1,
+				defaultValue: 18,
+			},
+			{
+				key: "barSize",
+				label: "Bar size",
+				type: "select",
+				defaultValue: "#4",
+				options: [
+					{ label: "#3 — 3/8 in", value: "#3" },
+					{ label: "#4 — 1/2 in", value: "#4" },
+					{ label: "#5 — 5/8 in", value: "#5" },
+				],
+			},
+			{
+				key: "lap",
+				label: "Overlap / lap allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 25,
+				step: 1,
+				defaultValue: 10,
+			},
+			{
+				key: "stockLength",
+				label: "Stock bar length",
+				type: "number",
+				unit: "ft",
+				min: 5,
+				max: 60,
+				step: 1,
+				defaultValue: 20,
+			},
+		],
+		results: [
+			{ key: "barsA", label: "Bars one way", format: "number" },
+			{ key: "barsB", label: "Bars other way", format: "number" },
+			{
+				key: "linearFt",
+				label: "Total bar length",
+				unit: "ft",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "sticks",
+				label: "Stock bars to buy",
+				unit: "bars",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "weight",
+				label: "Total weight",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const spacing = Math.min(36, Math.max(6, n(v, "spacing", 18)));
+			const barsA = ceil((n(v, "length", 20) * 12) / spacing) + 1;
+			const barsB = ceil((n(v, "width", 24) * 12) / spacing) + 1;
+			const linearFt =
+				(barsA * n(v, "width", 24) + barsB * n(v, "length", 20)) *
+				(1 + n(v, "lap", 10) / 100);
+			const lbPerFt =
+				option(v, "barSize", "#4") === "#3"
+					? 0.376
+					: option(v, "barSize", "#4") === "#5"
+						? 1.043
+						: 0.668;
+			return {
+				barsA,
+				barsB,
+				linearFt: round(linearFt),
+				sticks: ceil(linearFt / n(v, "stockLength", 20)),
+				weight: round(linearFt * lbPerFt, 0),
+			};
+		},
+		howItWorks: [
+			"Bars in each direction are the span in inches ÷ spacing, plus one extra for the far edge, rounded up.",
+			"Total bar length adds both directions plus a lap allowance for the overlaps where bars splice together.",
+			"Weight uses standard bar weights — #3 is 0.376 lb/ft, #4 is 0.668, #5 is 1.043 — and sticks are total feet ÷ stock length, rounded up.",
+		],
+		example: {
+			title: "20 × 24 slab",
+			inputs: "#4 bars at 18 in, 10% lap, 20-ft stock",
+			result:
+				"15 bars one way and 17 the other — about 770 linear ft, 39 sticks, roughly 514 lb.",
+		},
+		faqs: [
+			{
+				question: "How far apart should rebar be in a slab?",
+				answer:
+					"18 inches on center is a common residential spacing, with 12 to 24 inches both seen depending on load and soil. If your project has engineered plans, the plans win.",
+			},
+			{
+				question: "What size rebar for a patio or driveway slab?",
+				answer:
+					"#4 (1/2 inch) is the standard for 4-inch residential slabs. #3 suits light-duty patios and walkways; #5 shows up in footings, thick driveways, and commercial work.",
+			},
+			{
+				question: "How much should rebar overlap at splices?",
+				answer:
+					"A common rule is 40 bar diameters of overlap — about 20 inches for a #4 bar. The 10% planning allowance covers splices plus the short offcuts left over from cutting.",
+			},
+			{
+				question: "Do I need rebar in a 4-inch slab?",
+				answer:
+					"For sidewalks and patios, fiber or wire mesh is often enough. Rebar earns its keep on driveways, soft or filled soil, and slabs carrying vehicles — match your local code and use.",
+			},
+		],
+		seo: {
+			title: "Rebar Calculator – Bars, Length & Weight | CalcForged",
+			description:
+				"Calculate rebar count in both directions, total linear feet, 20-ft sticks to buy, and total weight for a slab.",
+			h1: "Rebar calculator",
+			intro:
+				"Rebar orders are counted in sticks and weighed in pounds, but the slab only cares about spacing. Enter the slab dimensions, bar spacing, and bar size, and this calculator counts the bars in both directions, totals the linear feet with a lap allowance for splices, and converts that to 20-foot sticks and total weight using standard ASTM bar weights. #4 bars at 18 inches on center is the workhorse spec for residential slabs — adjust if your plans say otherwise.",
+		},
+		related: ["concrete", "gravel-driveway", "deck-boards"],
+	},
+	{
+		slug: "gravel-driveway",
+		name: "Gravel Driveway Calculator",
+		category: "Construction",
+		categorySlug: "construction",
+		icon: "◆",
+		description:
+			"Estimate gravel yards, tons, and cost for a driveway, with compaction built in.",
+		fields: [
+			{
+				key: "length",
+				label: "Driveway length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 60,
+			},
+			{
+				key: "width",
+				label: "Driveway width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 12,
+			},
+			{
+				key: "depth",
+				label: "Depth",
+				type: "number",
+				unit: "in",
+				min: 1,
+				max: 24,
+				step: 0.5,
+				defaultValue: 4,
+			},
+			{
+				key: "waste",
+				label: "Compaction / waste",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 25,
+				step: 1,
+				defaultValue: 10,
+			},
+			{
+				key: "price",
+				label: "Delivered price per cu yd",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 1,
+				defaultValue: 45,
+			},
+		],
+		results: [
+			{
+				key: "yards",
+				label: "Gravel to order",
+				unit: "cu yd",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "tons",
+				label: "Weight",
+				unit: "tons",
+				format: "number",
+				estimate: true,
+				interpretation: "At about 1.4 tons per cubic yard.",
+			},
+			{
+				key: "cost",
+				label: "Material estimate",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{ key: "depthNote", label: "Depth check", format: "text" },
+		],
+		calculate: (v) => {
+			const cuFt =
+				n(v, "length", 60) * n(v, "width", 12) * (n(v, "depth", 4) / 12);
+			const yards = (cuFt / 27) * (1 + n(v, "waste", 10) / 100);
+			return {
+				yards: round(yards, 2),
+				tons: round(yards * 1.4, 2),
+				cost: round(yards * n(v, "price", 45), 2),
+				depthNote:
+					"4 in is the standard light-use depth; 6–8 in for vehicles that park daily.",
+			};
+		},
+		howItWorks: [
+			"Volume is length × width × depth in feet, divided by 27 for cubic yards.",
+			"The order adds 10% for compaction and losses — gravel settles as it's spread and rolled.",
+			"Weight uses about 1.4 tons per cubic yard of crushed stone; cost is yards × your delivered price per yard.",
+		],
+		example: {
+			title: "60 × 12 driveway",
+			inputs: "4 in deep, 10% compaction, $45 per yard",
+			result: "About 9.78 cu yd, 13.7 tons, roughly $440 delivered.",
+		},
+		faqs: [
+			{
+				question: "How deep should a gravel driveway be?",
+				answer:
+					"Four inches compacted suits light, occasional use. Where vehicles park daily — or the soil is soft — plan 6 to 8 inches, ideally placed and compacted in two lifts.",
+			},
+			{
+				question: "How much does a cubic yard of gravel weigh?",
+				answer:
+					"Crushed stone runs about 1.3 to 1.5 tons per cubic yard depending on the stone and moisture — 1.4 tons is a good planning figure.",
+			},
+			{
+				question: "What does delivered gravel cost?",
+				answer:
+					"Most areas land between $15 and $75 per cubic yard delivered; road base often runs $25 to $62. Stone size and delivery distance move the price the most, so quote locally.",
+			},
+			{
+				question: "Should I put fabric under the gravel?",
+				answer:
+					"On soft or muddy ground, yes — a geotextile fabric layer keeps stone from punching into the soil and roughly doubles the life of the driveway. It's cheap insurance on any questionable subgrade.",
+			},
+		],
+		seo: {
+			title: "Gravel Driveway Calculator – Yards, Tons & Cost | CalcForged",
+			description:
+				"Calculate cubic yards, tons, and cost for a gravel driveway, with compaction and a depth check.",
+			h1: "Gravel driveway calculator",
+			intro:
+				"Gravel is ordered by the cubic yard, hauled by the ton, and paid for by the delivery — so all three numbers need to agree before the truck shows up. Enter your driveway dimensions and depth, and this calculator converts the volume to cubic yards with a 10% compaction allowance, estimates the tonnage at 1.4 tons per yard, and prices it at your local delivered rate. Four inches covers light use; daily parking wants 6 to 8 inches.",
+		},
+		related: ["concrete", "rebar", "mulch"],
+	},
+	{
+		slug: "wallpaper",
+		name: "Wallpaper Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "❖",
+		description:
+			"Estimate wallpaper rolls and cost for a room, minus openings and with pattern waste.",
+		fields: [
+			{
+				key: "perimeter",
+				label: "Room perimeter",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 52,
+			},
+			{
+				key: "height",
+				label: "Wall height",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 8,
+			},
+			{
+				key: "doors",
+				label: "Doors",
+				type: "number",
+				unit: "doors",
+				min: 0,
+				step: 1,
+				defaultValue: 1,
+			},
+			{
+				key: "windows",
+				label: "Windows",
+				type: "number",
+				unit: "windows",
+				min: 0,
+				step: 1,
+				defaultValue: 2,
+			},
+			{
+				key: "rollCoverage",
+				label: "Coverage per roll",
+				type: "number",
+				unit: "sq ft",
+				min: 1,
+				step: 0.5,
+				defaultValue: 55,
+			},
+			{
+				key: "patternWaste",
+				label: "Pattern waste",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 40,
+				step: 1,
+				defaultValue: 15,
+			},
+			{
+				key: "price",
+				label: "Price per roll",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 30,
+			},
+		],
+		results: [
+			{ key: "wallArea", label: "Wall area", unit: "sq ft", format: "number" },
+			{
+				key: "rolls",
+				label: "Rolls to buy",
+				unit: "rolls",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "cost",
+				label: "Material estimate",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{ key: "dyeLotNote", label: "Dye lot", format: "text" },
+		],
+		calculate: (v) => {
+			const wallArea =
+				n(v, "perimeter", 52) * n(v, "height", 8) -
+				n(v, "doors", 1) * 21 -
+				n(v, "windows", 2) * 15;
+			const orderArea =
+				Math.max(0, wallArea) * (1 + n(v, "patternWaste", 15) / 100);
+			const rolls = ceil(orderArea / n(v, "rollCoverage", 55));
+			return {
+				wallArea: round(Math.max(0, wallArea)),
+				rolls,
+				cost: round(rolls * n(v, "price", 30), 2),
+				dyeLotNote:
+					"Order every roll from one dye lot — mixed lots show at the seams.",
+			};
+		},
+		howItWorks: [
+			"Wall area is the room perimeter × wall height, minus 21 square feet per door and 15 per window.",
+			"Pattern waste — 15% is typical — covers matching repeats and trimming; large patterns and many corners need more.",
+			"Rolls are order area ÷ coverage per roll, rounded up. A US double roll is 60.75 sq ft nominal but lands near 55 usable.",
+		],
+		example: {
+			title: "12 × 14 room",
+			inputs: "8 ft walls, 1 door, 2 windows, 15% pattern waste",
+			result: "365 sq ft of wall — 8 rolls at 55 sq ft each, about $240.",
+		},
+		faqs: [
+			{
+				question: "How much wallpaper is on a roll?",
+				answer:
+					"A US double roll (27 in × 27 ft) is 60.75 square feet nominal, but pattern repeats and trimming leave about 50–55 usable. European and peel-and-stick rolls differ — enter the coverage printed on your roll's label.",
+			},
+			{
+				question: "What is pattern waste?",
+				answer:
+					"The extra material consumed matching the pattern at every seam and trimming top and bottom. Small repeats waste little; large drop patterns of 24 inches or more can eat 20 to 25 percent.",
+			},
+			{
+				question: "What is a dye lot, and why does it matter?",
+				answer:
+					"Wallpaper is printed in batches, and small color shifts between batches are visible where sheets meet. Buy every roll — plus one spare — from the same dye lot in a single order.",
+			},
+			{
+				question: "Can I wallpaper over existing wallpaper?",
+				answer:
+					"Usually not a good idea. Seams telegraph through and adhesion fails on the old paste. Strip the old paper, prime, then hang — the prep is most of the job.",
+			},
+		],
+		seo: {
+			title: "Wallpaper Calculator – Rolls & Cost | CalcForged",
+			description:
+				"Calculate wallpaper rolls and cost for a room, minus doors and windows, with pattern waste and dye-lot guidance.",
+			h1: "Wallpaper calculator",
+			intro:
+				"Wallpaper punishes two mistakes equally: one roll short, and rolls from different dye lots. This calculator works from the room's wall area — perimeter × height, minus doors and windows — then adds a pattern-waste allowance for the material that disappears into matching repeats and trim cuts. Rolls come from your roll's actual usable coverage, not its nominal size, and the dye-lot note is there before you order, not after the seams show.",
+		},
+		related: ["paint", "flooring"],
+	},
+	{
+		slug: "mortgage",
+		name: "Mortgage Calculator",
+		category: "Finance",
+		categorySlug: "finance",
+		icon: "▤",
+		description:
+			"Estimate your monthly mortgage payment, including taxes and insurance.",
+		fields: [
+			{
+				key: "homePrice",
+				label: "Home price",
+				type: "number",
+				unit: "$",
+				min: 10000,
+				step: 1000,
+				defaultValue: 400000,
+			},
+			{
+				key: "downPayment",
+				label: "Down payment",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 1000,
+				defaultValue: 80000,
+			},
+			{
+				key: "rate",
+				label: "Interest rate",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 25,
+				step: 0.05,
+				defaultValue: 6.5,
+			},
+			{
+				key: "term",
+				label: "Loan term",
+				type: "select",
+				defaultValue: "30",
+				options: [
+					{ label: "30 years", value: "30" },
+					{ label: "20 years", value: "20" },
+					{ label: "15 years", value: "15" },
+					{ label: "10 years", value: "10" },
+				],
+			},
+			{
+				key: "tax",
+				label: "Property tax per year",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 100,
+				defaultValue: 3600,
+			},
+			{
+				key: "insurance",
+				label: "Home insurance per year",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 100,
+				defaultValue: 1500,
+			},
+		],
+		results: [
+			{ key: "loan", label: "Loan amount", unit: "$", format: "currency" },
+			{
+				key: "monthlyPI",
+				label: "Principal & interest",
+				unit: "$/mo",
+				format: "currency",
+			},
+			{
+				key: "monthlyTotal",
+				label: "Estimated total monthly",
+				unit: "$/mo",
+				format: "currency",
+				estimate: true,
+				interpretation: "Principal, interest, property tax, and insurance.",
+			},
+			{
+				key: "totalInterest",
+				label: "Total interest over the loan",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const price = n(v, "homePrice", 400000);
+			const principal = Math.max(0, price - n(v, "downPayment", 80000));
+			const r = n(v, "rate", 6.5) / 1200;
+			const months = Number(option(v, "term", "30")) * 12;
+			const pi =
+				r === 0
+					? principal / months
+					: (principal * r) / (1 - (1 + r) ** -months);
+			const taxMo = n(v, "tax", 3600) / 12;
+			const insMo = n(v, "insurance", 1500) / 12;
+			return {
+				loan: Math.round(principal),
+				monthlyPI: round(pi, 2),
+				monthlyTotal: round(pi + taxMo + insMo, 2),
+				totalInterest: round(pi * months - principal, 0),
+			};
+		},
+		howItWorks: [
+			"The loan amount is the home price minus your down payment.",
+			"Principal and interest use the standard amortization formula: loan × monthly rate ÷ (1 − (1 + monthly rate)⁻ⁿ).",
+			"Property tax and insurance are divided into monthly amounts and added to the payment; escrow for HOA dues or mortgage insurance is not included.",
+		],
+		example: {
+			title: "$400,000 home",
+			inputs: "$80,000 down, 6.5% for 30 years, $3,600 tax, $1,500 insurance",
+			result:
+				"About $2,023 principal & interest, or roughly $2,448 total monthly.",
+		},
+		faqs: [
+			{
+				question: "Does this include PMI?",
+				answer:
+					"No. If your down payment is under 20%, most lenders add private mortgage insurance, which is not part of this estimate.",
+			},
+			{
+				question: "Why is my escrow payment different?",
+				answer:
+					"Lenders collect taxes and insurance into escrow and may keep a cushion, so the escrow portion of a real bill can differ from a simple division by twelve.",
+			},
+			{
+				question: "How much does a shorter term save?",
+				answer:
+					"A shorter term raises the monthly payment but cuts total interest dramatically — compare 15 and 30 years in the term selector.",
+			},
+			{
+				question: "What interest rate should I use?",
+				answer:
+					"Use the rate from a current lender quote or pre-approval. Headline rates you see advertised often assume points and strong credit.",
+			},
+		],
+		seo: {
+			title: "Mortgage Calculator – Monthly Payment Estimate | CalcForged",
+			description:
+				"Estimate your monthly mortgage payment with principal, interest, property tax, and insurance included.",
+			h1: "Mortgage calculator",
+			intro:
+				"A mortgage payment is more than the loan. Enter the home price, down payment, interest rate, and term to see the principal-and-interest portion, then add your expected property tax and insurance for a realistic monthly total. The calculator uses the standard amortization formula lenders use, so it is a solid starting point before you compare official loan estimates. Remember that a down payment under 20% usually adds private mortgage insurance, and closing costs are separate from everything shown here.",
+		},
+		related: ["loan", "compound-interest", "investment"],
+	},
+	{
+		slug: "loan",
+		name: "Loan Calculator",
+		category: "Finance",
+		categorySlug: "finance",
+		icon: "$",
+		description:
+			"See the monthly payment, total interest, and payoff cost for any fixed loan.",
+		fields: [
+			{
+				key: "amount",
+				label: "Loan amount",
+				type: "number",
+				unit: "$",
+				min: 100,
+				step: 100,
+				defaultValue: 25000,
+			},
+			{
+				key: "rate",
+				label: "Interest rate",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 40,
+				step: 0.05,
+				defaultValue: 8.5,
+			},
+			{
+				key: "months",
+				label: "Term",
+				type: "number",
+				unit: "months",
+				min: 1,
+				max: 480,
+				defaultValue: 60,
+			},
+		],
+		results: [
+			{
+				key: "monthly",
+				label: "Monthly payment",
+				unit: "$/mo",
+				format: "currency",
+			},
+			{
+				key: "totalInterest",
+				label: "Total interest",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "totalPaid",
+				label: "Total repaid",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "interestShare",
+				label: "Interest as share of payments",
+				unit: "%",
+				format: "percent",
+			},
+		],
+		calculate: (v) => {
+			const principal = n(v, "amount", 25000);
+			const r = n(v, "rate", 8.5) / 1200;
+			const months = Math.max(1, n(v, "months", 60));
+			const monthly =
+				r === 0
+					? principal / months
+					: (principal * r) / (1 - (1 + r) ** -months);
+			const totalPaid = monthly * months;
+			const interest = totalPaid - principal;
+			return {
+				monthly: round(monthly, 2),
+				totalInterest: round(interest, 0),
+				totalPaid: round(totalPaid, 0),
+				interestShare: principal ? round((interest / totalPaid) * 100, 1) : 0,
+			};
+		},
+		howItWorks: [
+			"Monthly payment uses the standard amortization formula for a fixed-rate, fixed-term loan.",
+			"Total repaid is the monthly payment multiplied by the number of months.",
+			"Total interest is everything you pay above the amount borrowed; it assumes no extra payments and no fees.",
+		],
+		example: {
+			title: "$25,000 personal loan",
+			inputs: "8.5% over 60 months",
+			result: "About $512.91 per month and $5,775 total interest.",
+		},
+		faqs: [
+			{
+				question: "Does this work for car loans?",
+				answer:
+					"Yes. Any fixed-rate, fixed-term installment loan — personal, auto, or student — uses the same formula.",
+			},
+			{
+				question: "Are origination fees included?",
+				answer:
+					"No. Fees are not interest, but they raise your real cost. Some loans add them to the balance, so you could enter a slightly higher loan amount to account for that.",
+			},
+			{
+				question: "What happens if I pay extra each month?",
+				answer:
+					"Extra payments go straight to principal and shorten the loan, so your actual total interest would be lower than shown.",
+			},
+			{
+				question: "Why does a longer term cost more?",
+				answer:
+					"A longer term lowers the monthly payment but keeps interest accruing for more months, so the total interest grows even at the same rate.",
+			},
+		],
+		seo: {
+			title: "Loan Calculator – Monthly Payment & Total Interest | CalcForged",
+			description:
+				"Estimate fixed-rate loan payments, total interest, and repayment from your amount, rate, and term. Compare loan terms before committing; fees are not included.",
+			h1: "Loan calculator",
+			intro:
+				"Before you sign for a personal, auto, or business loan, it helps to see the whole picture: the monthly payment, the total interest, and what the loan really costs end to end. Enter the amount, rate, and term in months and the calculator applies the standard amortization formula lenders use for fixed installment loans. Try a shorter term or a lower rate to see how much interest each change saves, and remember that fees and extra payments are not part of this estimate.",
+		},
+		related: ["mortgage", "compound-interest", "savings"],
+	},
+	{
+		slug: "auto-loan-payoff",
+		name: "Auto Loan Cost & Payoff Calculator",
+		category: "Automotive",
+		categorySlug: "automotive",
+		icon: "◈",
+		description:
+			"Estimate an auto loan payment, total vehicle cost, and how extra monthly principal could change the payoff.",
+		fields: [
+			{
+				key: "vehiclePrice",
+				label: "Vehicle price",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 500000,
+				step: 500,
+				defaultValue: 32000,
+			},
+			{
+				key: "taxAndFees",
+				label: "Sales tax and fees",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 100000,
+				step: 100,
+				defaultValue: 2500,
+				help: "Enter the combined amount from your quote; tax rules vary by location.",
+			},
+			{
+				key: "downPayment",
+				label: "Down payment",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 500000,
+				step: 500,
+				defaultValue: 4000,
+			},
+			{
+				key: "tradeEquity",
+				label: "Net trade-in equity (+/-)",
+				type: "number",
+				unit: "$",
+				min: -100000,
+				max: 100000,
+				step: 100,
+				defaultValue: 0,
+				help: "Positive equity reduces the loan. Negative equity adds what you still owe above the trade-in value.",
+			},
+			{
+				key: "apr",
+				label: "APR",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 40,
+				step: 0.05,
+				defaultValue: 6.5,
+			},
+			{
+				key: "termMonths",
+				label: "Loan term",
+				type: "select",
+				defaultValue: "60",
+				options: [
+					{ label: "36 months", value: "36" },
+					{ label: "48 months", value: "48" },
+					{ label: "60 months", value: "60" },
+					{ label: "72 months", value: "72" },
+					{ label: "84 months", value: "84" },
+					{ label: "96 months", value: "96" },
+				],
+			},
+			{
+				key: "extraPayment",
+				label: "Extra principal each month",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 10000,
+				step: 25,
+				defaultValue: 100,
+				help: "Check that your lender applies extra money to principal.",
+			},
+		],
+		results: [
+			{
+				key: "amountFinanced",
+				label: "Estimated amount financed",
+				unit: "$",
+				format: "currency",
+			},
+			{
+				key: "monthlyPayment",
+				label: "Scheduled monthly payment",
+				unit: "$/mo",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "scheduledInterest",
+				label: "Interest with scheduled payments",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "totalCostScheduled",
+				label: "Vehicle cost with scheduled payments",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+				interpretation:
+					"Vehicle price, entered taxes and fees, and modeled loan interest. Excludes ownership costs.",
+			},
+			{
+				key: "monthlyWithExtra",
+				label: "Monthly outflow with extra",
+				unit: "$/mo",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "payoffMonthsWithExtra",
+				label: "Modeled payoff with extra",
+				unit: "months",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "interestWithExtra",
+				label: "Interest with extra payments",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "interestSaved",
+				label: "Modeled interest saved",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "totalCostWithExtra",
+				label: "Vehicle cost with extra payments",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const vehiclePrice = Math.max(0, n(v, "vehiclePrice", 32000));
+			const taxAndFees = Math.max(0, n(v, "taxAndFees", 2500));
+			const cashPrice = vehiclePrice + taxAndFees;
+			const downPayment = Math.max(0, n(v, "downPayment", 4000));
+			const tradeEquity = n(v, "tradeEquity", 0);
+			const principal = Math.max(0, cashPrice - downPayment - tradeEquity);
+			const annualRate = Math.min(40, Math.max(0, n(v, "apr", 6.5)));
+			const rate = annualRate / 1200;
+			const months = Math.min(
+				96,
+				Math.max(1, Math.round(n(v, "termMonths", 60))),
+			);
+			const extra = Math.max(0, n(v, "extraPayment", 100));
+			const rawPayment =
+				principal === 0
+					? 0
+					: rate === 0
+						? principal / months
+						: (principal * rate) / (1 - (1 + rate) ** -months);
+			const monthlyPayment = Math.ceil(rawPayment * 100) / 100;
+			const simulate = (payment: number) => {
+				let balance = principal;
+				let interest = 0;
+				let totalPaid = 0;
+				let periods = 0;
+				while (balance > 0.004 && periods < months) {
+					const periodInterest = balance * rate;
+					const due = balance + periodInterest;
+					const paid = Math.min(due, payment);
+					interest += periodInterest;
+					totalPaid += paid;
+					balance = Math.max(0, due - paid);
+					periods++;
+				}
+				return {
+					interest: round(interest, 2),
+					totalPaid: round(totalPaid, 2),
+					periods,
+				};
+			};
+			const scheduled = simulate(monthlyPayment);
+			const accelerated = simulate(monthlyPayment + extra);
+			const interestSaved = round(
+				Math.max(0, scheduled.interest - accelerated.interest),
+				2,
+			);
+			return {
+				amountFinanced: round(principal, 2),
+				monthlyPayment,
+				scheduledInterest: scheduled.interest,
+				totalCostScheduled: round(cashPrice + scheduled.interest, 2),
+				monthlyWithExtra: round(monthlyPayment + extra, 2),
+				payoffMonthsWithExtra: accelerated.periods,
+				interestWithExtra: accelerated.interest,
+				interestSaved,
+				totalCostWithExtra: round(cashPrice + accelerated.interest, 2),
+			};
+		},
+		howItWorks: [
+			"Add the vehicle price and the taxes and fees from your quote, then subtract your down payment and net trade-in equity. Negative equity increases the amount financed.",
+			"The scheduled payment uses a fixed-rate monthly amortization estimate. The comparison then models interest on the remaining balance each month and applies any extra payment to principal.",
+			"Vehicle cost adds the entered purchase price and fees to modeled loan interest. It does not include insurance, fuel, maintenance, or other ownership costs.",
+		],
+		example: {
+			title: "Compare an auto purchase",
+			inputs:
+				"$32,000 vehicle, $2,500 taxes and fees, $4,000 down, 6.5% APR for 60 months, plus $100 monthly",
+			result:
+				"$596.77 monthly as scheduled and $39,806.02 total vehicle cost. With $100 extra each month: 51 months, $38,907.50 total, and $898.52 less interest.",
+		},
+		faqs: [
+			{
+				question: "Is this an exact lender payoff quote?",
+				answer:
+					"No. It models monthly interest on a fixed-rate balance. Actual auto loans may accrue interest daily, and payment timing, fees, and contract terms can change the lender's figure. Request a dated payoff quote before closing the loan.",
+			},
+			{
+				question: "How should I enter trade-in equity?",
+				answer:
+					"Enter the trade-in value minus the payoff on your current vehicle. Positive equity reduces the new loan; negative equity adds to it. Put sales tax and fees in their own field.",
+			},
+			{
+				question: "Will extra payments reduce interest?",
+				answer:
+					"This estimate assumes extra payments are credited to principal on a simple-interest style balance. Check your contract and ask your lender how extra payments are applied; precomputed interest and fees can change the result.",
+			},
+			{
+				question: "What is included in total vehicle cost?",
+				answer:
+					"It includes the vehicle price, the taxes and fees you enter, and modeled loan interest. It excludes insurance, fuel, maintenance, registration renewals, and other costs of ownership.",
+			},
+		],
+		seo: {
+			title: "Auto Loan Cost & Payoff Calculator | CalcForged",
+			description:
+				"Estimate an auto loan payment, amount financed, total vehicle cost, and interest savings from extra monthly principal payments.",
+			h1: "Auto loan cost and payoff calculator",
+			intro:
+				"A car payment is only part of the purchase cost. Enter the vehicle price, taxes and fees, down payment, net trade-in equity, APR, and term to estimate the amount financed and scheduled payment. Then compare the modeled interest and payoff time if you add extra principal each month. The estimate uses monthly periods; your contract, daily interest, payment dates, and lender instructions determine the exact payoff.",
+		},
+		related: ["loan", "fuel-mileage", "tire-size"],
+	},
+	{
+		slug: "investment",
+		name: "Investment Calculator",
+		category: "Finance",
+		categorySlug: "finance",
+		icon: "↗",
+		description:
+			"Project the growth of a one-time investment plus ongoing monthly contributions.",
+		fields: [
+			{
+				key: "initial",
+				label: "Starting amount",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 100,
+				defaultValue: 10000,
+			},
+			{
+				key: "monthly",
+				label: "Monthly contribution",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 10,
+				defaultValue: 500,
+			},
+			{
+				key: "returnRate",
+				label: "Expected annual return",
+				type: "number",
+				unit: "%",
+				min: -10,
+				max: 30,
+				step: 0.1,
+				defaultValue: 7,
+			},
+			{
+				key: "years",
+				label: "Years invested",
+				type: "number",
+				unit: "years",
+				min: 1,
+				max: 60,
+				defaultValue: 20,
+			},
+		],
+		results: [
+			{
+				key: "futureValue",
+				label: "Projected value",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "totalDeposits",
+				label: "Total contributed",
+				unit: "$",
+				format: "currency",
+			},
+			{
+				key: "growth",
+				label: "Investment growth",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const initial = n(v, "initial", 10000);
+			const monthly = n(v, "monthly", 500);
+			const years = n(v, "years", 20);
+			const i = n(v, "returnRate", 7) / 1200;
+			const months = years * 12;
+			const growthFactor = i === 0 ? months : ((1 + i) ** months - 1) / i;
+			const fv = initial * (1 + i) ** months + monthly * growthFactor;
+			const deposits = initial + monthly * months;
+			return {
+				futureValue: round(fv, 0),
+				totalDeposits: round(deposits, 0),
+				growth: round(fv - deposits, 0),
+			};
+		},
+		howItWorks: [
+			"The starting balance compounds monthly at your expected annual return.",
+			"Each monthly contribution is treated as an end-of-month deposit earning the same rate.",
+			"Investment growth is the projected value minus everything you contributed — the part compounding did on its own.",
+		],
+		example: {
+			title: "20-year plan",
+			inputs: "$10,000 start, $500/month, 7% annual return",
+			result: "Roughly $301,000 projected value from $130,000 contributed.",
+		},
+		faqs: [
+			{
+				question: "What return should I assume?",
+				answer:
+					"Long-run diversified stock index returns have historically averaged around 7% nominal per year, but future returns are never guaranteed. Run conservative, moderate, and optimistic scenarios.",
+			},
+			{
+				question: "Does this account for inflation?",
+				answer:
+					"No. Results are in today's dollars at the return you enter. A real return of 4–5% (nominal return minus inflation) gives a rougher but more honest picture.",
+			},
+			{
+				question: "Are taxes and fees included?",
+				answer:
+					"No. Account fees, expense ratios, and taxes on gains all reduce the real result, sometimes by 1% a year or more.",
+			},
+			{
+				question: "Why does the growth column get so large?",
+				answer:
+					"Compounding: your returns start earning their own returns. Over long horizons, growth routinely exceeds everything you deposited.",
+			},
+		],
+		seo: {
+			title: "Investment Calculator – Project Portfolio Growth | CalcForged",
+			description:
+				"Project investment growth from a starting balance and monthly contributions at any expected return.",
+			h1: "Investment calculator",
+			intro:
+				"The most motivating part of investing is watching compounding take over, and the clearest way to see it is to run the numbers. Enter a starting amount, a monthly contribution, an expected annual return, and a time horizon. The calculator projects the future value with monthly compounding and splits the result into what you contributed versus what growth added. Use it for retirement planning, a brokerage account, or comparing what an extra $100 a month is worth over 20 years.",
+		},
+		related: ["compound-interest", "savings", "loan"],
+	},
+	{
+		slug: "savings",
+		name: "Savings Calculator",
+		category: "Finance",
+		categorySlug: "finance",
+		icon: "◉",
+		description:
+			"Find out when you'll hit a savings goal with your current plan.",
+		fields: [
+			{
+				key: "goal",
+				label: "Savings goal",
+				type: "number",
+				unit: "$",
+				min: 100,
+				step: 100,
+				defaultValue: 20000,
+			},
+			{
+				key: "current",
+				label: "Current savings",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 100,
+				defaultValue: 5000,
+			},
+			{
+				key: "monthly",
+				label: "Monthly deposit",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 10,
+				defaultValue: 400,
+			},
+			{
+				key: "returnRate",
+				label: "Interest rate",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 15,
+				step: 0.1,
+				defaultValue: 4,
+			},
+		],
+		results: [
+			{
+				key: "months",
+				label: "Months to reach goal",
+				unit: "months",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "years",
+				label: "That's about",
+				unit: "years",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "deposits",
+				label: "You'll have deposited",
+				unit: "$",
+				format: "currency",
+			},
+			{ key: "status", label: "Plan check", format: "text" },
+		],
+		calculate: (v) => {
+			const goal = n(v, "goal", 20000);
+			const monthly = n(v, "monthly", 400);
+			const i = n(v, "returnRate", 4) / 1200;
+			let balance = n(v, "current", 5000);
+			let months = 0;
+			while (balance < goal && months < 1200) {
+				balance = balance * (1 + i) + monthly;
+				months += 1;
+			}
+			if (balance < goal)
+				return {
+					months: "—",
+					years: "—",
+					deposits: round(n(v, "current", 5000) + monthly * 1200, 0),
+					status: "Not reachable at this pace — raise the deposit or the rate.",
+				};
+			return {
+				months,
+				years: round(months / 12, 1),
+				deposits: round(n(v, "current", 5000) + monthly * months, 0),
+				status: "On track with this plan.",
+			};
+		},
+		howItWorks: [
+			"Each month, interest is applied to the balance, then your deposit is added.",
+			"The loop runs until the balance reaches your goal, up to 100 years.",
+			"If the plan never gets there — for example, deposits that don't cover interest losses — the check result tells you plainly.",
+		],
+		example: {
+			title: "$20,000 emergency fund",
+			inputs: "$5,000 saved, $400/month at 4%",
+			result: "About 35 months — just under 3 years.",
+		},
+		faqs: [
+			{
+				question: "What interest rate should I use?",
+				answer:
+					"High-yield savings accounts move with the market; use your account's current APY. For cash under a mattress, use 0%.",
+			},
+			{
+				question: "What if I already reached my goal?",
+				answer:
+					"If current savings already meet or exceed the goal, the result is zero months.",
+			},
+			{
+				question: "Does this include withdrawals?",
+				answer:
+					"No. It assumes deposits only. If you'll dip into the fund along the way, aim for a higher goal.",
+			},
+			{
+				question: "Why does the result say 'not reachable'?",
+				answer:
+					"If your monthly deposit is zero and interest alone can't close the gap, no number of months gets you there — the tool flags it instead of guessing.",
+			},
+		],
+		seo: {
+			title: "Savings Calculator – When Will I Reach My Goal? | CalcForged",
+			description:
+				"Calculate how long it takes to reach a savings goal with monthly deposits and interest.",
+			h1: "Savings calculator",
+			intro:
+				"A savings goal becomes real when it has a date. Enter your target, what you have saved, your monthly deposit, and the interest your account pays. The calculator walks the balance forward month by month — interest first, then your deposit — and tells you when you arrive, how much you'll have deposited along the way, and whether the plan works at all. Use it for an emergency fund, a house down payment, a car, or a trip.",
+		},
+		related: ["investment", "compound-interest", "loan"],
+	},
+	{
+		slug: "compound-interest",
+		name: "Compound Interest Calculator",
+		category: "Finance",
+		categorySlug: "finance",
+		icon: "$",
+		description:
+			"Watch principal, interest, and compounding frequency grow a balance over time.",
+		fields: [
+			{
+				key: "principal",
+				label: "Starting principal",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 100,
+				defaultValue: 5000,
+			},
+			{
+				key: "rate",
+				label: "Annual interest rate",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 30,
+				step: 0.1,
+				defaultValue: 5,
+			},
+			{
+				key: "frequency",
+				label: "Compounding frequency",
+				type: "select",
+				defaultValue: "12",
+				options: [
+					{ label: "Daily", value: "365" },
+					{ label: "Monthly", value: "12" },
+					{ label: "Quarterly", value: "4" },
+					{ label: "Annually", value: "1" },
+				],
+			},
+			{
+				key: "years",
+				label: "Years",
+				type: "number",
+				unit: "years",
+				min: 1,
+				max: 60,
+				defaultValue: 10,
+			},
+			{
+				key: "monthlyAdd",
+				label: "Additional monthly deposit",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 10,
+				defaultValue: 100,
+			},
+		],
+		results: [
+			{
+				key: "futureValue",
+				label: "Final balance",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "deposits",
+				label: "Total deposited",
+				unit: "$",
+				format: "currency",
+			},
+			{
+				key: "interest",
+				label: "Interest earned",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "apy",
+				label: "Effective annual rate",
+				unit: "%",
+				format: "percent",
+			},
+		],
+		calculate: (v) => {
+			const principal = n(v, "principal", 5000);
+			const years = n(v, "years", 10);
+			const monthlyAdd = n(v, "monthlyAdd", 100);
+			const freq = Number(option(v, "frequency", "12"));
+			const r = n(v, "rate", 5) / 100;
+			const periods = freq * years;
+			const perPeriod = r / freq;
+			const factor = (1 + perPeriod) ** periods;
+			const fv =
+				principal * factor +
+				monthlyAdd * (freq / 12) * ((factor - 1) / (perPeriod || 1));
+			const deposits = principal + monthlyAdd * years * 12;
+			return {
+				futureValue: round(fv, 2),
+				deposits: round(deposits, 0),
+				interest: round(fv - deposits, 2),
+				apy: round(((1 + r / freq) ** freq - 1) * 100, 3),
+			};
+		},
+		howItWorks: [
+			"The principal grows at rate ÷ frequency, compounded once per period for all periods.",
+			"Monthly deposits are converted to the compounding period and earn the same rate — an approximation when deposits and compounding don't align exactly.",
+			"The effective annual rate shows what your nominal rate is really worth once compounding frequency is applied.",
+		],
+		example: {
+			title: "$5,000 at 5%",
+			inputs: "Compounded monthly, 10 years, $100/month added",
+			result: "About $23,763 final balance, with $6,763 of it interest.",
+		},
+		faqs: [
+			{
+				question: "What's the difference between APR and APY?",
+				answer:
+					"APR is the nominal annual rate; APY includes the effect of compounding. A 5% rate compounded monthly is about 5.12% APY.",
+			},
+			{
+				question: "How much does daily compounding help?",
+				answer:
+					"Marginally — daily versus monthly compounding changes a 5% rate by about 0.01% a year. Term and rate matter far more than frequency.",
+			},
+			{
+				question: "Does this work for debt?",
+				answer:
+					"The math is identical, which is exactly why credit card balances grow so fast. Enter your card's APR to see what a balance becomes if you pay only interest.",
+			},
+			{
+				question: "Why is the interest estimate approximate with deposits?",
+				answer:
+					"The formula assumes each deposit compounds for an average period. Real accounts credit deposits on the day they arrive, which shifts results by a few dollars.",
+			},
+		],
+		seo: {
+			title: "Compound Interest Calculator – Growth Over Time | CalcForged",
+			description:
+				"Calculate compound interest with any compounding frequency, plus monthly deposits and effective rate.",
+			h1: "Compound interest calculator",
+			intro:
+				"Compound interest is the engine behind both savings growth and debt growth, and small changes in rate or time swing the result surprisingly hard. Enter a starting principal, rate, compounding frequency, and optional monthly deposits to see the final balance, total interest earned, and the effective annual rate your nominal rate really delivers. Use it to compare savings accounts, project a certificate of deposit, or understand what a credit card balance does when left alone.",
+		},
+		related: ["investment", "savings", "loan"],
+	},
+	{
+		slug: "bmi",
+		name: "BMI Calculator",
+		category: "Health",
+		categorySlug: "health",
+		icon: "⚖",
+		description:
+			"Compute Body Mass Index and see where it falls on the standard scale.",
+		fields: [
+			{
+				key: "weight",
+				label: "Weight",
+				type: "number",
+				min: 20,
+				max: 1000,
+				step: 0.1,
+				defaultValue: 154,
+			},
+			{
+				key: "weightUnit",
+				label: "Weight unit",
+				type: "select",
+				defaultValue: "lb",
+				options: [
+					{ label: "Pounds (lb)", value: "lb" },
+					{ label: "Kilograms (kg)", value: "kg" },
+				],
+			},
+			{
+				key: "height",
+				label: "Height",
+				type: "number",
+				min: 20,
+				max: 120,
+				step: 0.5,
+				defaultValue: 67,
+			},
+			{
+				key: "heightUnit",
+				label: "Height unit",
+				type: "select",
+				defaultValue: "in",
+				options: [
+					{ label: "Inches", value: "in" },
+					{ label: "Centimeters", value: "cm" },
+				],
+			},
+		],
+		results: [
+			{ key: "bmi", label: "Your BMI", format: "number" },
+			{ key: "category", label: "Standard category", format: "text" },
+			{
+				key: "healthyRange",
+				label: "Healthy weight range",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const weight = n(v, "weight", 154);
+			const height = n(v, "height", 67);
+			const kg =
+				option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
+			const meters =
+				option(v, "heightUnit", "in") === "in" ? height * 0.0254 : height / 100;
+			if (meters <= 0)
+				return {
+					bmi: "—",
+					category: "Enter a valid height",
+					healthyRange: "—",
+				};
+			const bmi = kg / (meters * meters);
+			const category =
+				bmi < 18.5
+					? "Underweight"
+					: bmi < 25
+						? "Healthy weight"
+						: bmi < 30
+							? "Overweight"
+							: "Obesity";
+			const lowKg = 18.5 * meters * meters;
+			const highKg = 24.9 * meters * meters;
+			const toDisplay = (kgValue: number) =>
+				option(v, "weightUnit", "lb") === "lb"
+					? `${Math.round(kgValue / 0.45359237)} lb`
+					: `${Math.round(kgValue)} kg`;
+			return {
+				bmi: round(bmi, 1),
+				category,
+				healthyRange: `${toDisplay(lowKg)} – ${toDisplay(highKg)} for your height`,
+			};
+		},
+		howItWorks: [
+			"Weight is converted to kilograms and height to meters.",
+			"BMI equals kilograms divided by height in meters squared.",
+			"The category bands are the standard adult cutoffs: under 18.5, 18.5–24.9, 25–29.9, and 30+.",
+		],
+		example: {
+			title: "154 lb at 5'7\"",
+			inputs: "154 lb, 67 inches",
+			result:
+				"BMI of about 24.1 — healthy weight, with a range of roughly 118–159 lb.",
+		},
+		faqs: [
+			{
+				question: "Is BMI accurate for everyone?",
+				answer:
+					"No. It doesn't distinguish muscle from fat, so athletes often score high, and it isn't calibrated for children, pregnancy, or adults over 65.",
+			},
+			{
+				question: "What BMI is healthy?",
+				answer:
+					"For most adults, 18.5 to 24.9 is the standard healthy band, but individual health depends on far more than this one number.",
+			},
+			{
+				question: "Why does the healthy range use my weight unit?",
+				answer:
+					"The range is calculated from your height and shown in the same unit you entered, so you can compare it directly with your weight.",
+			},
+			{
+				question: "Should I use BMI or body fat percentage?",
+				answer:
+					"BMI is a quick population-level screen; body composition measures say more about individual risk. Treat BMI as a starting point, not a diagnosis.",
+			},
+		],
+		seo: {
+			title: "BMI Calculator – Body Mass Index | CalcForged",
+			description:
+				"Calculate Body Mass Index in pounds or kilograms and see the standard weight category.",
+			h1: "BMI calculator",
+			intro:
+				"Body Mass Index is the fastest general screen for whether your weight is in a standard healthy band for your height. Enter your weight and height in whichever units you use — pounds or kilograms, inches or centimeters — and the calculator returns your BMI, the standard category, and the weight range that corresponds to a healthy BMI for someone your height. BMI is a population screening tool, not a diagnosis: it can't tell muscle from fat, so use it as a starting point for a conversation with a healthcare provider.",
+		},
+		related: ["pregnancy-due-date", "weight-converter", "age"],
+	},
+	{
+		slug: "walking-steps",
+		name: "Walking Steps Calculator",
+		category: "Health",
+		categorySlug: "health",
+		icon: "↗",
+		description:
+			"Estimate walking distance from steps and your measured step length, with an optional MET-based calorie estimate.",
+		fields: [
+			{
+				key: "steps",
+				label: "Step count",
+				type: "number",
+				min: 0,
+				max: 10000000,
+				step: 1,
+				defaultValue: 5000,
+			},
+			{
+				key: "stepLengthMode",
+				label: "Step length",
+				type: "select",
+				defaultValue: "direct",
+				options: [
+					{ label: "Enter a measured step length", value: "direct" },
+					{ label: "Calculate from a measured walk", value: "measured" },
+				],
+			},
+			{
+				key: "stepLength",
+				label: "Distance per step",
+				type: "number",
+				unit: "in or cm",
+				min: 0.01,
+				max: 500,
+				step: 0.01,
+				defaultValue: "",
+				visibleWhen: { key: "stepLengthMode", values: ["direct"] },
+				help: "One step is one foot placement, not a two-step stride.",
+			},
+			{
+				key: "stepUnit",
+				label: "Step-length unit",
+				type: "select",
+				defaultValue: "in",
+				options: [
+					{ label: "Inches", value: "in" },
+					{ label: "Centimeters", value: "cm" },
+				],
+				visibleWhen: { key: "stepLengthMode", values: ["direct"] },
+			},
+			{
+				key: "calibrationDistance",
+				label: "Measured walking distance",
+				type: "number",
+				unit: "ft or m",
+				min: 0.01,
+				max: 100000,
+				step: 0.01,
+				defaultValue: "",
+				visibleWhen: { key: "stepLengthMode", values: ["measured"] },
+			},
+			{
+				key: "calibrationUnit",
+				label: "Distance unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Feet", value: "ft" },
+					{ label: "Meters", value: "m" },
+				],
+				visibleWhen: { key: "stepLengthMode", values: ["measured"] },
+			},
+			{
+				key: "calibrationSteps",
+				label: "Steps counted over that distance",
+				type: "number",
+				min: 1,
+				max: 1000000,
+				step: 1,
+				defaultValue: "",
+				visibleWhen: { key: "stepLengthMode", values: ["measured"] },
+			},
+			{
+				key: "bodyWeight",
+				label: "Body weight (optional, for calories)",
+				type: "number",
+				min: 0,
+				max: 1000,
+				step: 0.1,
+				defaultValue: "",
+			},
+			{
+				key: "weightUnit",
+				label: "Weight unit",
+				type: "select",
+				defaultValue: "lb",
+				options: [
+					{ label: "Pounds (lb)", value: "lb" },
+					{ label: "Kilograms (kg)", value: "kg" },
+				],
+			},
+			{
+				key: "walkingMinutes",
+				label: "Walking time (optional, for calories)",
+				type: "number",
+				unit: "minutes",
+				min: 0,
+				max: 100000,
+				step: 1,
+				defaultValue: "",
+			},
+			{
+				key: "walkingIntensity",
+				label: "Closest level-walking pace (for calories)",
+				type: "select",
+				defaultValue: "3.8",
+				options: WALKING_MET_OPTIONS,
+				help: "Choose the 2024 Adult Compendium entry closest to the walk; terrain and personal effort can differ.",
+			},
+		],
+		results: [
+			{
+				key: "distanceMiles",
+				label: "Estimated distance",
+				format: "text",
+				estimate: true,
+			},
+			{
+				key: "distanceKm",
+				label: "Metric distance",
+				format: "text",
+				estimate: true,
+			},
+			{ key: "stepLengthUsed", label: "Step length used", format: "text" },
+			{
+				key: "calories",
+				label: "Estimated gross calories",
+				format: "text",
+				estimate: true,
+				interpretation:
+					"This optional MET estimate includes energy used at rest during the entered time.",
+			},
+		],
+		calculate: (v) => {
+			const steps = Math.max(0, n(v, "steps", 0));
+			const mode = option(v, "stepLengthMode", "direct");
+			let stepLengthMeters = 0;
+			if (mode === "measured") {
+				const measuredDistance = n(v, "calibrationDistance", 0);
+				const measuredSteps = n(v, "calibrationSteps", 0);
+				const meters =
+					option(v, "calibrationUnit", "ft") === "m"
+						? measuredDistance
+						: measuredDistance * 0.3048;
+				if (measuredDistance > 0 && measuredSteps > 0)
+					stepLengthMeters = meters / measuredSteps;
+			} else {
+				const enteredLength = n(v, "stepLength", 0);
+				stepLengthMeters =
+					option(v, "stepUnit", "in") === "cm"
+						? enteredLength / 100
+						: enteredLength * 0.0254;
+			}
+			if (stepLengthMeters <= 0)
+				return {
+					distanceMiles:
+						"Enter a positive step length or a measured distance and step count.",
+					distanceKm:
+						"Enter a positive step length or a measured distance and step count.",
+					stepLengthUsed: "—",
+					calories: "Add a step length before estimating distance.",
+				};
+			const distanceMeters = steps * stepLengthMeters;
+			const weight = n(v, "bodyWeight", 0);
+			const minutes = n(v, "walkingMinutes", 0);
+			const weightKg =
+				option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
+			const met = Number(option(v, "walkingIntensity", "3.8"));
+			const calories =
+				weightKg > 0 && minutes > 0 && met > 0
+					? `${Math.round((met * weightKg * minutes) / 60).toLocaleString("en-US")} kcal`
+					: "Add body weight and walking time for a MET-based estimate.";
+			return {
+				distanceMiles: `${round(distanceMeters / 1609.344, 2)} mi`,
+				distanceKm: `${round(distanceMeters / 1000, 2)} km`,
+				stepLengthUsed: `${round(stepLengthMeters / 0.0254, 1)} in per step (${round(stepLengthMeters * 100, 1)} cm)`,
+				calories,
+			};
+		},
+		howItWorks: [
+			"Enter the distance covered by one foot placement, or measure a known path and divide its distance by the steps you counted. Do not enter a two-step stride as a step length.",
+			"Distance equals step count × step length. The calculator converts your input to miles and kilometers using exact length-unit factors.",
+			"Calories are optional: enter body weight, actual walking minutes, and the closest listed level-walking intensity. The 2024 Adult Compendium defines 1 MET as about 1 kcal per kg per hour; this estimate uses MET × kilograms × hours and includes resting energy.",
+		],
+		example: {
+			title: "A measured one-mile walk",
+			inputs: "2,112 steps at 30 inches per step",
+			result:
+				"About 1.00 mile (1.61 km). A calorie estimate appears only when body weight and walking time are entered.",
+		},
+		faqs: [
+			{
+				question: "How do I find my step length?",
+				answer:
+					"Walk a measured, flat distance at your usual pace and count each foot placement. Divide the distance by that count. For a better personal estimate, repeat the measurement and average the results.",
+			},
+			{
+				question: "Is step length the same as stride length?",
+				answer:
+					"No. Step length is the distance for one foot placement. Stride length usually covers two steps, so entering a full stride here would roughly double the distance.",
+			},
+			{
+				question: "How are walking calories estimated?",
+				answer:
+					"The optional estimate requires your weight, walking duration, and a selected walking MET value from the 2024 Adult Compendium. It does not multiply steps by a universal calories-per-step factor; actual energy use varies by person and conditions.",
+			},
+			{
+				question: "Are the results exact?",
+				answer:
+					"No. Distance depends on the step length you enter or measure. The optional calorie result is a gross population-level estimate, not an individual measurement or medical advice.",
+			},
+		],
+		sources: [
+			{
+				label:
+					"2024 Adult Compendium of Physical Activities, Walking MET values",
+				url: "https://pacompendium.com/walking/",
+			},
+			{
+				label:
+					"Compendium of Physical Activities, MET definition and conversion",
+				url: "https://pacompendium.com/",
+			},
+		],
+		seo: {
+			title:
+				"Walking Steps Calculator: Steps to Miles and Kilometers | CalcForged",
+			description:
+				"Estimate walking distance from steps using your measured step length, with an optional sourced MET-based calorie estimate.",
+			h1: "Walking steps to distance calculator",
+			intro:
+				"Turn a step count into an estimated distance using your own step length, or calculate it from a measured walk. Add your body weight, walking time, and a matching Compendium pace only if you want the optional calorie estimate. Step length varies, and the calorie result is a rough gross-energy estimate, not a personal measurement.",
+		},
+		related: ["length-converter", "calorie-tdee", "bmi"],
+	},
+	{
+		slug: "calorie-tdee",
+		name: "Calorie and TDEE Calculator",
+		category: "Health",
+		categorySlug: "health",
+		icon: "◉",
+		description:
+			"Estimate resting energy expenditure and total daily energy expenditure with Mifflin–St Jeor.",
+		fields: [
+			{
+				key: "weight",
+				label: "Body weight",
+				type: "number",
+				min: 0.1,
+				max: 1000,
+				step: 0.1,
+				defaultValue: "",
+			},
+			{
+				key: "weightUnit",
+				label: "Weight unit",
+				type: "select",
+				defaultValue: "lb",
+				options: [
+					{ label: "Pounds (lb)", value: "lb" },
+					{ label: "Kilograms (kg)", value: "kg" },
+				],
+			},
+			{
+				key: "height",
+				label: "Height",
+				type: "number",
+				min: 0.1,
+				max: 300,
+				step: 0.1,
+				defaultValue: "",
+			},
+			{
+				key: "heightUnit",
+				label: "Height unit",
+				type: "select",
+				defaultValue: "in",
+				options: [
+					{ label: "Inches", value: "in" },
+					{ label: "Centimeters (cm)", value: "cm" },
+				],
+			},
+			{
+				key: "age",
+				label: "Age in years (study sample: 19–78)",
+				type: "number",
+				min: 19,
+				max: 78,
+				step: 1,
+				defaultValue: "",
+			},
+			{
+				key: "equationConstant",
+				label: "Equation constant from the source study",
+				type: "select",
+				defaultValue: "",
+				options: [
+					{ label: "Choose an equation constant", value: "" },
+					{ label: "Female equation (−161)", value: "female" },
+					{ label: "Male equation (+5)", value: "male" },
+				],
+				help: "The original model used two study categories; this constant is not a personalized gender assessment.",
+			},
+			{
+				key: "activityFactor",
+				label: "Activity assumption",
+				type: "select",
+				defaultValue: "",
+				options: TDEE_ACTIVITY_OPTIONS,
+				help: "These broad multipliers are assumptions, not a measured activity score.",
+			},
+		],
+		results: [
+			{
+				key: "resting",
+				label: "Estimated resting energy",
+				format: "text",
+				estimate: true,
+			},
+			{
+				key: "tdee",
+				label: "Estimated total daily energy",
+				format: "text",
+				estimate: true,
+			},
+			{ key: "activity", label: "Activity adjustment used", format: "text" },
+		],
+		calculate: (v) => {
+			const weight = n(v, "weight", 0);
+			const height = n(v, "height", 0);
+			const age = n(v, "age", 0);
+			const equation = option(v, "equationConstant", "");
+			const activityFactor = Number(option(v, "activityFactor", ""));
+			if (age > 0 && (age < 19 || age > 78))
+				return {
+					resting:
+						"The source study's adult sample was ages 19–78; no estimate is shown outside that range.",
+					tdee: "The source study's adult sample was ages 19–78; no estimate is shown outside that range.",
+					activity: "—",
+				};
+			if (
+				weight <= 0 ||
+				height <= 0 ||
+				age <= 0 ||
+				!["male", "female"].includes(equation)
+			)
+				return {
+					resting: "Enter weight, height, age, and the equation constant.",
+					tdee: "Enter those details and choose an activity assumption.",
+					activity: "Choose an activity assumption.",
+				};
+			if (!TDEE_ACTIVITY_LABELS[String(activityFactor)])
+				return {
+					resting: "Complete the inputs to calculate an estimate.",
+					tdee: "Choose an activity assumption to estimate daily energy.",
+					activity: "Choose an activity assumption.",
+				};
+			const weightKg =
+				option(v, "weightUnit", "lb") === "lb" ? weight * 0.45359237 : weight;
+			const heightCm =
+				option(v, "heightUnit", "in") === "in" ? height * 2.54 : height;
+			const constant = equation === "male" ? 5 : -161;
+			const resting = 10 * weightKg + 6.25 * heightCm - 5 * age + constant;
+			const tdee = resting * activityFactor;
+			const activity = TDEE_ACTIVITY_LABELS[String(activityFactor)];
+			return {
+				resting: `${Math.round(resting).toLocaleString("en-US")} kcal/day`,
+				tdee: `${Math.round(tdee).toLocaleString("en-US")} kcal/day`,
+				activity: `×${activityFactor} (${activity})`,
+			};
+		},
+		howItWorks: [
+			"Mifflin–St Jeor estimates resting energy: 10 × weight in kg + 6.25 × height in cm − 5 × age, then add 5 for the male equation or subtract 161 for the female equation.",
+			"To estimate total daily energy expenditure (TDEE), multiply resting energy by the selected activity factor: 1.2, 1.375, 1.55, 1.725, or 1.9.",
+			"US weights and heights are converted to kilograms and centimeters first. Results are rounded to whole kcal/day; the activity factor and equation are broad assumptions, not personal measurements.",
+		],
+		example: {
+			title: "70 kg, 175 cm, age 30",
+			inputs: "Male equation (+5), moderately active (×1.55)",
+			result:
+				"About 1,649 kcal/day resting energy and 2,556 kcal/day estimated TDEE.",
+		},
+		faqs: [
+			{
+				question: "What equation does this use?",
+				answer:
+					"The calculator uses the Mifflin–St Jeor predictive equation for resting energy expenditure, then multiplies by a selected activity factor to estimate TDEE.",
+			},
+			{
+				question: "What do the activity factors mean?",
+				answer:
+					"They are broad labels from a common clinical calculation: sedentary ×1.2, lightly active ×1.375, moderately active ×1.55, active ×1.725, and very active ×1.9. They do not measure your daily activity.",
+			},
+			{
+				question: "Is this a calorie target or medical advice?",
+				answer:
+					"No. TDEE is an estimate of energy expenditure, not a prescribed intake, diagnosis, or medically personalized calorie target. Individual needs can differ from an equation estimate; ask a qualified health professional for personal guidance.",
+			},
+			{
+				question: "Who was the equation studied on?",
+				answer:
+					"The original study derived the equation from 498 healthy adults ages 19–78. Results can differ for individuals and for people outside that study population.",
+			},
+		],
+		sources: [
+			{
+				label: "Mifflin et al. (1990), original study on PubMed",
+				url: "https://pubmed.ncbi.nlm.nih.gov/2305711/",
+			},
+			{
+				label: "Medscape, Mifflin–St Jeor equation and activity factors",
+				url: "https://reference.medscape.com/calculator/846/mifflin-st-jeor-equation-calculator",
+			},
+		],
+		seo: {
+			title: "Calorie and TDEE Calculator: Mifflin–St Jeor | CalcForged",
+			description:
+				"Estimate resting energy and TDEE from Mifflin–St Jeor with clear activity multipliers and unit conversions.",
+			h1: "Calorie and TDEE calculator",
+			intro:
+				"Estimate resting energy with Mifflin–St Jeor, then apply a selected activity factor for a rough TDEE. Choose the source-study equation constant and a broad activity assumption. Results are general estimates, not prescribed calorie targets, diagnoses, or personalized medical guidance.",
+		},
+		related: ["bmi", "weight-converter", "walking-steps"],
+	},
+	{
+		slug: "pregnancy-due-date",
+		name: "Pregnancy Due Date Calculator",
+		category: "Health",
+		categorySlug: "health",
+		icon: "◷",
+		description:
+			"Estimate a due date from your last period or conception date.",
+		fields: [
+			{
+				key: "method",
+				label: "Start from",
+				type: "select",
+				defaultValue: "lmp",
+				options: [
+					{ label: "First day of last period", value: "lmp" },
+					{ label: "Conception date", value: "conception" },
+				],
+			},
+			{ key: "date", label: "Date", type: "text", help: "YYYY-MM-DD" },
+			{
+				key: "cycle",
+				label: "Average cycle length",
+				type: "number",
+				unit: "days",
+				min: 20,
+				max: 45,
+				defaultValue: 28,
+			},
+			{
+				key: "asOf",
+				label: "Show progress as of",
+				type: "text",
+				defaultToday: true,
+				help: "Leave blank and today fills in automatically",
+			},
+		],
+		results: [
+			{
+				key: "dueDate",
+				label: "Estimated due date",
+				format: "text",
+				estimate: true,
+			},
+			{
+				key: "conceptionDate",
+				label: "Estimated conception",
+				format: "text",
+				estimate: true,
+			},
+			{
+				key: "progress",
+				label: "Progress on the date above",
+				format: "text",
+				estimate: true,
+			},
+			{ key: "trimester", label: "Trimester on that date", format: "text" },
+		],
+		calculate: (v) => {
+			const start = parseYmd(String(v.date ?? ""));
+			if (!start)
+				return {
+					dueDate: "Enter a valid date (YYYY-MM-DD)",
+					conceptionDate: "—",
+					progress: "—",
+					trimester: "—",
+				};
+			const method = option(v, "method", "lmp");
+			const cycleAdjust = method === "lmp" ? n(v, "cycle", 28) - 28 : 0;
+			const conception =
+				method === "lmp" ? addDaysUtc(start, 14 + cycleAdjust) : start;
+			const due = addDaysUtc(conception, 266);
+			const asOf = parseYmd(String(v.asOf ?? ""));
+			if (!asOf)
+				return {
+					dueDate: fmtDate(due),
+					conceptionDate: fmtDate(conception),
+					progress: "—",
+					trimester: "—",
+				};
+			const days = Math.floor((asOf.getTime() - start.getTime()) / 86400000);
+			if (days < 0)
+				return {
+					dueDate: fmtDate(due),
+					conceptionDate: fmtDate(conception),
+					progress: `Cycle day ${days + 280 > 0 ? Math.max(1, days + 281) : 1}`,
+					trimester: "—",
+				};
+			const weeks = Math.floor(days / 7);
+			const remainder = days % 7;
+			const trimester =
+				weeks < 13
+					? "First trimester"
+					: weeks < 27
+						? "Second trimester"
+						: "Third trimester";
+			return {
+				dueDate: fmtDate(due),
+				conceptionDate: fmtDate(conception),
+				progress:
+					weeks > 42
+						? "Past 42 weeks — speak with your provider"
+						: `${weeks} weeks, ${remainder} days pregnant`,
+				trimester,
+			};
+		},
+		howItWorks: [
+			"From the first day of your last period, the estimate adds 280 days, adjusted by your average cycle length (Naegele's rule).",
+			"From a known or estimated conception date, it adds 266 days.",
+			"Progress counts completed weeks and days from the start date to the date shown, using standard obstetric counting.",
+		],
+		example: {
+			title: "Last period June 1",
+			inputs: "LMP June 1, 28-day cycle",
+			result:
+				"Estimated due date around March 8, with conception near June 15.",
+		},
+		faqs: [
+			{
+				question: "How accurate is a due date estimate?",
+				answer:
+					"Only a small share of babies arrive on their estimated date; most arrive within a window about two weeks either side. An early ultrasound is the most accurate dating method.",
+			},
+			{
+				question: "Why does cycle length change the estimate?",
+				answer:
+					"The 280-day rule assumes ovulation on day 14. If your cycles run longer or shorter, ovulation likely shifted, so the estimate moves with it.",
+			},
+			{
+				question: "Why is progress counted from the last period?",
+				answer:
+					"Pregnancy age is conventionally counted from the first day of the last menstrual period, which is about two weeks before conception.",
+			},
+			{
+				question: "Is this medical advice?",
+				answer:
+					"No. This is a planning estimate. Your prenatal provider will confirm dating with measurements and adjust as needed.",
+			},
+		],
+		seo: {
+			title: "Pregnancy Due Date Calculator – Estimate Your Date | CalcForged",
+			description:
+				"Estimate a due date from the first day of your last period or a conception date, with progress and trimester.",
+			h1: "Pregnancy due date calculator",
+			intro:
+				"An estimated due date gives a pregnancy its shape: appointments, planning, and the finish line. Enter the first day of your last menstrual period — or a known conception date — and your average cycle length. The calculator applies the standard obstetric rules (280 days from the last period, adjusted for cycle length, or 266 days from conception), estimates the conception window, and shows how many weeks along the pregnancy is as of today. Every estimate is a midpoint, not a deadline; most babies arrive within about two weeks of the date.",
+		},
+		related: ["bmi", "age", "time-zone"],
+	},
+	{
+		slug: "currency-converter",
+		name: "Currency Converter",
+		category: "Travel",
+		categorySlug: "travel",
+		icon: "⇄",
+		description:
+			"Convert between major world currencies using live exchange rates.",
+		liveRates: true,
+		fields: [
+			{
+				key: "amount",
+				label: "Amount",
+				type: "number",
+				min: 0,
+				step: 0.01,
+				defaultValue: 100,
+			},
+			{
+				key: "from",
+				label: "From currency",
+				type: "select",
+				defaultValue: "USD",
+				options: CURRENCIES,
+			},
+			{
+				key: "to",
+				label: "To currency",
+				type: "select",
+				defaultValue: "EUR",
+				options: CURRENCIES,
+			},
+		],
+		results: [
+			{
+				key: "converted",
+				label: "Converted amount",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "rate", label: "Exchange rate", format: "text" },
+			{ key: "inverse", label: "Inverse rate", format: "text" },
+			{ key: "source", label: "Rate source", format: "text" },
+		],
+		calculate: (v) => {
+			const amount = n(v, "amount", 100);
+			const from = option(v, "from", "USD");
+			const to = option(v, "to", "EUR");
+			let rates = FALLBACK_RATES;
+			let source = "Built-in snapshot — live rates unavailable";
+			try {
+				const parsed = JSON.parse(String(v.__rates ?? "")) as {
+					rates?: Record<string, number>;
+					date?: string;
+				};
+				if (parsed?.rates && Object.keys(parsed.rates).length > 5) {
+					rates = parsed.rates;
+					source = `Live European Central Bank reference rates${parsed.date ? ` · ${parsed.date}` : ""}`;
+				}
+			} catch {
+				/* fallback stands */
+			}
+			const rate =
+				(rates[to] ?? FALLBACK_RATES[to]) /
+				(rates[from] ?? FALLBACK_RATES[from]);
+			return {
+				converted: round(amount * rate, 2),
+				rate: `1 ${from} = ${round(rate, 4)} ${to}`,
+				inverse: `1 ${to} = ${round(1 / rate, 4)} ${from}`,
+				source,
+			};
+		},
+		howItWorks: [
+			"The converter pulls the latest reference rates when the page loads and refreshes them each visit.",
+			"Cross rates are derived from each currency's rate against the US dollar.",
+			"If the rate service can't be reached, a built-in snapshot is used and the source line says so.",
+		],
+		example: {
+			title: "$100 to euros",
+			inputs: "100 USD to EUR at 0.92",
+			result: "About €92.00, with the inverse rate shown for the trip home.",
+		},
+		faqs: [
+			{
+				question: "How current are these rates?",
+				answer:
+					"When live rates load, they're the latest European Central Bank reference rates, updated each business day. The source line shows the rate date.",
+			},
+			{
+				question: "Will I get this rate at the airport?",
+				answer:
+					"Almost never. Banks, cards, and exchange kiosks add a margin on top of the mid-market rate, so expect a few percent worse in practice.",
+			},
+			{
+				question: "Which cards give the best conversion?",
+				answer:
+					"Many travel-friendly cards convert close to the mid-market rate with no foreign transaction fee — usually far better than cash exchange kiosks.",
+			},
+			{
+				question: "What does the inverse rate mean?",
+				answer:
+					"It's the reverse conversion, so you can sanity-check prices in both directions without flipping the calculator around.",
+			},
+		],
+		seo: {
+			title: "Currency Converter – Live Exchange Rates | CalcForged",
+			description:
+				"Convert between USD, EUR, GBP, JPY, and more with live reference rates and inverse rates.",
+			h1: "Currency converter",
+			intro:
+				"Whether you're pricing a hotel or checking a receipt from a trip, this converter translates between ten major currencies using live central-bank reference rates, loaded fresh each visit. Enter an amount, pick the two currencies, and see the converted result plus the exact exchange rate and its inverse. The rate you're shown is the mid-market reference — the honest baseline — while banks and exchange services add their own margin on top, so budget a few percent worse for real-world transactions.",
+		},
+		related: ["time-zone", "tip", "percentage"],
+	},
+	{
+		slug: "time-zone",
+		name: "Time Zone Calculator",
+		category: "Travel",
+		categorySlug: "travel",
+		icon: "◷",
+		description:
+			"Convert a time between two cities and see the gap and day shift.",
+		fields: [
+			{
+				key: "date",
+				label: "Date",
+				type: "text",
+				defaultToday: true,
+				help: "YYYY-MM-DD — leave blank for today",
+			},
+			{
+				key: "time",
+				label: "Time to convert",
+				type: "text",
+				help: "24-hour clock, e.g. 14:30",
+				defaultValue: "14:30",
+			},
+			{
+				key: "fromZone",
+				label: "From",
+				type: "select",
+				defaultValue: "America/New_York",
+				options: ZONES,
+			},
+			{
+				key: "toZone",
+				label: "To",
+				type: "select",
+				defaultValue: "Asia/Tokyo",
+				options: ZONES,
+			},
+		],
+		results: [
+			{ key: "converted", label: "Time there", format: "text" },
+			{ key: "difference", label: "Time difference", format: "text" },
+			{ key: "dayShift", label: "Day", format: "text" },
+		],
+		calculate: (v) => {
+			const from = option(v, "fromZone", "America/New_York");
+			const to = option(v, "toZone", "Asia/Tokyo");
+			const dateStr = String(v.date ?? "").trim();
+			const timeStr = String(v.time ?? "").trim();
+			const utc = zonedToUtc(dateStr || "2000-01-01", timeStr || "12:00", from);
+			if (!utc)
+				return {
+					converted: "Enter a time like 14:30 and a date like 2026-01-31",
+					difference: "—",
+					dayShift: "—",
+				};
+			const stamp = zoneStamp(utc, to);
+			const difference =
+				from === to
+					? "Same time zone"
+					: `${zoneDiffLabel(from, to, utc)} relative to the starting zone`;
+			const convertedDay = new Intl.DateTimeFormat("en-CA", {
+				timeZone: to,
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+			}).format(utc);
+			const startDay = parseYmd(dateStr);
+			const dayShift = startDay
+				? convertedDay === dateStr
+					? "Same day"
+					: convertedDay > dateStr
+						? "Next day"
+						: "Previous day"
+				: "—";
+			return { converted: stamp, difference, dayShift };
+		},
+		howItWorks: [
+			"Your entered time is interpreted in the starting zone, including daylight saving rules for that exact date.",
+			"The instant is then displayed in the destination zone using its own DST rules.",
+			"The difference and day shift are calculated for the specific date, so crossings near a DST change stay correct.",
+		],
+		example: {
+			title: "2:30 PM New York to Tokyo",
+			inputs: "Any weekday, 14:30 ET → Asia/Tokyo",
+			result:
+				"About 3:30 AM the next day in Tokyo, 13–14 hours ahead depending on DST.",
+		},
+		faqs: [
+			{
+				question: "Why does the difference change during the year?",
+				answer:
+					"Daylight saving starts and ends on different dates in different countries, so the gap between two zones can shift by an hour for part of the year. This tool uses the exact date you enter.",
+			},
+			{
+				question: "Does it handle half-hour zones?",
+				answer:
+					"Yes. Zones like India (UTC+5:30) are shown with their exact minute offsets.",
+			},
+			{
+				question: "What time format should I enter?",
+				answer:
+					"24-hour time, like 09:00 or 21:45. The result is shown in 12-hour format with AM/PM.",
+			},
+			{
+				question: "Is this good for scheduling calls?",
+				answer:
+					"Yes — enter the time you want to meet in your zone and read what it becomes for the other person, including whether it lands on their next day.",
+			},
+		],
+		seo: {
+			title: "Time Zone Calculator – Convert Time Between Cities | CalcForged",
+			description:
+				"Convert times between world cities with daylight-saving-aware results and the exact hour difference.",
+			h1: "Time zone calculator",
+			intro:
+				"Scheduling across time zones goes wrong in two ways: an hour lost to daylight saving, or a meeting that lands on someone's next day. This converter takes a date and time in one zone and shows exactly when it lands in another, with the precise hour difference and any day shift. It uses each zone's real daylight-saving rules for the date you enter, handles half-hour offsets like India, and covers 19 major zones from Honolulu to Auckland — enough for scheduling calls, flights, and launches.",
+		},
+		related: ["currency-converter", "age", "percentage"],
+	},
+	{
+		slug: "percentage",
+		name: "Percentage Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "%",
+		description:
+			"Find a percentage of a number, a share of a whole, or the change between two values.",
+		fields: [
+			{
+				key: "mode",
+				label: "What do you need?",
+				type: "select",
+				defaultValue: "of",
+				options: [
+					{ label: "X% of Y — e.g. 15% of 200", value: "of" },
+					{ label: "X is what % of Y — e.g. 30 of 200", value: "share" },
+					{ label: "% change from X to Y — e.g. 80 → 100", value: "change" },
+				],
+			},
+			{ key: "x", label: "X", type: "number", step: 0.01, defaultValue: 15 },
+			{ key: "y", label: "Y", type: "number", step: 0.01, defaultValue: 200 },
+		],
+		results: [
+			{ key: "result", label: "Result", format: "number" },
+			{ key: "formula", label: "What was computed", format: "text" },
+		],
+		calculate: (v) => {
+			const x = n(v, "x", 15);
+			const y = n(v, "y", 200);
+			const mode = option(v, "mode", "of");
+			if (mode === "share")
+				return {
+					result: y === 0 ? "—" : round((x / y) * 100, 2),
+					formula: `${x} ÷ ${y} × 100 — X as a share of Y`,
+				};
+			if (mode === "change")
+				return {
+					result: x === 0 ? "—" : round(((y - x) / Math.abs(x)) * 100, 2),
+					formula: `(${y} − ${x}) ÷ ${Math.abs(x)} × 100 — change from X to Y`,
+				};
+			return {
+				result: round((x / 100) * y, 2),
+				formula: `${x}% × ${y} — X percent of Y`,
+			};
+		},
+		howItWorks: [
+			"Pick the mode first — the same two numbers mean different things in each mode.",
+			"X% of Y multiplies; X as a share of Y divides; percent change divides the difference by the starting value.",
+			"Percent change is negative when the value falls and uses the absolute starting value as its base.",
+		],
+		example: {
+			title: "Tip on a discount",
+			inputs: "15% of 200",
+			result: "30.",
+		},
+		faqs: [
+			{
+				question: "How do I calculate a discount?",
+				answer:
+					"Use X% of Y to get the discount amount, then subtract it from the price. For a $80 item at 25% off, the discount is $20 and the price is $60.",
+			},
+			{
+				question: "How do I add a percentage, like tax or tip?",
+				answer:
+					"Use % change from X to Y in reverse, or simply compute X% of Y and add it. A 15% tip on $60 is $9, so pay $69.",
+			},
+			{
+				question: "Why is my percent change negative?",
+				answer:
+					"The value went down. A drop from 100 to 80 is −20%, calculated against the original 100.",
+			},
+			{
+				question:
+					"What's the difference between percent and percentage points?",
+				answer:
+					"Going from 10% to 15% is a 5 percentage-point rise, but a 50% relative change. This calculator computes the relative change.",
+			},
+		],
+		seo: {
+			title: "Percentage Calculator – Discounts, Shares & Change | CalcForged",
+			description:
+				"Calculate X% of a number, compare one value as a share of another, or find percent change. Use it for discounts, tax, and tips, with each formula shown.",
+			h1: "Percentage calculator",
+			intro:
+				"Percentages trip people up because the same two numbers can answer three different questions: what is 15% of 200, what share of 200 is 30, and how much did 80 change to become 100. Pick the question, enter two numbers, and get the answer with the exact formula shown beside it. This covers discounts, tax, tips, grade shares, price increases, and the percentage-point versus percent-change distinction that catches so many people out.",
+		},
+		related: ["tip", "weight-converter", "square-root-cube-root"],
+	},
+	{
+		slug: "weight-converter",
+		name: "Weight Converter",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "⇄",
+		description: "Convert between pounds, kilograms, ounces, grams, and stone.",
+		fields: [
+			{
+				key: "weight",
+				label: "Weight",
+				type: "number",
+				min: 0,
+				step: 0.01,
+				defaultValue: 150,
+			},
+			{
+				key: "from",
+				label: "From unit",
+				type: "select",
+				defaultValue: "lb",
+				options: [
+					{ label: "Pounds (lb)", value: "lb" },
+					{ label: "Kilograms (kg)", value: "kg" },
+					{ label: "Ounces (oz)", value: "oz" },
+					{ label: "Grams (g)", value: "g" },
+					{ label: "Stone (st)", value: "st" },
+				],
+			},
+			{
+				key: "to",
+				label: "To unit",
+				type: "select",
+				defaultValue: "kg",
+				options: [
+					{ label: "Pounds (lb)", value: "lb" },
+					{ label: "Kilograms (kg)", value: "kg" },
+					{ label: "Ounces (oz)", value: "oz" },
+					{ label: "Grams (g)", value: "g" },
+					{ label: "Stone (st)", value: "st" },
+				],
+			},
+		],
+		results: [
+			{ key: "converted", label: "Converted weight", format: "number" },
+			{ key: "all", label: "In every unit", format: "text" },
+		],
+		calculate: (v) => {
+			const weight = n(v, "weight", 150);
+			const from = option(v, "from", "lb");
+			const to = option(v, "to", "kg");
+			const kg: Record<string, number> = {
+				lb: 0.45359237,
+				kg: 1,
+				oz: 0.028349523125,
+				g: 0.001,
+				st: 6.35029318,
+			};
+			const inKg = weight * kg[from];
+			const display = (unit: string) => {
+				const value = inKg / kg[unit];
+				return `${round(value, value < 10 ? 3 : 2)} ${unit}`;
+			};
+			return {
+				converted: round(inKg / kg[to], 4),
+				all: (["lb", "kg", "oz", "g", "st"] as const).map(display).join("\n"),
+			};
+		},
+		howItWorks: [
+			"The entered weight is converted to kilograms using exact standard factors.",
+			"Kilograms are then converted to your chosen target unit.",
+			"The full conversion table shows the same weight in all five units at once.",
+		],
+		example: {
+			title: "150 lb in kilograms",
+			inputs: "150 lb → kg",
+			result:
+				"About 68.04 kg — and the table shows ounces, grams, and stone too.",
+		},
+		faqs: [
+			{
+				question: "How many pounds is a kilogram?",
+				answer:
+					"One kilogram is about 2.2046 pounds. For quick mental math, multiply kilograms by 2.2.",
+			},
+			{
+				question: "What is stone, and who uses it?",
+				answer:
+					"A stone is 14 pounds, commonly used for body weight in the UK and Ireland.",
+			},
+			{
+				question: "How precise are the conversions?",
+				answer:
+					"The factors are exact by definition where possible (pound, ounce, gram); results are rounded for display but computed from full precision.",
+			},
+			{
+				question: "Does this work for cooking measurements?",
+				answer:
+					"Yes for weight — ounces and grams here are units of mass. Fluid ounces measure volume and are not interchangeable.",
+			},
+		],
+		seo: {
+			title: "Weight Converter – lb, kg, oz, g & stone | CalcForged",
+			description:
+				"Convert weight between pounds, kilograms, ounces, grams, and stone with exact factors.",
+			h1: "Weight converter",
+			intro:
+				"Weight units split awkwardly across the Atlantic: recipes in grams, gym plates in pounds, body weight in stone in the UK. This converter handles all five units with exact standard factors — enter a weight, pick the units, and see the precise conversion plus a table showing the same weight in every unit at once. Useful for travel, shipping, cooking from foreign recipes, and translating a medical form that assumes you think in kilograms.",
+		},
+		related: ["percentage", "bmi", "currency-converter"],
+	},
+	{
+		slug: "length-converter",
+		name: "Length Converter",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "⇄",
+		description:
+			"Convert between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers.",
+		fields: [
+			{
+				key: "length",
+				label: "Length",
+				type: "number",
+				min: 0,
+				step: 0.01,
+				defaultValue: 100,
+			},
+			{
+				key: "from",
+				label: "From unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Inches (in)", value: "in" },
+					{ label: "Feet (ft)", value: "ft" },
+					{ label: "Yards (yd)", value: "yd" },
+					{ label: "Miles (mi)", value: "mi" },
+					{ label: "Millimeters (mm)", value: "mm" },
+					{ label: "Centimeters (cm)", value: "cm" },
+					{ label: "Meters (m)", value: "m" },
+					{ label: "Kilometers (km)", value: "km" },
+				],
+			},
+			{
+				key: "to",
+				label: "To unit",
+				type: "select",
+				defaultValue: "m",
+				options: [
+					{ label: "Inches (in)", value: "in" },
+					{ label: "Feet (ft)", value: "ft" },
+					{ label: "Yards (yd)", value: "yd" },
+					{ label: "Miles (mi)", value: "mi" },
+					{ label: "Millimeters (mm)", value: "mm" },
+					{ label: "Centimeters (cm)", value: "cm" },
+					{ label: "Meters (m)", value: "m" },
+					{ label: "Kilometers (km)", value: "km" },
+				],
+			},
+		],
+		results: [
+			{ key: "converted", label: "Converted length", format: "number" },
+			{ key: "all", label: "In every unit", format: "text" },
+		],
+		calculate: (v) => {
+			const length = n(v, "length", 100);
+			const from = option(v, "from", "ft");
+			const to = option(v, "to", "m");
+			const meters: Record<string, number> = {
+				in: 0.0254,
+				ft: 0.3048,
+				yd: 0.9144,
+				mi: 1609.344,
+				mm: 0.001,
+				cm: 0.01,
+				m: 1,
+				km: 1000,
+			};
+			const inMeters = length * meters[from];
+			const display = (unit: string) => {
+				const value = inMeters / meters[unit];
+				return `${round(value, value < 10 ? 3 : 2)} ${unit}`;
+			};
+			return {
+				converted: round(inMeters / meters[to], 4),
+				all: (["in", "ft", "yd", "mi", "mm", "cm", "m", "km"] as const)
+					.map(display)
+					.join("\n"),
+			};
+		},
+		howItWorks: [
+			"The entered length is converted to meters using exact standard factors.",
+			"Meters are then converted to your chosen target unit.",
+			"The full conversion table shows the same length in all eight units at once.",
+		],
+		example: {
+			title: "100 ft in meters",
+			inputs: "100 ft → m",
+			result:
+				"About 30.48 m — and the table shows inches, yards, and miles too.",
+		},
+		faqs: [
+			{
+				question: "How many feet in a meter?",
+				answer:
+					"One meter is about 3.2808 feet — or, the other way, one foot is exactly 0.3048 meters.",
+			},
+			{
+				question: "How many inches in a mile?",
+				answer:
+					"63,360 inches. The exact standard factors behind this calculator handle that in one step.",
+			},
+			{
+				question: "Are US and imperial units the same?",
+				answer:
+					"Close but not identical: the US survey inch differed by about two parts per million. Since 1959 both countries share the same international inch, which is what this calculator uses.",
+			},
+			{
+				question: "Which unit should I use for a building project?",
+				answer:
+					"Pick the unit your plans and materials are labeled in, and stay in it — converting back and forth mid-project is where mistakes happen.",
+			},
+		],
+		seo: {
+			title:
+				"Length Converter – Inches, Feet, Yards, Miles, mm, cm & Meters | CalcForged",
+			description:
+				"Convert length and distance between inches, feet, yards, miles, millimeters, centimeters, meters, and kilometers — with a full table of every unit.",
+			h1: "Length converter",
+			intro:
+				"Length conversions come up everywhere — a room measured in feet, a part speced in millimeters, a hike listed in kilometers. Enter a length, pick the units, and this converter returns the exact value with a table showing the same length in every unit at once. The factors are exact by definition, so the result is as precise as your measurement.",
+		},
+		related: ["weight-converter", "volume-converter", "percentage"],
+	},
+	{
+		slug: "volume-converter",
+		name: "Volume Converter",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "◉",
+		description:
+			"Convert between fluid ounces, cups, pints, quarts, gallons, milliliters, liters, and spoon measures.",
+		fields: [
+			{
+				key: "volume",
+				label: "Volume",
+				type: "number",
+				min: 0,
+				step: 0.01,
+				defaultValue: 16,
+			},
+			{
+				key: "from",
+				label: "From unit",
+				type: "select",
+				defaultValue: "floz",
+				options: [
+					{ label: "Fluid ounces (fl oz)", value: "floz" },
+					{ label: "Cups (c)", value: "c" },
+					{ label: "Pints (pt)", value: "pt" },
+					{ label: "Quarts (qt)", value: "qt" },
+					{ label: "Gallons (gal)", value: "gal" },
+					{ label: "Tablespoons (tbsp)", value: "tbsp" },
+					{ label: "Teaspoons (tsp)", value: "tsp" },
+					{ label: "Milliliters (ml)", value: "ml" },
+					{ label: "Liters (l)", value: "l" },
+				],
+			},
+			{
+				key: "to",
+				label: "To unit",
+				type: "select",
+				defaultValue: "l",
+				options: [
+					{ label: "Fluid ounces (fl oz)", value: "floz" },
+					{ label: "Cups (c)", value: "c" },
+					{ label: "Pints (pt)", value: "pt" },
+					{ label: "Quarts (qt)", value: "qt" },
+					{ label: "Gallons (gal)", value: "gal" },
+					{ label: "Tablespoons (tbsp)", value: "tbsp" },
+					{ label: "Teaspoons (tsp)", value: "tsp" },
+					{ label: "Milliliters (ml)", value: "ml" },
+					{ label: "Liters (l)", value: "l" },
+				],
+			},
+		],
+		results: [
+			{ key: "converted", label: "Converted volume", format: "number" },
+			{ key: "all", label: "In every unit", format: "text" },
+		],
+		calculate: (v) => {
+			const volume = n(v, "volume", 16);
+			const from = option(v, "from", "floz");
+			const to = option(v, "to", "l");
+			const liters: Record<string, number> = {
+				floz: 0.0295735295625,
+				c: 0.2365882365,
+				pt: 0.473176473,
+				qt: 0.946352946,
+				gal: 3.785411784,
+				tbsp: 0.0147867647813,
+				tsp: 0.00492892159375,
+				ml: 0.001,
+				l: 1,
+			};
+			const inLiters = volume * liters[from];
+			const display = (unit: string) => {
+				const value = inLiters / liters[unit];
+				return `${round(value, value < 10 ? 3 : 2)} ${unit}`;
+			};
+			return {
+				converted: round(inLiters / liters[to], 4),
+				all: (
+					["floz", "c", "pt", "qt", "gal", "tbsp", "tsp", "ml", "l"] as const
+				)
+					.map(display)
+					.join("\n"),
+			};
+		},
+		howItWorks: [
+			"The entered volume is converted to liters using exact US customary factors.",
+			"Liters are then converted to your chosen target unit.",
+			"The full conversion table shows the same volume in all nine units at once.",
+		],
+		example: {
+			title: "16 fl oz in liters",
+			inputs: "16 fl oz → l",
+			result:
+				"About 0.473 liters — and the table shows cups, pints, quarts, and gallons too.",
+		},
+		faqs: [
+			{
+				question: "Is a fluid ounce the same as an ounce?",
+				answer:
+					"No — a fluid ounce measures volume, an ounce measures weight. They only coincide for water. Honey, oil, and flour all weigh different amounts per fluid ounce.",
+			},
+			{
+				question: "Are US and imperial fluid ounces the same?",
+				answer:
+					"No. A US fluid ounce is about 29.6 ml; an imperial one is 28.4 ml, and the imperial gallon is 20% larger than the US gallon. This calculator uses US customary units.",
+			},
+			{
+				question: "How many milliliters in a cup?",
+				answer:
+					"About 237 ml in a US legal measuring cup. Recipes from outside the US often assume a 250 ml metric cup — check which one your recipe means.",
+			},
+			{
+				question: "Why don't grams appear here?",
+				answer:
+					"Grams measure weight, not volume, so converting them depends on the substance — a cup of honey weighs far more than a cup of flour. Use the weight converter for grams.",
+			},
+		],
+		seo: {
+			title:
+				"Volume Converter – fl oz, Cups, Pints, Quarts, Gallons & Liters | CalcForged",
+			description:
+				"Convert volume between fluid ounces, cups, pints, quarts, gallons, tablespoons, teaspoons, milliliters, and liters — with a full table of every unit.",
+			h1: "Volume converter",
+			intro:
+				"Cooking, mixing, and measuring liquids means crossing between US customary and metric units, and the conversions are never round. Enter a volume, pick the units, and this converter returns the exact value with a table showing the same volume in all nine units at once — fluid ounces to liters, cups to milliliters, gallons to everything. The factors are exact US customary definitions, computed at full precision.",
+		},
+		related: ["weight-converter", "length-converter", "recipe-scaling"],
+	},
+	{
+		slug: "tip",
+		name: "Tip Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "%",
+		description:
+			"Work out the tip, the total, and what each person owes — with optional rounding.",
+		fields: [
+			{
+				key: "bill",
+				label: "Bill amount",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 85,
+			},
+			{
+				key: "tipPercent",
+				label: "Tip percentage",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				step: 1,
+				defaultValue: 18,
+			},
+			{
+				key: "split",
+				label: "Split between",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 100,
+				defaultValue: 1,
+			},
+			{
+				key: "roundUp",
+				label: "Round each share",
+				type: "select",
+				defaultValue: "no",
+				options: [
+					{ label: "No rounding", value: "no" },
+					{ label: "Round up to whole dollars", value: "yes" },
+				],
+			},
+		],
+		results: [
+			{ key: "tip", label: "Tip amount", unit: "$", format: "currency" },
+			{ key: "total", label: "Total with tip", unit: "$", format: "currency" },
+			{ key: "perPerson", label: "Per person", unit: "$", format: "currency" },
+			{ key: "note", label: "Rounding note", format: "text" },
+		],
+		calculate: (v) => {
+			const bill = n(v, "bill", 85);
+			const percent = n(v, "tipPercent", 18);
+			const people = Math.max(1, n(v, "split", 1));
+			const tip = (bill * percent) / 100;
+			const total = bill + tip;
+			const perPerson = total / people;
+			if (option(v, "roundUp", "no") === "yes") {
+				const rounded = Math.ceil(perPerson);
+				const adjustedTotal = rounded * people;
+				return {
+					tip: round(adjustedTotal - bill, 2),
+					total: round(adjustedTotal, 2),
+					perPerson: rounded,
+					note: `Each of ${people} pays $${rounded}, putting the effective tip at ${bill ? round(((adjustedTotal - bill) / bill) * 100, 1) : 0}%.`,
+				};
+			}
+			return {
+				tip: round(tip, 2),
+				total: round(total, 2),
+				perPerson: round(perPerson, 2),
+				note: "Turn on rounding to make each share a whole dollar amount.",
+			};
+		},
+		howItWorks: [
+			"The tip is the bill multiplied by your percentage.",
+			"The total is bill plus tip, divided evenly across the number of people.",
+			"With rounding on, each person's share is rounded up to the next whole dollar and the effective tip percentage is recalculated.",
+		],
+		example: {
+			title: "$85 dinner for two",
+			inputs: "18% tip, 2 people, rounded",
+			result: "$51 each, an effective tip of 20%.",
+		},
+		faqs: [
+			{
+				question: "How much should I tip?",
+				answer:
+					"In the US, 15–20% at restaurants is customary, with 20% for great service. Tipping norms differ widely by country and service type.",
+			},
+			{
+				question: "Should I tip on tax?",
+				answer:
+					"Practice varies. Tipping on the pre-tax subtotal is the traditional approach; many people simply tip on the full bill for simplicity.",
+			},
+			{
+				question: "Does rounding overtip?",
+				answer:
+					"Slightly — the note shows the effective percentage so you can see exactly what the rounded shares add up to.",
+			},
+			{
+				question: "What if the bill includes a service charge?",
+				answer:
+					"Large parties often carry an automatic gratuity. If the bill already includes service, an additional tip is optional.",
+			},
+		],
+		seo: {
+			title: "Tip Calculator – Split the Bill | CalcForged",
+			description:
+				"Calculate the tip, total, and per-person share for any bill, with optional dollar rounding.",
+			h1: "Tip calculator",
+			intro:
+				"The check arrives, the table does mental math, and someone always rounds wrong. Enter the bill, choose a tip percentage, and say how many people are splitting; the calculator shows the tip, the total, and each person's share. Turn on rounding and every share becomes a clean whole-dollar amount — with the effective tip percentage shown so you know exactly what the rounding did. Useful at restaurants, for haircuts, taxis, delivery, and any service where the tip is expected.",
+		},
+		related: ["percentage", "currency-converter", "loan"],
+	},
+	{
+		slug: "age",
+		name: "Age Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "◷",
+		description:
+			"Find an exact age in years, months, and days — plus the next birthday.",
+		fields: [
+			{
+				key: "birthDate",
+				label: "Date of birth",
+				type: "text",
+				help: "YYYY-MM-DD",
+			},
+			{
+				key: "asOf",
+				label: "Age on this date",
+				type: "text",
+				defaultToday: true,
+				help: "Leave blank and today fills in automatically",
+			},
+		],
+		results: [
+			{ key: "summary", label: "Exact age", format: "text" },
+			{
+				key: "totalDays",
+				label: "Total days lived",
+				unit: "days",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "nextBirthday",
+				label: "Next birthday in",
+				unit: "days",
+				format: "number",
+			},
+			{ key: "bornOn", label: "Born on a", format: "text" },
+		],
+		calculate: (v) => {
+			const birth = parseYmd(String(v.birthDate ?? ""));
+			const asOf = parseYmd(String(v.asOf ?? ""));
+			if (!birth || !asOf)
+				return {
+					summary: "Enter a birth date like 1990-05-14",
+					totalDays: "—",
+					nextBirthday: "—",
+					bornOn: "—",
+				};
+			if (birth > asOf)
+				return {
+					summary: "That birth date is in the future",
+					totalDays: "—",
+					nextBirthday: "—",
+					bornOn: "—",
+				};
+			let years = asOf.getUTCFullYear() - birth.getUTCFullYear();
+			let months = asOf.getUTCMonth() - birth.getUTCMonth();
+			let days = asOf.getUTCDate() - birth.getUTCDate();
+			if (days < 0) {
+				months -= 1;
+				days += new Date(
+					Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), 0),
+				).getUTCDate();
+			}
+			if (months < 0) {
+				years -= 1;
+				months += 12;
+			}
+			const totalDays = Math.floor(
+				(asOf.getTime() - birth.getTime()) / 86400000,
+			);
+			let next = Date.UTC(
+				asOf.getUTCFullYear(),
+				birth.getUTCMonth(),
+				birth.getUTCDate(),
+			);
+			if (next <= asOf.getTime())
+				next = Date.UTC(
+					asOf.getUTCFullYear() + 1,
+					birth.getUTCMonth(),
+					birth.getUTCDate(),
+				);
+			const bornWeekday = birth.toLocaleDateString("en-US", {
+				timeZone: "UTC",
+				weekday: "long",
+			});
+			return {
+				summary: `${years} years, ${months} months, ${days} days`,
+				totalDays,
+				nextBirthday: Math.round((next - asOf.getTime()) / 86400000),
+				bornOn: bornWeekday,
+			};
+		},
+		howItWorks: [
+			"Years, months, and days are counted calendar-accurately, borrowing days from the previous month when needed.",
+			"Total days is the exact day count between the two dates.",
+			"The next birthday is the upcoming anniversary of the birth date; if today is the birthday, it counts to next year.",
+		],
+		example: {
+			title: "Born May 14, 1990",
+			inputs: "As of January 31, 2026",
+			result: "35 years, 8 months, 17 days — next birthday in 103 days.",
+		},
+		faqs: [
+			{
+				question: "Why do months vary in length?",
+				answer:
+					"Calendar months run 28 to 31 days, so an age in years-months-days depends on which months are involved. The day count is always exact.",
+			},
+			{
+				question: "Can I calculate an age on a past or future date?",
+				answer:
+					"Yes — edit the second date to any day, past or future, and the age is calculated as of that date.",
+			},
+			{
+				question: "Does it handle leap-year birthdays?",
+				answer:
+					"February 29 birthdays are counted on March 1 in non-leap years for the next-birthday result.",
+			},
+			{
+				question: "Why would I need an exact day count?",
+				answer:
+					"Visa and residency applications, insurance forms, and sports age divisions often ask for age in years, months, and days rather than just years.",
+			},
+		],
+		seo: {
+			title: "Age Calculator – Exact Age in Years, Months & Days | CalcForged",
+			description:
+				"Calculate exact age from a birth date, with total days lived, next birthday countdown, and birth weekday.",
+			h1: "Age calculator",
+			intro:
+				'"How old are you" has a simple answer until a form asks for it exactly. Enter a date of birth and this calculator returns the precise age in years, months, and days as of today (or any date you choose), plus the total days lived, a countdown to the next birthday, and the weekday you were born on. Calendar-accurate, including leap years — useful for applications, anniversaries, milestone planning, and settling birthday debates.',
+		},
+		related: ["pregnancy-due-date", "bmi", "percentage"],
+	},
+	{
+		slug: "date",
+		name: "Date Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "◫",
+		description:
+			"Count days between dates or add and subtract days, weeks, months, and years.",
+		fields: [
+			{
+				key: "mode",
+				label: "What do you need?",
+				type: "select",
+				defaultValue: "between",
+				options: [
+					{ label: "Days between dates", value: "between" },
+					{ label: "Add or subtract from a date", value: "adjust" },
+				],
+			},
+			{
+				key: "startDate",
+				label: "Starting date",
+				type: "text",
+				defaultToday: true,
+				help: "Enter a date as YYYY-MM-DD.",
+			},
+			{
+				key: "endDate",
+				label: "Ending date",
+				type: "text",
+				visibleWhen: { key: "mode", values: ["between"] },
+				help: "Enter a date as YYYY-MM-DD.",
+			},
+			{
+				key: "direction",
+				label: "Add or subtract",
+				type: "select",
+				defaultValue: "add",
+				visibleWhen: { key: "mode", values: ["adjust"] },
+				options: [
+					{ label: "Add", value: "add" },
+					{ label: "Subtract", value: "subtract" },
+				],
+			},
+			{
+				key: "amount",
+				label: "How many",
+				type: "number",
+				min: 0,
+				max: 365000,
+				step: 1,
+				defaultValue: 7,
+				visibleWhen: { key: "mode", values: ["adjust"] },
+			},
+			{
+				key: "unit",
+				label: "Unit",
+				type: "select",
+				defaultValue: "days",
+				visibleWhen: { key: "mode", values: ["adjust"] },
+				options: [
+					{ label: "Days", value: "days" },
+					{ label: "Weeks", value: "weeks" },
+					{ label: "Months", value: "months" },
+					{ label: "Years", value: "years" },
+				],
+			},
+		],
+		results: [
+			{ key: "answer", label: "Result", format: "text" },
+			{ key: "breakdown", label: "Breakdown", format: "text" },
+			{ key: "weekday", label: "Weekday", format: "text" },
+		],
+		calculate: (v) => {
+			const mode = option(v, "mode", "between");
+			const start = parseYmd(String(v.startDate ?? "").trim());
+			if (!start)
+				return {
+					answer: "Enter a valid starting date like 2026-10-11",
+					breakdown: "—",
+					weekday: "—",
+				};
+			const weekday = (date: Date) =>
+				date.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" });
+			if (mode === "adjust") {
+				const amount = n(v, "amount", 7);
+				const unit = option(v, "unit", "days");
+				const direction = option(v, "direction", "add");
+				if (
+					!Number.isInteger(amount) ||
+					amount < 0 ||
+					amount > 365000 ||
+					!["days", "weeks", "months", "years"].includes(unit)
+				)
+					return {
+						answer: "Enter a whole number from 0 to 365,000",
+						breakdown: "—",
+						weekday: "—",
+					};
+				const sign = direction === "subtract" ? -1 : 1;
+				let resultDate: Date;
+				if (unit === "days" || unit === "weeks")
+					resultDate = addDaysUtc(
+						start,
+						sign * amount * (unit === "weeks" ? 7 : 1),
+					);
+				else {
+					const monthOffset = sign * amount * (unit === "years" ? 12 : 1);
+					const targetMonth =
+						start.getUTCFullYear() * 12 + start.getUTCMonth() + monthOffset;
+					const year = Math.floor(targetMonth / 12);
+					const month = ((targetMonth % 12) + 12) % 12;
+					if (year < 1000 || year > 9999)
+						return {
+							answer: "That result is outside the supported date range",
+							breakdown: "—",
+							weekday: "—",
+						};
+					const day = Math.min(
+						start.getUTCDate(),
+						new Date(Date.UTC(year, month + 1, 0)).getUTCDate(),
+					);
+					resultDate = new Date(Date.UTC(year, month, day));
+				}
+				if (
+					resultDate.getUTCFullYear() < 1000 ||
+					resultDate.getUTCFullYear() > 9999
+				)
+					return {
+						answer: "That result is outside the supported date range",
+						breakdown: "—",
+						weekday: "—",
+					};
+				const unitLabel = amount === 1 ? unit.slice(0, -1) : unit;
+				const action = sign > 0 ? "added" : "subtracted";
+				return {
+					answer: fmtDate(resultDate),
+					breakdown: `${amount} ${unitLabel} ${action} from ${fmtDate(start)}`,
+					weekday: weekday(resultDate),
+				};
+			}
+			const end = parseYmd(String(v.endDate ?? "").trim());
+			if (!end)
+				return {
+					answer: "Enter a valid ending date like 2026-10-18",
+					breakdown: "—",
+					weekday: "—",
+				};
+			const days = Math.round(
+				Math.abs(end.getTime() - start.getTime()) / 86400000,
+			);
+			const weeks = Math.floor(days / 7);
+			const remainingDays = days % 7;
+			return {
+				answer:
+					days === 0
+						? "Same date"
+						: `${days.toLocaleString("en-US")} calendar days apart`,
+				breakdown: `${weeks} week${weeks === 1 ? "" : "s"} and ${remainingDays} day${remainingDays === 1 ? "" : "s"}`,
+				weekday: `${weekday(start)} to ${weekday(end)}`,
+			};
+		},
+		howItWorks: [
+			"Days between dates are elapsed calendar days: the starting date is day zero, rather than counting both endpoints as full days.",
+			"Adding or subtracting days and weeks uses calendar days. For months and years, the calculator keeps the day number when it exists; if the destination month is shorter, it uses that month's last day.",
+			"The weekday is calculated from the actual calendar date, including leap years. This tool does not remove weekends or public holidays.",
+		],
+		example: {
+			title: "Add one month to January 31",
+			inputs: "Starting date January 31, 2026; add 1 month",
+			result: "February 28, 2026, a Saturday.",
+		},
+		faqs: [
+			{
+				question: "Does the day count include both dates?",
+				answer:
+					"No. It counts elapsed days from the start date to the end date. For example, March 1 to March 2 is 1 elapsed day.",
+			},
+			{
+				question: "What happens when I add one month to a date near month-end?",
+				answer:
+					"If the destination month does not have that day number, the result is the last day of that month. January 31 plus one month becomes February 28, or February 29 in a leap year.",
+			},
+			{
+				question: "Does this count business days?",
+				answer:
+					"No. The difference is in calendar days and includes weekends. Public holidays are not removed.",
+			},
+			{
+				question: "Can I subtract time from a date?",
+				answer:
+					"Yes. Choose Add or subtract from a date, select Subtract, then enter a number of days, weeks, months, or years.",
+			},
+		],
+		seo: {
+			title: "Date Calculator – Days Between Dates & Date Math | CalcForged",
+			description:
+				"Find elapsed days between two dates, or add and subtract days, weeks, months, and years with month-end handling.",
+			h1: "Date calculator",
+			intro:
+				"Count the time between two dates, or move a date forward or back by days, weeks, months, or years. The calculator shows the calendar-day gap, the equivalent weeks and days, and the weekday. Month and year changes handle short months sensibly: adding one month to January 31 lands on the last day of February.",
+		},
+		related: ["age", "pregnancy-due-date", "time"],
+	},
+	{
+		slug: "time",
+		name: "Time Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "◷",
+		description:
+			"Calculate hours between times, subtract breaks, or add and subtract time across midnight.",
+		fields: [
+			{
+				key: "mode",
+				label: "What do you need?",
+				type: "select",
+				defaultValue: "duration",
+				options: [
+					{ label: "Hours between two times", value: "duration" },
+					{ label: "Add or subtract time", value: "adjust" },
+				],
+			},
+			{
+				key: "startTime",
+				label: "Starting time",
+				type: "text",
+				defaultValue: "09:00",
+				help: "Use 24-hour time, such as 09:00 or 21:30.",
+			},
+			{
+				key: "endTime",
+				label: "Ending time",
+				type: "text",
+				defaultValue: "17:00",
+				visibleWhen: { key: "mode", values: ["duration"] },
+				help: "If this is earlier than the start, it is treated as the next day.",
+			},
+			{
+				key: "breakMinutes",
+				label: "Unpaid break",
+				type: "number",
+				unit: "minutes",
+				min: 0,
+				max: 1440,
+				step: 1,
+				defaultValue: 0,
+				visibleWhen: { key: "mode", values: ["duration"] },
+			},
+			{
+				key: "operation",
+				label: "Operation",
+				type: "select",
+				defaultValue: "add",
+				visibleWhen: { key: "mode", values: ["adjust"] },
+				options: [
+					{ label: "Add", value: "add" },
+					{ label: "Subtract", value: "subtract" },
+				],
+			},
+			{
+				key: "hours",
+				label: "Hours",
+				type: "number",
+				min: 0,
+				max: 240,
+				step: 1,
+				defaultValue: 1,
+				visibleWhen: { key: "mode", values: ["adjust"] },
+			},
+			{
+				key: "minutes",
+				label: "Minutes",
+				type: "number",
+				min: 0,
+				max: 59,
+				step: 1,
+				defaultValue: 30,
+				visibleWhen: { key: "mode", values: ["adjust"] },
+			},
+		],
+		results: [
+			{ key: "answer", label: "Result", format: "text" },
+			{ key: "decimalHours", label: "Decimal hours", format: "text" },
+			{ key: "dayShift", label: "Day change", format: "text" },
+			{ key: "details", label: "Calculation", format: "text" },
+		],
+		calculate: (v) => {
+			const mode = option(v, "mode", "duration");
+			const parseTime = (value: string) => {
+				const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
+				return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+			};
+			const formatTime = (minutes: number) => {
+				const hour = Math.floor(minutes / 60) % 24;
+				const minute = minutes % 60;
+				const displayHour = hour % 12 || 12;
+				return `${displayHour}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`;
+			};
+			const formatDuration = (total: number) => {
+				const hours = Math.floor(total / 60);
+				const minutes = total % 60;
+				if (!hours) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+				return minutes
+					? `${hours} hour${hours === 1 ? "" : "s"} and ${minutes} minute${minutes === 1 ? "" : "s"}`
+					: `${hours} hour${hours === 1 ? "" : "s"}`;
+			};
+			const start = parseTime(String(v.startTime ?? ""));
+			if (start === null)
+				return {
+					answer: "Enter a valid time like 09:00 or 21:30",
+					decimalHours: "—",
+					dayShift: "—",
+					details: "Use the 24-hour clock.",
+				};
+			if (mode === "adjust") {
+				const hours = n(v, "hours", 1);
+				const minutes = n(v, "minutes", 30);
+				const operation = option(v, "operation", "add");
+				if (
+					!Number.isInteger(hours) ||
+					hours < 0 ||
+					hours > 240 ||
+					!Number.isInteger(minutes) ||
+					minutes < 0 ||
+					minutes > 59
+				)
+					return {
+						answer: "Enter whole hours from 0 to 240 and minutes from 0 to 59",
+						decimalHours: "—",
+						dayShift: "—",
+						details: "—",
+					};
+				const delta = hours * 60 + minutes;
+				const signed = operation === "subtract" ? -delta : delta;
+				const total = start + signed;
+				const dayShift = Math.floor(total / 1440);
+				const resultTime = ((total % 1440) + 1440) % 1440;
+				const shiftLabel =
+					dayShift === 0
+						? "Same day"
+						: dayShift === 1
+							? "Next day"
+							: dayShift === -1
+								? "Previous day"
+								: dayShift > 1
+									? `${dayShift} days later`
+									: `${Math.abs(dayShift)} days earlier`;
+				return {
+					answer: formatTime(resultTime),
+					decimalHours: "—",
+					dayShift: shiftLabel,
+					details: `${formatDuration(delta)} ${signed < 0 ? "subtracted from" : "added to"} ${formatTime(start)}`,
+				};
+			}
+			const end = parseTime(String(v.endTime ?? ""));
+			if (end === null)
+				return {
+					answer: "Enter a valid ending time like 17:00",
+					decimalHours: "—",
+					dayShift: "—",
+					details: "Use the 24-hour clock.",
+				};
+			let elapsed = end - start;
+			const overnight = elapsed < 0;
+			if (overnight) elapsed += 1440;
+			const breakMinutes = n(v, "breakMinutes", 0);
+			if (
+				!Number.isInteger(breakMinutes) ||
+				breakMinutes < 0 ||
+				breakMinutes > elapsed
+			)
+				return {
+					answer: "The break cannot exceed the time between the two times",
+					decimalHours: "—",
+					dayShift: "—",
+					details: "Check the break length and times.",
+				};
+			const worked = elapsed - breakMinutes;
+			return {
+				answer: formatDuration(worked),
+				decimalHours: `${round(worked / 60, 2)} hours`,
+				dayShift: overnight ? "Ends the next day" : "Same day",
+				details: breakMinutes
+					? `${breakMinutes} unpaid break minutes deducted`
+					: "No break deducted",
+			};
+		},
+		howItWorks: [
+			"For a time span, the ending time is treated as the next day when it is earlier than the starting time. Matching start and end times count as zero hours.",
+			"An unpaid break is subtracted from the elapsed minutes. The result is shown as hours and minutes, plus decimal hours for timesheets or quotes.",
+			"For Add or subtract time, the clock wraps at midnight and the day change is shown separately.",
+		],
+		example: {
+			title: "An overnight shift",
+			inputs: "Start 22:30, end 06:15, with a 30-minute unpaid break",
+			result: "7 hours 15 minutes, or 7.25 decimal hours, ending the next day.",
+		},
+		faqs: [
+			{
+				question: "Does the time calculator handle overnight shifts?",
+				answer:
+					"Yes. If the ending time is earlier than the starting time, it is treated as the next day. If both times match, the duration is zero.",
+			},
+			{
+				question: "How do I subtract a lunch break?",
+				answer:
+					"Enter the unpaid break in minutes. The calculator subtracts it from the elapsed time before showing hours and decimal hours.",
+			},
+			{
+				question: "What are decimal hours?",
+				answer:
+					"Decimal hours express minutes as part of an hour. For example, 30 minutes is 0.5 hours, so 7 hours 30 minutes is 7.5 hours.",
+			},
+			{
+				question: "Can I add time to a clock time?",
+				answer:
+					"Yes. Choose Add or subtract time, enter a starting clock time and the hours and minutes, then choose Add or Subtract. The result shows whether it lands on another day.",
+			},
+		],
+		seo: {
+			title: "Time Calculator – Hours Between Times & Time Math | CalcForged",
+			description:
+				"Calculate hours between times, subtract breaks, or add and subtract time across midnight. See total and decimal hours.",
+			h1: "Time calculator",
+			intro:
+				"Work out the time between two clock times, subtract an unpaid break, or add and subtract hours and minutes from a starting time. Overnight spans are handled automatically, and the result includes decimal hours for timesheets, payroll entries, or job estimates. Enter times in 24-hour format, such as 09:00 or 21:30.",
+		},
+		related: ["date", "time-zone", "age"],
+	},
+	{
+		slug: "gpa",
+		name: "GPA Calculator",
+		category: "Education",
+		categorySlug: "education",
+		icon: "#",
+		description:
+			"Calculate your grade point average from course credits and letter grades.",
+		fields: [
+			{
+				key: "courses",
+				label: "Courses",
+				type: "ingredient-list",
+				ingredientSchema: {
+					first: "Courses",
+					amount: "Credit hours",
+					unit: "Grade",
+					name: "Course",
+					amountPlaceholder: "3",
+					unitPlaceholder: "A",
+					namePlaceholder: "Intro to Biology",
+				},
+				help: "One row per course: credit hours in the amount box and the final grade (A, B+, C− …) in the grade box.",
+			},
+		],
+		results: [
+			{ key: "gpa", label: "Your GPA", format: "number" },
+			{
+				key: "credits",
+				label: "Total credits",
+				unit: "credits",
+				format: "number",
+			},
+			{ key: "qualityPoints", label: "Quality points", format: "number" },
+			{ key: "band", label: "Letter equivalent", format: "text" },
+		],
+		calculate: (v) => {
+			const rows = Array.isArray(v.courses) ? v.courses : [];
+			let credits = 0;
+			let points = 0;
+			let counted = 0;
+			for (const row of rows) {
+				const courseCredits = Number(row.amount) || 0;
+				const grade = (row.unit || "").trim().toUpperCase();
+				const gp = GPA_POINTS[grade];
+				if (!courseCredits || gp === undefined) continue;
+				credits += courseCredits;
+				points += courseCredits * gp;
+				counted += 1;
+			}
+			if (!credits)
+				return {
+					gpa: "—",
+					credits: 0,
+					qualityPoints: 0,
+					band: "Add at least one course with credits and a letter grade",
+				};
+			const gpa = points / credits;
+			const band =
+				gpa >= 3.85
+					? "A"
+					: gpa >= 3.5
+						? "A−"
+						: gpa >= 3.15
+							? "B+"
+							: gpa >= 2.85
+								? "B"
+								: gpa >= 2.5
+									? "B−"
+									: gpa >= 2.15
+										? "C+"
+										: gpa >= 1.85
+											? "C"
+											: gpa >= 1.5
+												? "C−"
+												: gpa >= 1.15
+													? "D+"
+													: gpa >= 0.85
+														? "D"
+														: "F";
+			return {
+				gpa: round(gpa, 2),
+				credits: round(credits, 1),
+				qualityPoints: round(points, 1),
+				band: `${band} average across ${counted} course${counted === 1 ? "" : "s"}`,
+			};
+		},
+		howItWorks: [
+			"Each letter grade is converted to grade points on the standard 4.0 scale (A = 4.0, B+ = 3.3, and so on).",
+			"Quality points are grade points multiplied by credit hours for every course.",
+			"Your GPA is total quality points divided by total credits — weighted exactly the way most registrars calculate it.",
+		],
+		example: {
+			title: "Four-course semester",
+			inputs:
+				"A in a 4-credit course, B+ in 3 credits, B in 3 credits, A− in 2 credits",
+			result: "About 3.52 GPA across 12 credits.",
+		},
+		faqs: [
+			{
+				question: "Which grade scale does this use?",
+				answer:
+					"The common 4.0 scale with plus/minus grades: A = 4.0, A− = 3.7, B+ = 3.3, down to F = 0. If your school uses a different scale, adjust your expectations accordingly.",
+			},
+			{
+				question: "Are pass/fail courses included?",
+				answer:
+					"No — enter only letter-graded courses. Pass/fail credits usually don't affect GPA, though they may count toward enrollment totals.",
+			},
+			{
+				question: "How do I project my semester GPA?",
+				answer:
+					"Enter just this semester's courses. To see a cumulative GPA, add previous courses too, using their actual grades and credits.",
+			},
+			{
+				question: "Why do credits matter so much?",
+				answer:
+					"A 4-credit course moves your GPA more than a 1-credit lab. Credit weighting is exactly why two students with the same grades can have different GPAs.",
+			},
+		],
+		seo: {
+			title: "GPA Calculator – Weighted Grade Point Average | CalcForged",
+			description:
+				"Calculate your GPA on the 4.0 scale from course credits and letter grades, weighted properly.",
+			h1: "GPA calculator",
+			intro:
+				"A GPA isn't an average of grades — it's an average weighted by credit hours, which is why that 4-credit chemistry course matters more than a 1-credit seminar. Add one row per course with its credits and final letter grade, and this calculator converts grades to the standard 4.0 scale, sums the quality points, and divides by total credits. Use it at the end of a semester, to project what final grades will do to your cumulative GPA, or to see exactly what raising one grade is worth.",
+		},
+		related: ["square-root-cube-root", "percentage", "age"],
+	},
+	{
+		slug: "square-root-cube-root",
+		name: "Square Root & Cube Root Calculator",
+		category: "Education",
+		categorySlug: "education",
+		icon: "#",
+		description:
+			"Get square roots, cube roots, and any nth root — with the math shown.",
+		fields: [
+			{
+				key: "value",
+				label: "Number",
+				type: "number",
+				step: "any",
+				defaultValue: 144,
+			},
+			{
+				key: "n",
+				label: "For nth root, use n",
+				type: "number",
+				unit: "n",
+				min: 2,
+				max: 12,
+				step: 1,
+				defaultValue: 4,
+			},
+		],
+		results: [
+			{ key: "sqrt", label: "Square root (√)", format: "number" },
+			{ key: "cbrt", label: "Cube root (∛)", format: "number" },
+			{ key: "nth", label: "nth root", format: "text" },
+			{ key: "check", label: "Check", format: "text" },
+		],
+		calculate: (v) => {
+			const value = n(v, "value", 144);
+			const nth = Math.round(n(v, "n", 4));
+			const sqrtNum = value < 0 ? NaN : Math.sqrt(value);
+			const cbrt = Math.cbrt(value);
+			const nthRoot = (x: number, root: number) =>
+				x < 0 && root % 2 === 0
+					? null
+					: Math.sign(x) * Math.abs(x) ** (1 / root);
+			const nthValue = nthRoot(value, nth);
+			return {
+				sqrt: value < 0 ? "Not a real number" : round(sqrtNum, 6),
+				cbrt: round(cbrt, 6),
+				nth:
+					nthValue === null
+						? `No real ${nth}th root of a negative number`
+						: `ⁿ√ with n = ${nth}: ${round(nthValue, 6)}`,
+				check:
+					value < 0
+						? "Square is negative — no real square root"
+						: Number.isInteger(sqrtNum)
+							? `${sqrtNum} × ${sqrtNum} = ${value}`
+							: `${round(sqrtNum, 4)}² ≈ ${value}`,
+			};
+		},
+		howItWorks: [
+			"The square root is the number that, multiplied by itself, gives your input.",
+			"The cube root handles negatives correctly — ∛−27 is −3 — because odd roots of negatives are real.",
+			"The nth root takes any n from 2 to 12; even roots of negative numbers have no real solution and the result says so.",
+		],
+		example: {
+			title: "144",
+			inputs: "Value 144, n = 4",
+			result: "√144 = 12, ∛144 ≈ 5.24, and the 4th root is ≈ 3.46.",
+		},
+		faqs: [
+			{
+				question: "Why is the square root of a negative number impossible?",
+				answer:
+					"No real number times itself is negative, so even roots of negatives have no real solution — they live in complex numbers, which this calculator doesn't show.",
+			},
+			{
+				question: "How do I estimate a square root mentally?",
+				answer:
+					"Find the nearest perfect squares above and below your number and interpolate. √50 sits between 7 (49) and 8 (64), so around 7.07.",
+			},
+			{
+				question: "What is a principal root?",
+				answer:
+					"Every positive number has two square roots, positive and negative. The √ symbol means the positive one — the principal root — and that's what's shown.",
+			},
+			{
+				question: "When would I need an nth root?",
+				answer:
+					"Geometry and finance both use them: side lengths from areas and volumes, and compound-growth back-solving (the 12th root of a 12-year growth factor gives the annual rate).",
+			},
+		],
+		seo: {
+			title: "Square Root Calculator – With Cube & nth Roots | CalcForged",
+			description:
+				"Calculate square roots, cube roots, and nth roots from 2 to 12, handle negative numbers, and verify answers with a check line that shows the arithmetic.",
+			h1: "Square root and cube root calculator",
+			intro:
+				"Roots come up everywhere: geometry homework, the Pythagorean theorem, standard deviations, and back-solving growth rates. Enter any number and get the square root and cube root instantly, plus any nth root from 2 to 12 with the n of your choice. Negative numbers are handled correctly — odd roots of negatives are real, even roots are flagged rather than silently wrong — and a check line shows the arithmetic so you can trust the answer at a glance.",
+		},
+		related: ["gpa", "percentage", "compound-interest"],
+	},
+	{
+		slug: "wedding-dessert-table",
+		name: "Wedding Dessert Table Calculator",
+		category: "Events",
+		categorySlug: "events",
+		icon: "◒",
+		description:
+			"Plan dessert pieces, cake slices, and variety for a wedding dessert spread.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 1000,
+				defaultValue: 80,
+			},
+			{
+				key: "cakePlan",
+				label: "Cake plan",
+				type: "select",
+				defaultValue: "cake-table",
+				options: [
+					{ label: "Dessert table only (no cake)", value: "none" },
+					{ label: "Cake only", value: "cake" },
+					{ label: "Cake + dessert table", value: "cake-table" },
+				],
+			},
+			{
+				key: "dessertTypes",
+				label: "Dessert types on the table",
+				type: "number",
+				unit: "types",
+				min: 1,
+				max: 12,
+				step: 1,
+				defaultValue: 5,
+			},
+			{
+				key: "portionStyle",
+				label: "Portion style",
+				type: "select",
+				defaultValue: "mini",
+				options: [
+					{ label: "Mini desserts (2 to 3 bites)", value: "mini" },
+					{ label: "Full servings", value: "full" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "totalPieces",
+				label: "Total dessert pieces",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+				interpretation: "Cake slices plus table pieces to prepare.",
+			},
+			{
+				key: "tablePieces",
+				label: "Dessert table pieces",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "perType",
+				label: "Pieces per dessert type",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "guidance",
+				label: "Serving guidance",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 80);
+			const plan = option(v, "cakePlan", "cake-table");
+			const types = Math.max(1, Math.round(n(v, "dessertTypes", 5)));
+			const mini = option(v, "portionStyle", "mini") === "mini";
+			const tablePieces = ceil(
+				guests *
+					(mini
+						? plan === "none"
+							? 3.5
+							: plan === "cake-table"
+								? 2.5
+								: 0
+						: plan === "none"
+							? 1.25
+							: plan === "cake-table"
+								? 0.75
+								: 0),
+			);
+			const cakeSlices =
+				plan === "cake"
+					? ceil(guests)
+					: plan === "cake-table"
+						? ceil(guests * 0.8)
+						: 0;
+			const perType = Math.round(tablePieces / types);
+			const varietyNote =
+				guests < 100
+					? "Four to six dessert types work well under 100 guests."
+					: guests < 150
+						? "Five to seven dessert types suit an event this size."
+						: "Six to eight dessert types give a full table without extra complexity.";
+			const cakeNote =
+				plan === "none"
+					? " With no cake, the table carries the whole dessert course."
+					: plan === "cake"
+						? " With cake as the only dessert, plan a slice for every guest."
+						: " Cake covers most of the dessert need, so the table stays light.";
+			return {
+				totalPieces: tablePieces + cakeSlices,
+				tablePieces,
+				perType,
+				guidance: `${varietyNote}${cakeNote}`,
+			};
+		},
+		howItWorks: [
+			"Cake served on its own is planned at one slice per guest; paired with a dessert table, slices for about 80% of guests are enough because some guests skip a slice.",
+			"Without cake, plan 3 to 4 mini desserts per guest; with cake and a table together, 2 to 3 mini portions per guest cover the gap the cake leaves.",
+			"Table pieces divide evenly across your dessert types, and full servings are planned at roughly a third of the mini count.",
+		],
+		example: {
+			title: "80 guests, cake plus table",
+			inputs: "Cake + dessert table, 5 types, mini desserts",
+			result:
+				"About 64 cake slices and 200 mini desserts — 264 pieces total, roughly 40 pieces per dessert type.",
+		},
+		faqs: [
+			{
+				question: "Do cookies count as dessert pieces?",
+				answer:
+					"Yes. A standard cookie, brownie square, or small tart counts as one mini piece. For very small bites, plan one and a half to two pieces so the tray does not empty early.",
+			},
+			{
+				question: "Mini desserts or full servings?",
+				answer:
+					"Minis let guests sample several things without waste — 3 to 4 mini pieces is roughly one full serving. Full servings suit a seated dessert course where each guest takes one plate.",
+			},
+			{
+				question: "How much cake should I order per guest?",
+				answer:
+					"One slice per serving is the unit. When cake shares the table with other desserts, ordering for about 80% of guests is standard since not everyone takes a slice; when cake is the only dessert, plan a slice for every guest.",
+			},
+			{
+				question: "When can you skip the dessert table?",
+				answer:
+					"Whenever budget or logistics say so. A well-sized cake is a complete dessert course on its own — the table adds variety and visual appeal, not a requirement.",
+			},
+		],
+		seo: {
+			title: "Wedding Dessert Table Calculator – Pieces Per Guest | CalcForged",
+			description:
+				"Plan how many desserts for a wedding: mini pieces per guest, cake slices, and dessert types for the table.",
+			h1: "Wedding dessert table calculator",
+			intro:
+				"A dessert table looks effortless and hides a real question: how many desserts does a wedding actually need? Enter your guest count, whether cake is served, the number of dessert types you want, and whether you are serving minis or full servings. The calculator plans cake slices and table pieces separately, using the portion rules caterers work with — 3 to 4 mini desserts per guest when there is no cake, 2 to 3 when cake is sharing the job, and slices for about 80% of guests when cake and table run together. Use the result as your buying list, then divide it across your dessert types.",
+		},
+		related: [
+			"wedding-food",
+			"catering-food-quantity",
+			"appetizers-per-person",
+		],
+	},
+	{
+		slug: "catering-price-per-person",
+		name: "Catering Price Per Person Calculator",
+		category: "Business",
+		categorySlug: "business",
+		icon: "$",
+		description:
+			"Set a per-person catering charge from food cost, labor, and your target margin.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 5000,
+				defaultValue: 40,
+			},
+			{
+				key: "serviceStyle",
+				label: "Service style",
+				type: "select",
+				defaultValue: "buffet",
+				options: [
+					{ label: "Plated dinner", value: "plated" },
+					{ label: "Buffet", value: "buffet" },
+					{ label: "Cocktail reception", value: "cocktail" },
+					{ label: "Food stations", value: "stations" },
+				],
+			},
+			{
+				key: "foodCost",
+				label: "Food cost per person",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 18,
+			},
+			{
+				key: "pricingBasis",
+				label: "Pricing basis",
+				type: "select",
+				defaultValue: "pct",
+				options: [
+					{ label: "Target food-cost percentage", value: "pct" },
+					{ label: "Labor + overhead added", value: "labor" },
+				],
+			},
+			{
+				key: "targetPct",
+				label: "Target food-cost percentage",
+				type: "number",
+				unit: "%",
+				min: 5,
+				max: 90,
+				defaultValue: 30,
+			},
+			{
+				key: "laborCost",
+				label: "Labor + overhead per person",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 15,
+				help: "Used when the pricing basis is labor + overhead.",
+			},
+		],
+		results: [
+			{
+				key: "charge",
+				label: "Suggested charge per person",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "quote",
+				label: "Total quote",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "foodPct",
+				label: "Food cost at that price",
+				unit: "%",
+				format: "percent",
+			},
+			{
+				key: "marketNote",
+				label: "Market range check",
+				format: "text",
+				estimate: true,
+				interpretation:
+					"A sanity check against typical per-guest pricing — not a quote.",
+			},
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 40);
+			const food = n(v, "foodCost", 18);
+			const pct = Math.max(5, n(v, "targetPct", 30)) / 100;
+			const labor = n(v, "laborCost", 15);
+			const charge =
+				option(v, "pricingBasis", "pct") === "labor"
+					? food / pct + labor
+					: food / pct;
+			const quote = Math.round(charge * guests);
+			const foodPct = charge ? round((food / charge) * 100, 1) : 0;
+			const style = option(v, "serviceStyle", "buffet");
+			const range =
+				style === "plated"
+					? [75, 150]
+					: style === "cocktail"
+						? [45, 95]
+						: [55, 110];
+			const marketNote =
+				charge < range[0]
+					? `Below the typical $${range[0]}–$${range[1]} range for this style — check that labor and rentals are covered.`
+					: charge > range[1]
+						? `Above the typical $${range[0]}–$${range[1]} range for this style — the menu or market will need to support it.`
+						: `Inside the typical $${range[0]}–$${range[1]} per-guest range for this service style.`;
+			return { charge: round(charge, 2), quote, foodPct, marketNote };
+		},
+		howItWorks: [
+			"The classic baseline is to charge about three times your food cost, which puts food at 30% of the price.",
+			"Pricing from labor instead marks your food up to the target percentage, then adds your per-person labor and overhead on top.",
+			"The range check compares your charge with typical market pricing for the service style; rentals, tax, and gratuity usually sit on top of food in real quotes.",
+		],
+		example: {
+			title: "40-guest buffet",
+			inputs: "Buffet, $18 food cost, 30% target",
+			result:
+				"A $60 per-person charge, a $2,400 total quote, and a note that $60 sits inside the typical buffet range of $55–$110.",
+		},
+		faqs: [
+			{
+				question: "What percentage should food cost be?",
+				answer:
+					"Many caterers target 28% to 35%. At 30%, charging three times your food cost covers the margin; higher-cost menus or heavy staffing mean the number should be checked against your full costs.",
+			},
+			{
+				question: "What do I add for labor?",
+				answer:
+					"Staff hours times wages plus payroll burden, then rentals, transport, and overhead. A service charge of 18% to 22% on the subtotal is also common practice in catering quotes.",
+			},
+			{
+				question: "How should I price beverages?",
+				answer:
+					"Keep them as a separate line. A per-person drink package or a consumption-based bar both work; folding drinks into the food number hides your real margin.",
+			},
+			{
+				question: "How do deposits usually work?",
+				answer:
+					"A deposit of 25% to 50% holds the date, with the balance due a week or more before the event. Put both dates in the contract.",
+			},
+		],
+		seo: {
+			title: "Catering Price Per Person Calculator | CalcForged",
+			description:
+				"Work out how much to charge per person for catering, with a market-range sanity check.",
+			h1: "Catering price per person calculator",
+			intro:
+				"How much to charge per person for catering is part arithmetic, part market check. Enter your guest count, service style, and food cost per person, then price from either a target food-cost percentage — the classic rule is to charge about three times your food cost — or from your labor and overhead added on top. The calculator shows the resulting charge, the total quote for the event, and how your number compares with typical market ranges for plated, buffet, cocktail, and station service. Treat the comparison as a starting point for the client conversation, not a final quote: labor, rentals, tax, and gratuity usually ride on top of food.",
+		},
+		related: ["restaurant-food-cost", "wedding-food", "catering-food-quantity"],
+	},
+	{
+		slug: "appetizers-per-person",
+		name: "Appetizers Per Person Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◒",
+		description:
+			"Plan appetizer pieces per guest for pre-dinner bites, cocktail hours, or appetizer-only meals.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 1000,
+				defaultValue: 40,
+			},
+			{
+				key: "occasion",
+				label: "Occasion",
+				type: "select",
+				defaultValue: "cocktail",
+				options: [
+					{ label: "Pre-dinner bites (dinner follows)", value: "pre-dinner" },
+					{ label: "Cocktail party (no dinner)", value: "cocktail" },
+					{ label: "Appetizers are the meal", value: "meal" },
+				],
+			},
+			{
+				key: "hours",
+				label: "Event length",
+				type: "number",
+				unit: "hours",
+				min: 0.5,
+				max: 8,
+				step: 0.5,
+				defaultValue: 2,
+			},
+			{
+				key: "heavy",
+				label: "Heavy appetites",
+				type: "select",
+				defaultValue: "no",
+				options: [
+					{ label: "No", value: "no" },
+					{ label: "Yes (add about 20%)", value: "yes" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "totalPieces",
+				label: "Total appetizer pieces",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "perGuest",
+				label: "Pieces per guest",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "perVariety",
+				label: "Pieces per variety",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "varietyNote",
+				label: "Variety guidance",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 40);
+			const occasion = option(v, "occasion", "cocktail");
+			const hours = Math.max(0.5, n(v, "hours", 2));
+			let perGuest =
+				occasion === "pre-dinner"
+					? 4
+					: occasion === "meal"
+						? 12 + Math.max(0, hours - 2)
+						: 6 + 2.5 * Math.max(0, hours - 1);
+			if (option(v, "heavy", "no") === "yes") perGuest *= 1.2;
+			const pieces = ceil(guests * perGuest);
+			const varieties =
+				guests < 50 ? 5 : guests < 100 ? 6 : guests < 150 ? 7 : 8;
+			const perVariety = Math.ceil(pieces / varieties);
+			const varietyNote = `${guests < 100 ? "Aim for 4 to 6 varieties under 100 guests." : "Six to eight varieties cover a crowd this size."} The per-variety figure assumes about ${varieties} varieties.`;
+			return {
+				totalPieces: pieces,
+				perGuest: round(perGuest, 1),
+				perVariety,
+				varietyNote,
+			};
+		},
+		howItWorks: [
+			"Pre-dinner bites run about 4 pieces per guest — guests hold back when a full meal is coming.",
+			"A cocktail party with no dinner climbs from about 6 pieces in the first hour by 2 to 3 pieces per additional hour; when appetizers are the meal, start at 12 and add one per hour past two.",
+			"Heavy appetites or an event with nothing else to eat add about 20%, and pieces per variety assume a variety count suited to your guest list.",
+		],
+		example: {
+			title: "40 guests, 2-hour cocktail party",
+			inputs: "Cocktail party, 2 hours, no heavy appetites",
+			result: "About 340 pieces — roughly 68 per variety across 5 varieties.",
+		},
+		faqs: [
+			{
+				question: "How many appetizers for 50 guests?",
+				answer:
+					"For a two- to three-hour cocktail party, 8 to 12 pieces per guest means 400 to 600 pieces. If dinner follows, 4 to 6 per guest — about 200 to 300 pieces — is plenty.",
+			},
+			{
+				question: "What counts as one piece?",
+				answer:
+					"One bite-size serving: a crostini, a skewer, a spring roll. Larger items like sliders or substantial skewers can count as one and a half to two pieces.",
+			},
+			{
+				question: "How many appetizer varieties should I offer?",
+				answer:
+					"Four to six varieties for events under 100 guests, six to eight for larger crowds. More variety looks generous but multiplies prep and serving dishes.",
+			},
+			{
+				question: "Should I round up or down?",
+				answer:
+					"Up. Appetizers run out before they run over, especially with drinks being served — err on the generous side of any range.",
+			},
+		],
+		seo: {
+			title: "Appetizers Per Person Calculator | CalcForged",
+			description:
+				"Work out how many appetizers per person for pre-dinner bites, cocktail parties, or appetizer-only meals.",
+			h1: "Appetizers per person calculator",
+			intro:
+				"How many appetizers per person depends on what else is being served and how long guests are standing around hungry. Pick the occasion — pre-dinner bites, a cocktail party with no dinner behind it, or appetizers as the meal itself — set the event length, and note whether appetites run heavy. The calculator turns those into a piece count per guest, a total for your shopping list, and a per-variety split across a sensible number of varieties. The ranges follow standard catering practice: about 4 pieces per guest before dinner, 8 to 12 across a two- to three-hour cocktail party, and 12 or more when the apps are the meal.",
+		},
+		related: ["catering-food-quantity", "taco-bar", "wedding-dessert-table"],
+	},
+	{
+		slug: "yarn-yardage",
+		name: "Yarn Yardage Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "◈",
+		description:
+			"Estimate yarn yardage and skeins for blankets by size and yarn weight.",
+		fields: [
+			{
+				key: "lengthIn",
+				label: "Length",
+				type: "number",
+				unit: "inches",
+				min: 4,
+				max: 200,
+				defaultValue: 60,
+				help: "Common sizes: baby blanket 30×40, throw 50×60, queen 90×100.",
+			},
+			{
+				key: "widthIn",
+				label: "Width",
+				type: "number",
+				unit: "inches",
+				min: 4,
+				max: 200,
+				defaultValue: 50,
+			},
+			{
+				key: "weight",
+				label: "Yarn weight",
+				type: "select",
+				defaultValue: "4",
+				options: [
+					{ label: "0 — Lace", value: "0" },
+					{ label: "1 — Superfine (sock, fingering)", value: "1" },
+					{ label: "2 — Fine (sport)", value: "2" },
+					{ label: "3 — Light (DK)", value: "3" },
+					{ label: "4 — Medium (worsted)", value: "4" },
+					{ label: "5 — Bulky", value: "5" },
+					{ label: "6 — Super bulky", value: "6" },
+					{ label: "7 — Jumbo", value: "7" },
+				],
+			},
+			{
+				key: "yardsPerSkein",
+				label: "Yards per skein",
+				type: "number",
+				unit: "yd",
+				min: 10,
+				max: 2000,
+				defaultValue: 220,
+			},
+			{
+				key: "wastePct",
+				label: "Waste allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				defaultValue: 15,
+				help: "For swatching, fringe, and weaving in ends.",
+			},
+		],
+		results: [
+			{
+				key: "totalYards",
+				label: "Yarn needed",
+				unit: "yd",
+				format: "number",
+				estimate: true,
+				interpretation: "Before the waste allowance.",
+			},
+			{
+				key: "buyYards",
+				label: "Yards to buy (with allowance)",
+				unit: "yd",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "skeins",
+				label: "Skeins to buy",
+				unit: "skeins",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "note", label: "Reality check", format: "text", estimate: true },
+		],
+		calculate: (v) => {
+			const length = Math.max(4, n(v, "lengthIn", 60));
+			const width = Math.max(4, n(v, "widthIn", 50));
+			const area = length * width;
+			const factors: Record<string, number> = {
+				"0": 1.7,
+				"1": 1.45,
+				"2": 1.25,
+				"3": 1.12,
+				"4": 1,
+				"5": 0.75,
+				"6": 0.55,
+				"7": 0.4,
+			};
+			const factor = factors[option(v, "weight", "4")] ?? 1;
+			const totalYards = round(area * 0.6 * factor);
+			const buyYards = Math.round(
+				totalYards *
+					(1 + Math.min(100, Math.max(0, n(v, "wastePct", 15))) / 100),
+			);
+			const skeins = ceil(buyYards / Math.max(10, n(v, "yardsPerSkein", 220)));
+			return {
+				totalYards,
+				buyYards,
+				skeins,
+				note: "Gauge and stitch density change everything — dense stitches use more yarn, open stitches less. Treat this as a starting estimate and let a swatch refine it.",
+			};
+		},
+		howItWorks: [
+			"The estimate starts from your project's area in square inches.",
+			"Each yarn weight carries a yards-per-square-inch factor, calibrated so a 50×60 throw in worsted weight lands near the 1,800 yards most guides cite.",
+			"Your waste allowance is added for swatching, fringe, and weaving in ends, then divided by yards per skein and rounded up to whole skeins.",
+		],
+		example: {
+			title: "50×60 throw in worsted",
+			inputs: "50 × 60 inches, weight 4, 220 yd skeins, 15% allowance",
+			result: "About 1,800 yards — 2,070 with the allowance, or 10 skeins.",
+		},
+		faqs: [
+			{
+				question: "Why do yarn estimates vary so much?",
+				answer:
+					"Gauge, stitch density, and stitch pattern all change consumption. Two makers with the same yarn and hook can differ by 10% to 20%, so a calculator gives a starting estimate, not a guarantee.",
+			},
+			{
+				question: "What eats extra yarn?",
+				answer:
+					"Fringe and borders, colorwork with floats, dense textured stitches, and the swatch itself — which is why the allowance defaults to 15%.",
+			},
+			{
+				question: "How do I check my gauge?",
+				answer:
+					"Work a 4-inch swatch in your pattern stitch, wash and block it the way you will finish the blanket, then count stitches and rows per inch against the yarn's label.",
+			},
+			{
+				question: "Why buy one dye lot?",
+				answer:
+					"Dye lots vary between batches, and the difference shows across a large project. Buy every skein for the blanket at once, all from the same lot.",
+			},
+		],
+		seo: {
+			title:
+				"Yarn Yardage Calculator – How Much Yarn for a Blanket | CalcForged",
+			description:
+				"Estimate yarn yardage and skeins for a blanket by size and yarn weight, with a waste allowance for swatching and finishing.",
+			h1: "Yarn yardage calculator",
+			intro:
+				"How much yarn a blanket needs is one of those questions with a famously long answer — gauge, stitch density, and yarn weight all move the number. This blanket yarn calculator gives you a grounded starting point: enter the finished length and width, pick your yarn weight from the standard 0-to-7 categories, and set your yards per skein and waste allowance. The math is calibrated so a 50×60 throw in worsted weight lands near the 1,800 yards most yarn guides cite, then scales across the other weights. The skein count rounds up so one dye lot covers the whole project. Treat the result as a planning estimate and let a swatch refine it.",
+		},
+		related: ["recipe-scaling", "weight-converter", "percentage"],
+	},
+	{
+		slug: "pizza-party",
+		name: "Pizza Party Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◒",
+		description:
+			"Order the right number of pizzas for any crowd, by size and appetite.",
+		fields: [
+			{
+				key: "adults",
+				label: "Adults",
+				type: "number",
+				unit: "people",
+				min: 0,
+				max: 1000,
+				defaultValue: 20,
+			},
+			{
+				key: "children",
+				label: "Children",
+				type: "number",
+				unit: "people",
+				min: 0,
+				max: 1000,
+				defaultValue: 0,
+			},
+			{
+				key: "slicesPerAdult",
+				label: "Slices per adult",
+				type: "number",
+				unit: "slices",
+				min: 1,
+				max: 6,
+				defaultValue: 3,
+				help: "Most adults eat 2–3 slices; 3–4 when pizza is the only main.",
+			},
+			{
+				key: "slicesPerChild",
+				label: "Slices per child",
+				type: "number",
+				unit: "slices",
+				min: 0,
+				max: 4,
+				defaultValue: 2,
+				help: "Kids usually manage 1–2 slices.",
+			},
+			{
+				key: "pizzaSize",
+				label: "Pizza size",
+				type: "select",
+				defaultValue: "large",
+				options: [
+					{ label: '10" small — 6 slices', value: "small" },
+					{ label: '12" medium — 8 slices', value: "medium" },
+					{ label: '14" large — 8 slices', value: "large" },
+					{ label: '16" extra large — 12 slices', value: "xl" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "slices",
+				label: "Total slices",
+				unit: "slices",
+				format: "number",
+			},
+			{
+				key: "pizzas",
+				label: "Pizzas to order",
+				unit: "pizzas",
+				format: "number",
+				estimate: true,
+				interpretation: "Rounded up to whole pizzas.",
+			},
+			{ key: "note", label: "Ordering note", format: "text" },
+		],
+		calculate: (v) => {
+			const adults = n(v, "adults", 20);
+			const children = n(v, "children", 0);
+			const slices = ceil(
+				adults * n(v, "slicesPerAdult", 3) +
+					children * n(v, "slicesPerChild", 2),
+			);
+			const sizes: Record<string, { perPizza: number; label: string }> = {
+				small: { perPizza: 6, label: '10" small' },
+				medium: { perPizza: 8, label: '12" medium' },
+				large: { perPizza: 8, label: '14" large' },
+				xl: { perPizza: 12, label: '16" extra large' },
+			};
+			const size = sizes[option(v, "pizzaSize", "large")] ?? sizes.large;
+			const pizzas = ceil(slices / size.perPizza);
+			const lo = Math.floor(size.perPizza / 3);
+			const hi = Math.ceil(size.perPizza / 3);
+			const per = lo === hi ? `${lo} adults` : `${lo}–${hi} adults`;
+			const spare = pizzas * size.perPizza - slices;
+			return {
+				slices,
+				pizzas,
+				note: `Each ${size.label} pizza has ${size.perPizza} slices — about ${per} per pizza at 3 slices each.${spare > 0 ? ` Ordering whole pizzas leaves ${spare} spare slices; odd leftovers feed the morning after.` : ""}`,
+			};
+		},
+		howItWorks: [
+			"Count slices first: most adults eat 2–3 and kids 1–2, so the default plans 3 slices per adult and 2 per child.",
+			'Divide total slices by the slice count for your pizza size — 6 for a 10" small, 8 for a 12" medium or 14" large, 12 for a 16" extra large — and round up to whole pizzas.',
+			"Most U.S. chains cut a large into 8 slices; square-cut or 10-slice pizzerias yield a couple more per pie, so the estimate errs on the safe side.",
+		],
+		example: {
+			title: "20 adults, large pizzas",
+			inputs: '20 adults, 3 slices each, 14" large',
+			result: "60 slices — 8 large pizzas, with 4 slices to spare.",
+		},
+		faqs: [
+			{
+				question: "How many slices of pizza per person?",
+				answer:
+					"Plan 2–3 slices per adult and 1–2 per child. When pizza is the only main dish, move adults up to 3–4 slices.",
+			},
+			{
+				question: "How many pizzas for 20 adults?",
+				answer:
+					"At 3 slices each, 20 adults need 60 slices — 8 large pizzas cut into 8 slices, or 5 extra larges cut into 12. Order one more if guests are hearty or the party runs late.",
+			},
+			{
+				question: "How many pizza varieties should I order?",
+				answer:
+					"Under 20 people, 2–3 types is plenty: cheese and pepperoni cover most guests, plus one specialty. Bigger crowds stay happy with 3–4 repeats of the bestsellers.",
+			},
+			{
+				question: "What do I do with leftover pizza?",
+				answer:
+					"Refrigerate slices within two hours; they keep 3–4 days and freeze for about a month. Reheat in a skillet or hot oven so the crust crisps back up.",
+			},
+		],
+		seo: {
+			title: "Pizza Party Calculator – How Many Pizzas to Order | CalcForged",
+			description:
+				"Calculate how many pizzas to order for any group — adults, kids, and pizza size, from 10-inch smalls to 16-inch extra larges.",
+			h1: "Pizza party calculator",
+			intro:
+				'How many pizzas for 20 adults — or any crowd — comes down to slices: adults eat 2–3, kids eat 1–2, and every pizza size cuts into a known slice count. Enter your adults and children, set the appetite, and pick the size you are ordering, from a 10" small at 6 slices to a 16" extra large at 12. The calculator divides total slices by slices per pizza and rounds up to whole pies, so you order a real number instead of a guess. It assumes the 8-slice large most U.S. chains ship, which errs on the safe side when a pizzeria cuts 10.',
+		},
+		related: ["taco-bar", "appetizers-per-person", "catering-food-quantity"],
+	},
+	{
+		slug: "chicken-wings",
+		name: "Chicken Wings Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◆",
+		description:
+			"Turn guests into wing pieces, pounds to buy, and sauce to toss.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 1000,
+				defaultValue: 10,
+			},
+			{
+				key: "serving",
+				label: "Serving style",
+				type: "select",
+				defaultValue: "main",
+				options: [
+					{ label: "Appetizer — 6 pieces per guest", value: "appetizer" },
+					{ label: "Main dish — 12 pieces per guest", value: "main" },
+				],
+			},
+			{
+				key: "pieceType",
+				label: "Wing type",
+				type: "select",
+				defaultValue: "party",
+				options: [
+					{
+						label: "Flats & drumettes — each piece counts as 1",
+						value: "party",
+					},
+					{ label: "Whole wings — each wing is 2 pieces", value: "whole" },
+				],
+			},
+			{
+				key: "cupsPerLb",
+				label: "Sauce per cooked lb",
+				type: "number",
+				unit: "cups",
+				min: 0,
+				max: 2,
+				step: 0.125,
+				defaultValue: 0.5,
+				help: "Standard recipes work out to about ½ cup per cooked pound.",
+			},
+		],
+		results: [
+			{ key: "pieces", label: "Wing pieces", unit: "pieces", format: "number" },
+			{
+				key: "cooked",
+				label: "Cooked wings",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "raw",
+				label: "Raw wings to buy",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"Assumes standard-size party wings; jumbo wings run heavier.",
+			},
+			{
+				key: "sauce",
+				label: "Buffalo sauce",
+				unit: "cups",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 10);
+			const piecesPerPerson =
+				option(v, "serving", "main") === "appetizer" ? 6 : 12;
+			const pieces = Math.round(guests * piecesPerPerson);
+			const rawPerPiece =
+				option(v, "pieceType", "party") === "whole" ? 1.9 : 1.6;
+			const rawBase = (pieces * rawPerPiece) / 16;
+			const cookedBase = rawBase * 0.68;
+			return {
+				pieces,
+				cooked: round(cookedBase),
+				raw: round(rawBase),
+				sauce: round(cookedBase * n(v, "cupsPerLb", 0.5), 1),
+			};
+		},
+		howItWorks: [
+			"Guests eat about 6 wing pieces when wings are an appetizer and 10–12 when they are the main dish; this calculator plans 6 and 12.",
+			"Pieces convert to raw pounds at roughly 1.6 ounces per pre-cut piece — about 9 pieces per pound; whole wings run heavier because the tip rides along in the purchase weight.",
+			"Bone-in wings lose about a third of their weight cooking (a 65–70% yield), so the raw figure is the buying number, and sauce is planned at about half a cup per cooked pound.",
+		],
+		example: {
+			title: "10 guests, main-dish wings",
+			inputs: "Main dish, flats & drumettes, ½ cup sauce per cooked lb",
+			result:
+				"120 pieces — about 12 lb raw to buy, 8.2 lb cooked, and 4.1 cups of sauce.",
+		},
+		faqs: [
+			{
+				question: "How many wings per person as an appetizer vs a main?",
+				answer:
+					"About 6 pieces per person as an appetizer and 10–12 as the main dish. With hearty sides or a second main on the table, lean to the low end.",
+			},
+			{
+				question: "Whole wings or pre-cut flats and drumettes?",
+				answer:
+					"A whole wing cuts into two pieces (flat and drumette), with the tip usually discarded. Pre-cut party wings count one piece each; this estimate assumes those unless you pick whole wings.",
+			},
+			{
+				question: "Fresh or frozen wings?",
+				answer:
+					"Both work. Individually quick-frozen wings are often cheaper and keep until party day — thaw them in the fridge a day ahead and pat dry before cooking.",
+			},
+			{
+				question: "How much sauce do wings need?",
+				answer:
+					"Standard recipes work out to 2–3 fluid ounces per raw pound, or about half a cup per cooked pound. Toss just before serving so the skin stays crisp, and keep extra warm for dipping.",
+			},
+		],
+		seo: {
+			title:
+				"Chicken Wings Calculator – How Many Wings Per Person | CalcForged",
+			description:
+				"Calculate chicken wing pieces, raw pounds to buy, and buffalo sauce for any guest count — appetizer or main dish.",
+			h1: "Chicken wings calculator",
+			intro:
+				"How many wings per person depends on what else is on the table: about 6 pieces when wings are an appetizer and 10–12 when they are the main dish. Enter your guest count and serving style, say whether you are buying pre-cut flats and drumettes or whole wings, and get pieces, raw pounds to buy, and the buffalo sauce to toss. The weight math uses standard party-wing averages — roughly 9 pieces per raw pound — and a 65–70% raw-to-cooked yield, so the buying number errs on the generous side.",
+		},
+		related: ["bbq-meat", "taco-bar", "pizza-party"],
+	},
+	{
+		slug: "party-ice",
+		name: "Party Ice Calculator",
+		category: "Events",
+		categorySlug: "events",
+		icon: "❄",
+		description:
+			"Estimate pounds of ice, bags to buy, and cost for drinks and coolers.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 1000,
+				defaultValue: 20,
+			},
+			{
+				key: "hours",
+				label: "Event length",
+				type: "number",
+				unit: "hours",
+				min: 1,
+				max: 12,
+				step: 0.5,
+				defaultValue: 3,
+			},
+			{
+				key: "setting",
+				label: "Setting",
+				type: "select",
+				defaultValue: "indoor",
+				options: [
+					{ label: "Indoor or cool", value: "indoor" },
+					{ label: "Outdoor or warm", value: "outdoor" },
+				],
+			},
+			{
+				key: "uses",
+				label: "What the ice has to do",
+				type: "select",
+				defaultValue: "drinks",
+				options: [
+					{ label: "Drinks only", value: "drinks" },
+					{ label: "Drinks + chilling bottles", value: "bottles" },
+					{ label: "Everything, including displays", value: "everything" },
+				],
+			},
+			{
+				key: "bagSize",
+				label: "Bag size",
+				type: "number",
+				unit: "lb",
+				min: 5,
+				max: 40,
+				step: 5,
+				defaultValue: 10,
+			},
+			{
+				key: "bagPrice",
+				label: "Price per bag",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.25,
+				defaultValue: 3.5,
+				help: "Grocery-store 10 lb bags run about $3.50; gas stations are cheaper per stop, dearer per pound.",
+			},
+		],
+		results: [
+			{
+				key: "totalLb",
+				label: "Ice needed",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"1 lb per guest for the first two hours, then 0.5 lb per extra hour.",
+			},
+			{
+				key: "bags",
+				label: "Bags to buy",
+				unit: "bags",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "cost",
+				label: "Ice cost",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{ key: "note", label: "Keep it frozen", format: "text" },
+		],
+		calculate: (v) => {
+			const guests = n(v, "guests", 20);
+			const hours = Math.max(1, n(v, "hours", 3));
+			let totalLb =
+				guests * (Math.min(2, hours) + Math.max(0, hours - 2) * 0.5);
+			if (option(v, "setting", "indoor") === "outdoor") totalLb *= 1.5;
+			const uses = option(v, "uses", "drinks");
+			if (uses === "bottles") totalLb += guests * 0.5;
+			if (uses === "everything") totalLb += guests;
+			const bags = ceil(totalLb / Math.max(1, n(v, "bagSize", 10)));
+			return {
+				totalLb: round(totalLb),
+				bags,
+				cost: round(bags * n(v, "bagPrice", 3.5), 2),
+				note: "Buy bags a day early and store them cold and closed; pack coolers with a base layer of ice, drinks, then ice on top, and keep a spare bag for top-ups.",
+			};
+		},
+		howItWorks: [
+			"Drinks start at 1 pound of ice per guest for the first two hours, then add half a pound per guest per extra hour.",
+			"Warm or outdoor settings multiply the drink total by 1.5 for melt; chilling bottles in coolers adds about half a pound per guest, and food displays add the same again.",
+			"The total converts to whole bags at your bag size and prices out at your local per-bag cost.",
+		],
+		example: {
+			title: "20 guests, 3-hour outdoor party",
+			inputs: "Outdoor, drinks + chilling bottles, 10 lb bags",
+			result: "About 55 lb of ice — 6 bags, roughly $21.",
+		},
+		faqs: [
+			{
+				question: "How much ice per person for a party?",
+				answer:
+					"The common range is 1–2 pounds per guest: about 1 lb for a short indoor drinks-only event, 1.5 lb for a typical 3-hour party, and 2 lb or more for hot outdoor events or when ice also chills bottles and displays.",
+			},
+			{
+				question: "How do I keep ice from melting too fast?",
+				answer:
+					"Pre-chill the coolers, keep bags closed and out of the sun, and layer ice under and over the drinks. Keep the lid shut, and hold a spare bag back for top-ups late in the event.",
+			},
+			{
+				question: "Should I buy bags or have ice delivered?",
+				answer:
+					"Grocery and warehouse bags are cheapest per pound for most parties. For long outdoor events, block ice melts far slower; for 100+ guests, delivered bulk ice saves the store runs.",
+			},
+			{
+				question: "Is bagged ice safe for drinks?",
+				answer:
+					"Buy ice packaged and labeled for consumption. Never use ice that has touched a cooler floor or raw food, and serve with a scoop rather than hands.",
+			},
+		],
+		seo: {
+			title: "Party Ice Calculator – How Much Ice for a Party | CalcForged",
+			description:
+				"Calculate how many pounds of ice and how many bags to buy for your party — drinks, bottles, and displays included.",
+			h1: "Party ice calculator",
+			intro:
+				"How much ice for a party is one of the most under-planned numbers on the shopping list. The baseline is about a pound of ice per guest for the first two hours of drinks, half a pound more per extra hour, and more again for outdoor heat, chilling bottles, and food displays. Enter your guests, hours, setting, and what the ice has to do, and get total pounds, bags to buy at your bag size, and the cost at your local bag price. Most 10-pound bags run about $3.50 at the grocery store, so a typical 20-guest afternoon lands near five bags.",
+		},
+		related: ["wedding-food", "appetizers-per-person", "bbq-meat"],
+	},
+	{
+		slug: "balloon-quantity",
+		name: "Balloon Quantity Calculator",
+		category: "Events",
+		categorySlug: "events",
+		icon: "◉",
+		description:
+			"Turn a room or car interior into a balloon count, helium volume, and tank count.",
+		fields: [
+			{
+				key: "whatToFill",
+				label: "What are you filling",
+				type: "select",
+				defaultValue: "room",
+				options: [
+					{ label: "A room", value: "room" },
+					{ label: "A car interior", value: "car" },
+				],
+			},
+			{
+				key: "lengthFt",
+				label: "Length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				max: 120,
+				defaultValue: 12,
+				help: "A typical sedan's usable interior is about a 4 × 5 × 3 ft box — the full cabin measures 110–120 cu ft before seats and console eat most of it. A living room is often 12 × 10 × 8 ft.",
+			},
+			{
+				key: "widthFt",
+				label: "Width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				max: 120,
+				defaultValue: 10,
+			},
+			{
+				key: "heightFt",
+				label: "Height",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				max: 30,
+				defaultValue: 8,
+			},
+			{
+				key: "balloonSize",
+				label: "Balloon size",
+				type: "select",
+				defaultValue: "11",
+				options: [
+					{ label: "9 in latex", value: "9" },
+					{ label: "11 in latex", value: "11" },
+					{ label: "12 in latex", value: "12" },
+					{ label: "16 in latex", value: "16" },
+					{ label: "36 in latex (giant)", value: "36" },
+				],
+			},
+			{
+				key: "tankSize",
+				label: "Tank size",
+				type: "select",
+				defaultValue: "14.9",
+				options: [
+					{ label: "8.9 cu ft — small disposable", value: "8.9" },
+					{ label: "14.9 cu ft — standard disposable", value: "14.9" },
+					{ label: "55 cu ft — rental cylinder", value: "55" },
+					{ label: "110 cu ft — rental cylinder", value: "110" },
+					{ label: "150 cu ft — rental cylinder", value: "150" },
+					{ label: "219 cu ft — rental cylinder", value: "219" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "balloons",
+				label: "Balloons to fill it",
+				unit: "balloons",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"Usable box × 0.9 fill factor; packing gaps can swing the real count ±15%.",
+			},
+			{
+				key: "helium",
+				label: "Helium needed",
+				unit: "cu ft",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "tanks",
+				label: "Tanks to buy or rent",
+				unit: "tanks",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "note",
+				label: "Float time & timing",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const usable =
+				Math.max(1, n(v, "lengthFt", 12)) *
+				Math.max(1, n(v, "widthFt", 10)) *
+				Math.max(1, n(v, "heightFt", 8)) *
+				0.9;
+			const perBalloon: Record<string, number> = {
+				"9": 0.3,
+				"11": 0.5,
+				"12": 0.65,
+				"16": 1.1,
+				"36": 7.5,
+			};
+			const size = option(v, "balloonSize", "11");
+			const per = perBalloon[size] ?? 0.5;
+			const balloons = Math.floor(usable / per);
+			const helium = balloons * per;
+			const tanks = ceil(helium / Math.max(0.5, n(v, "tankSize", 14.9)));
+			const floatTimes: Record<string, string> = {
+				"9": "6–8 hours",
+				"11": "10–12 hours",
+				"12": "10–14 hours",
+				"16": "18–24 hours",
+				"36": "2–3 days",
+			};
+			const carHint =
+				option(v, "whatToFill", "room") === "car"
+					? " Working from the car's usable box keeps the count realistic — a typical sedan is about 4 × 5 × 3 ft."
+					: "";
+			return {
+				balloons,
+				helium: round(helium),
+				tanks,
+				note: `Latex this size floats about ${floatTimes[size] ?? "10–12 hours"} indoors — inflate close to event time, or add Hi-Float to roughly double it. Plan 10–15% fewer balloons per tank above 4,000 ft altitude.${carHint}`,
+			};
+		},
+		howItWorks: [
+			"The usable space is your length × width × height, times a 0.9 fill factor for the corners and odd volumes the tidy box leaves out.",
+			"Each balloon size has a known helium appetite — about 0.5 cu ft for an 11-inch latex — and the count is usable volume divided by that number.",
+			"Helium volume divides by your tank size and rounds up, because a tank that dies two balloons short ruins the reveal; float times come from standard latex charts.",
+		],
+		example: {
+			title: "Fill a sedan with 11-inch balloons",
+			inputs:
+				"Car interior 4 × 5 × 3 ft, 11 in balloons, 14.9 cu ft disposable tank",
+			result:
+				"About 108 balloons — 54 cu ft of helium, or 4 disposable tanks (one 55 cu ft rental covers it).",
+		},
+		faqs: [
+			{
+				question: "How many balloons does it take to fill a car?",
+				answer:
+					"A typical sedan's usable interior is roughly a 4 × 5 × 3 ft box — about 60 cu ft, or 100–120 eleven-inch balloons at 0.5 cu ft each. Published cabin volumes run 110–120 cu ft, but seats, console, and sloped glass eat most of that. An SUV's cargo area alone can take 200+.",
+			},
+			{
+				question: "How long will the balloons stay up?",
+				answer:
+					"An 11-inch latex balloon floats 10–12 hours indoors; 16-inch runs 18–24 hours and 36-inch giants 2–3 days. Hi-Float roughly doubles latex time. Inflate close to the event — balloons blown up the night before droop by the party.",
+			},
+			{
+				question: "Which helium tank do I need?",
+				answer:
+					"The standard 14.9 cu ft disposable fills about 30 eleven-inch balloons; the smaller 8.9 cu ft fills about 18. Past roughly 50 balloons, rent: 55 and 110 cu ft cylinders cost a fraction per cubic foot and one tank covers the room.",
+			},
+			{
+				question: "How many balloons for an arch or garland?",
+				answer:
+					"A standard garland packs 4–6 balloons per foot and lush wedding-style builds run 7–10+, so a 10-foot arch takes 40–60 balloons. Most arches are air-filled, which needs no helium and holds its shape for days.",
+			},
+		],
+		seo: {
+			title:
+				"Balloon Quantity Calculator – Balloons & Helium per Room or Car | CalcForged",
+			description:
+				"Calculate how many balloons and how much helium fill a room or car interior — by balloon size, with tanks to buy and float time built in.",
+			h1: "Balloon quantity calculator",
+			intro:
+				"How many balloons it takes to fill a room — or a car — comes down to volume: your space times a 0.9 fill factor, divided by the helium each balloon holds. An 11-inch latex balloon takes about 0.5 cubic feet of helium, a 9-inch about 0.3, and a 36-inch giant about 7.5. Pick the space, set the three dimensions, choose the balloon size and your tank, and the calculator returns a balloon count, the helium it consumes, and how many tanks that takes — disposable tanks fill roughly 30 eleven-inch balloons each, so anything past a few dozen points you at a rental cylinder. Float time is built into the note: latex runs 10–12 hours indoors untreated, so inflation timing matters as much as the count.",
+		},
+		related: ["party-ice", "appetizers-per-person", "wedding-dessert-table"],
+	},
+	{
+		slug: "fuel-mileage",
+		name: "Fuel Mileage Calculator",
+		category: "Automotive",
+		categorySlug: "automotive",
+		icon: "$",
+		description:
+			"Calculate miles per gallon and fuel costs, then save the latest five fill-ups to your account.",
+		fields: [
+			{
+				key: "startOdometer",
+				label: "Starting odometer",
+				type: "number",
+				unit: "mi",
+				min: 0,
+				max: 1000000,
+				defaultValue: 0,
+			},
+			{
+				key: "endOdometer",
+				label: "Ending odometer",
+				type: "number",
+				unit: "mi",
+				min: 0,
+				max: 1000000,
+				defaultValue: 0,
+			},
+			{
+				key: "gallonsUsed",
+				label: "Gallons used",
+				type: "number",
+				unit: "gal",
+				min: 0,
+				max: 500,
+				defaultValue: 0,
+			},
+			{
+				key: "totalPaid",
+				label: "Total paid",
+				type: "number",
+				unit: "USD",
+				min: 0,
+				max: 5000,
+				defaultValue: 0,
+			},
+		],
+		results: [
+			{ key: "distance", label: "Distance", unit: "mi", format: "number" },
+			{ key: "mpg", label: "Fuel economy", unit: "MPG", format: "number" },
+			{ key: "costPerMile", label: "Cost per mile", format: "currency" },
+			{
+				key: "pricePerGallon",
+				label: "Average pump price",
+				unit: "USD/gal",
+				format: "currency",
+			},
+		],
+		calculate: (v) => {
+			const start = Math.max(0, n(v, "startOdometer"));
+			const end = Math.max(0, n(v, "endOdometer"));
+			const gallons = Math.max(0, n(v, "gallonsUsed"));
+			const paid = Math.max(0, n(v, "totalPaid"));
+			const distance = Math.max(0, end - start);
+			return {
+				distance: round(distance, 1),
+				mpg: distance > 0 && gallons > 0 ? round(distance / gallons, 1) : 0,
+				costPerMile: distance > 0 ? round(paid / distance, 2) : 0,
+				pricePerGallon: gallons > 0 ? round(paid / gallons, 2) : 0,
+			};
+		},
+		howItWorks: [
+			"Distance is the ending odometer reading minus the starting reading.",
+			"Fuel economy is distance divided by gallons used. For a reliable per-tank result, compare full tanks and include every partial fill between them.",
+			"When you log a partial fill, its gallons carry forward. The log calculates MPG when you record the next full tank, then shows the last five fill-up costs.",
+		],
+		example: {
+			title: "350 miles between fill-ups",
+			inputs:
+				"Starting odometer 42,180 mi, ending odometer 42,530 mi, 12.5 gallons, $45 paid",
+			result:
+				"350 miles, 28.0 MPG, $3.60 per gallon, and about $0.13 per mile.",
+		},
+		faqs: [
+			{
+				question: "How do I calculate miles per gallon?",
+				answer:
+					"Subtract the starting odometer from the ending odometer, then divide the miles driven by gallons used. For the most accurate fuel economy, start and finish with a full tank and keep the fill-up method consistent.",
+			},
+			{
+				question: "Can I log a partial fill-up?",
+				answer:
+					"Yes. Mark it as partial and enter the gallons added. The log carries those gallons into the next full-tank interval, then calculates MPG from the distance and total gallons between full tanks.",
+			},
+			{
+				question: "What does the account fuel log save?",
+				answer:
+					"Any signed-in account can save odometer readings, gallons, and pump totals. The calculator shows the latest five fill-ups, recent spending, and full-to-full fuel economy. Manual calculations work without signing in.",
+			},
+			{
+				question: "Why does the first full tank not show MPG?",
+				answer:
+					"The first full tank is the starting point. The next full-tank reading closes the first interval, so the calculator can divide the miles driven by the fuel added across that interval.",
+			},
+		],
+		seo: {
+			title:
+				"Fuel Mileage Calculator: MPG, Fuel Cost & Fill-Up Log | CalcForged",
+			description:
+				"Calculate miles per gallon, pump cost, and cost per mile. Sign in to save the latest five fill-ups, including partial tanks and full-to-full MPG.",
+			h1: "Fuel mileage calculator",
+			intro:
+				"Calculate miles per gallon from two odometer readings and the gallons used, then see your fuel cost and cost per mile. Sign in to save the latest five fill-ups and reuse your last odometer reading. For accurate tank-to-tank MPG, mark partial fills and let the next full tank close the interval.",
+		},
+		related: [
+			"tire-size",
+			"towing-capacity",
+			"battery-runtime",
+			"gig-driver-mileage-tracker",
+		],
+	},
+	{
+		slug: "gig-driver-mileage-tracker",
+		name: "Gig Driver Mileage Tracker",
+		category: "Business",
+		categorySlug: "business",
+		icon: "↗",
+		description:
+			"Log gig-driving miles and total earnings by shift. Hours fill automatically from shift start and finish times; see fuel cost per mile and after-fuel hourly earnings.",
+		fields: [],
+		results: [],
+		calculate: () => ({}),
+		howItWorks: [
+			"Enter start and end odometer readings for miles, or use optional GPS while this page stays open in the foreground. The trip times and input method are saved with the shift.",
+			"Enter total shift earnings. Hours worked is calculated from the shift start and finish times. Fuel cost per mile is pump price divided by MPG; shift fuel cost is miles times that rate. After-fuel earnings per hour subtracts fuel cost from earnings, then divides by hours worked.",
+			"MPG and pump price can prefill from Fuel Mileage or be entered for the shift. A free signed-in account keeps seven days of shift records, including the values used for each result; GPS coordinates are discarded.",
+		],
+		example: {
+			title: "Log one delivery shift",
+			inputs:
+				"56.4 mi, $120 total earnings, 4.5 hours, 28 MPG, and $3.55 per gallon",
+			result:
+				"$7.15 fuel for the shift, $0.127 fuel cost per mile, and $112.85 after fuel, or $25.08 per hour. Fuel only; no maintenance or vehicle-wear costs.",
+		},
+		faqs: [
+			{
+				question: "What does the tracker save?",
+				answer:
+					"It saves the mileage total, shift start and end times, input method, gross earnings, hours worked, and any MPG and pump-price values used in the shift calculation. It does not save odometer readings or route coordinates.",
+			},
+			{
+				question: "How are fuel costs calculated?",
+				answer:
+					"Fuel cost per mile is pump price per gallon divided by MPG. Shift fuel cost is miles driven multiplied by that rate. The values come from your saved Fuel Mileage log or what you enter for the shift; actual fuel use can vary with driving conditions.",
+			},
+			{
+				question: "Does this include vehicle wear or tax records?",
+				answer:
+					"No. The calculation covers fuel only. It does not include maintenance, vehicle wear, or tax records.",
+			},
+			{
+				question: "Can I use GPS with my screen locked?",
+				answer:
+					"No. GPS is optional and works only while this page is open in the foreground. If location permission is denied or GPS is unavailable, enter the odometer readings manually.",
+			},
+			{
+				question: "How long are shift records kept?",
+				answer:
+					"A free CalcForged account keeps a rolling seven-day history for this tracker. Older tracker records are removed automatically.",
+			},
+			{
+				question: "Does the tracker change my Fuel Mileage log?",
+				answer:
+					"No. The tracker reads Fuel Mileage data to prefill MPG and pump price, but never edits its entries. Use the link on this page to open the Fuel Mileage Calculator.",
+			},
+		],
+		seo: {
+			title: "Gig Driver Mileage Tracker | CalcForged",
+			description:
+				"Log miles, earnings, and shift times. Hours are calculated automatically. See fuel-only cost per mile and after-fuel hourly earnings. Free seven-day history.",
+			h1: "Gig driver mileage tracker",
+			intro:
+				"Track shift miles with an odometer or optional foreground GPS. Enter total earnings and set the shift start and finish; hours fill automatically. See fuel cost per mile and earnings per hour after fuel. MPG and pump price can prefill from Fuel Mileage or be entered for each shift. A free account keeps the last seven days of records.",
+		},
+		related: ["fuel-mileage"],
+	},
+	{
+		slug: "tire-size",
+		name: "Tire Size Calculator",
+		category: "Automotive",
+		categorySlug: "automotive",
+		icon: "◉",
+		description:
+			"Convert tire sizes and compare alternatives within 3% on the same rim, with diameter and speedometer estimates.",
+		fields: [
+			{
+				key: "direction",
+				label: "Direction",
+				type: "select",
+				defaultValue: "metric",
+				options: [
+					{ label: "Metric size → inches", value: "metric" },
+					{ label: "Inches → matching sizes", value: "inches" },
+				],
+			},
+			{
+				key: "metricWidth",
+				label: "Section width",
+				type: "number",
+				unit: "mm",
+				min: 100,
+				max: 400,
+				defaultValue: 225,
+				help: "First number in 225/65R17.",
+				visibleWhen: { key: "direction", values: ["metric"] },
+			},
+			{
+				key: "aspect",
+				label: "Aspect ratio",
+				type: "number",
+				unit: "%",
+				min: 20,
+				max: 95,
+				defaultValue: 65,
+				help: "Sidewall height as a percentage of width — the second number.",
+				visibleWhen: { key: "direction", values: ["metric"] },
+			},
+			{
+				key: "rim",
+				label: "Rim diameter",
+				type: "number",
+				unit: "in",
+				min: 8,
+				max: 26,
+				defaultValue: 17,
+				help: "The R-number. In the inches direction this is your wheel size — every match stays on this rim.",
+			},
+			{
+				key: "targetDiameter",
+				label: "Your current tire height",
+				type: "number",
+				unit: "in",
+				min: 15,
+				max: 45,
+				step: 0.05,
+				defaultValue: 28.5,
+				help: "Ground to top of the tire — measure it, or take it from the metric direction.",
+				visibleWhen: { key: "direction", values: ["inches"] },
+			},
+			{
+				key: "targetWidth",
+				label: "Your current tire width",
+				type: "number",
+				unit: "in",
+				min: 4,
+				max: 16,
+				step: 0.05,
+				defaultValue: 8.9,
+				visibleWhen: { key: "direction", values: ["inches"] },
+			},
+		],
+		results: [
+			{
+				key: "tireDiameter",
+				label: "Overall diameter",
+				unit: "in",
+				format: "number",
+				interpretation: "Rim diameter plus twice the sidewall height.",
+			},
+			{
+				key: "sidewall",
+				label: "Sidewall height",
+				unit: "in",
+				format: "number",
+			},
+			{
+				key: "sectionWidth",
+				label: "Section width",
+				unit: "in",
+				format: "number",
+			},
+			{
+				key: "revsPerMile",
+				label: "Revolutions per mile",
+				unit: "revs",
+				format: "number",
+				interpretation: "Speedometer and odometer shift with this number.",
+			},
+			{ key: "matches", label: "Options that fit", format: "text" },
+		],
+		calculate: (v) => {
+			const mm = Math.max(100, n(v, "metricWidth", 225));
+			const aspect = Math.max(20, n(v, "aspect", 65));
+			const rim = Math.max(8, n(v, "rim", 17));
+			if (option(v, "direction", "metric") === "metric") {
+				const sidewall = round((mm * aspect) / 100 / 25.4, 2);
+				const diameter = round(rim + 2 * sidewall, 2);
+				const widthIn = round(mm / 25.4, 2);
+				const revs = Math.round(63360 / (Math.PI * diameter));
+				const combos: TireSizeCandidate[] = [];
+				for (const w of [
+					155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285,
+					295, 305, 315, 325, 335,
+				])
+					for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
+						if (w === mm && a === aspect) continue;
+						const d = rim + 2 * ((w * a) / 100 / 25.4);
+						const pct = round(((d - diameter) / diameter) * 100, 1);
+						if (Math.abs(pct) <= 3)
+							combos.push({
+								size: `${w}/${a}R${rim}`,
+								diameter: round(d, 2),
+								width: round(w / 25.4, 2),
+								pct,
+								revs: Math.round(63360 / (Math.PI * d)),
+								verified: verifiedTireSizes.has(`${w}/${a}R${rim}`),
+							});
+					}
+				for (const f of FLOTATION_SIZES)
+					if (f.rim === rim) {
+						const pct = round(((f.d - diameter) / diameter) * 100, 1);
+						if (Math.abs(pct) <= 3)
+							combos.push({
+								size: `${f.d}×${f.w.toFixed(2)}R${rim}`,
+								diameter: f.d,
+								width: f.w,
+								pct,
+								revs: Math.round(63360 / (Math.PI * f.d)),
+								verified: verifiedTireSizes.has(
+									`${f.d}×${f.w.toFixed(2)}R${rim}`,
+								),
+							});
+					}
+				const score = (x: TireSizeCandidate, y: TireSizeCandidate) =>
+					Math.abs(x.pct) +
+					2 * Math.abs(x.width - widthIn) -
+					(Math.abs(y.pct) + 2 * Math.abs(y.width - widthIn));
+				const options = selectTireSizeCandidates(combos, 3, score);
+				const tag = (c: TireSizeCandidate) =>
+					!c.verified
+						? "Calculated option"
+						: Math.abs(c.pct) <= 2
+							? "Match"
+							: "Close option";
+				const lines = [
+					`Your size: ${mm}/${aspect}R${rim} — ${diameter} in overall, ${widthIn} in wide, ${revs} revs/mile.`,
+					...options.map(
+						(c) =>
+							`${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide.`,
+					),
+					"Retailer-verified sizes appear first. When needed, calculated options within 3% are added to reach four size links when possible; these are not confirmed in retailer listings. We do not widen beyond 3%. Check your vehicle’s fitment, speedometer, ABS, transmission, load rating, and clearance before buying. Same rim throughout.",
+				];
+				return {
+					tireDiameter: diameter,
+					sidewall,
+					sectionWidth: widthIn,
+					revsPerMile: revs,
+					matches: lines.join("\n"),
+				};
+			}
+			const target = Math.max(10, n(v, "targetDiameter", 28.5));
+			const targetWidth = Math.max(3, n(v, "targetWidth", 8.9));
+			const combos: TireSizeCandidate[] = [];
+			for (const w of [
+				155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285,
+				295, 305, 315, 325, 335,
+			])
+				for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]) {
+					const diameter = rim + 2 * ((w * a) / 100 / 25.4);
+					const pct = round(((diameter - target) / target) * 100, 1);
+					if (Math.abs(pct) <= 3)
+						combos.push({
+							size: `${w}/${a}R${rim}`,
+							diameter: round(diameter, 2),
+							width: round(w / 25.4, 2),
+							pct,
+							revs: Math.round(63360 / (Math.PI * diameter)),
+							verified: verifiedTireSizes.has(`${w}/${a}R${rim}`),
+						});
+				}
+			for (const f of FLOTATION_SIZES)
+				if (f.rim === rim) {
+					const pct = round(((f.d - target) / target) * 100, 1);
+					if (Math.abs(pct) <= 3)
+						combos.push({
+							size: `${f.d}×${f.w.toFixed(2)}R${rim}`,
+							diameter: f.d,
+							width: f.w,
+							pct,
+							revs: Math.round(63360 / (Math.PI * f.d)),
+							verified: verifiedTireSizes.has(
+								`${f.d}×${f.w.toFixed(2)}R${rim}`,
+							),
+						});
+				}
+			const score = (x: TireSizeCandidate, y: TireSizeCandidate) =>
+				Math.abs(x.pct) +
+				2 * Math.abs(x.width - targetWidth) -
+				(Math.abs(y.pct) + 2 * Math.abs(y.width - targetWidth));
+			const options = selectTireSizeCandidates(combos, 4, score);
+			const tag = (c: TireSizeCandidate) =>
+				!c.verified
+					? "Calculated option"
+					: Math.abs(c.pct) <= 2
+						? "Match"
+						: "Close option";
+			const best = options[0];
+			if (!best)
+				return {
+					tireDiameter: "",
+					sidewall: "",
+					sectionWidth: "",
+					revsPerMile: "",
+					matches: `No calculated tire-size candidate lands within 3% of ${target} in on this rim. The calculator keeps the 3% limit and does not widen the list.`,
+				};
+			const lines = [
+				`${tag(best)}: ${best.size} — ${best.diameter} in overall (${best.pct > 0 ? "+" : ""}${best.pct}% vs target), ${best.width} in wide, ${best.revs} revs/mile.`,
+				...options
+					.slice(1)
+					.map(
+						(c) =>
+							`${tag(c)}: ${c.size} — ${c.diameter} in (${c.pct > 0 ? "+" : ""}${c.pct}%), ${c.width} in wide, ${c.revs} revs/mile.`,
+					),
+				"Retailer-verified sizes appear first. When needed, calculated options within 3% are added to reach four size links when possible; these are not confirmed in retailer listings. We do not widen beyond 3%. This is not vehicle-specific fitment approval. Check your vehicle’s clearance, ABS, transmission, load rating, and speedometer effect before buying.",
+			];
+			return {
+				tireDiameter: "",
+				sidewall: "",
+				sectionWidth: "",
+				revsPerMile: "",
+				matches: lines.join("\n"),
+			};
+		},
+		howItWorks: [
+			"For 225/65R17, multiply section width by aspect ratio for sidewall height: 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in.",
+			"To compare metric options, the calculator converts width to inches and estimates revolutions per mile. Retailer-verified sizes appear first; calculated options within the 3% band may be added when needed to reach four links. Added calculated sizes are not confirmed in retailer listings.",
+			"For an inch-based tire, enter overall diameter, width, and rim. The calculator compares sizes on that rim within 3%, showing retailer-verified sizes first and adding calculated options when needed to reach four links. Calculated options are not confirmed in retailer listings. Check vehicle clearance and tire load rating before buying.",
+		],
+		example: {
+			title: "225/65R17 Metric-to-Standard Conversion Example",
+			inputs:
+				"Metric size: 225/65R17 (225 mm wide, 65% aspect ratio, 17 in rim)",
+			result:
+				"In standard inch measurements, this tire is about 28.52 in in overall diameter, 8.86 in wide, with a 5.76 in sidewall and an estimated 707 revolutions per mile. These measurements help compare sizes; they do not confirm vehicle fitment.",
+		},
+		faqs: [
+			{
+				question:
+					"How do I convert a metric tire size like 225/65R17 to inches?",
+				answer:
+					"The sidewall is 225 × 65% = 146.25 mm, or about 5.76 in. Add two sidewalls to the 17 in rim for an overall diameter of about 28.52 in. The calculator also shows width and revolutions per mile.",
+			},
+			{
+				question: "How do I convert a standard tire size to metric?",
+				answer:
+					"Choose Inches → matching sizes and enter overall diameter, width, and rim. The calculator shows retailer-verified sizes first and may add calculated options within 3% when fewer than four verified alternatives are available. Calculated options are not in our verified retailer list, so check availability and vehicle fitment before buying.",
+			},
+			{
+				question: "What do the numbers in a metric tire size mean?",
+				answer:
+					"In 225/65R17, 225 is section width in millimeters, 65 is sidewall height as a percentage of width, R means radial construction, and 17 is wheel diameter in inches.",
+			},
+			{
+				question: "Do I have to keep the same rim?",
+				answer:
+					"If you are keeping your wheels, enter that rim size. The matching-size direction holds the rim fixed. A different rim needs a separate clearance and overall-diameter check.",
+			},
+			{
+				question: "What is the 3% tire-size rule?",
+				answer:
+					"The 2% and 3% bands compare overall diameter, not vehicle-specific approval. Retailer-verified sizes appear first. When needed, the calculator may add calculated sizes within 3% to reach four links, but these are not confirmed in retailer listings. Check your vehicle’s fitment, load rating, and clearance before buying.",
+			},
+			{
+				question: "How does tire size affect my speedometer?",
+				answer:
+					"A taller tire covers more ground with each wheel rotation, so a speedometer calibrated for a shorter tire can read low. The difference is approximately proportional to the diameter change.",
+			},
+		],
+		seo: {
+			title: "Metric to Standard Tire Size Converter | CalcForged",
+			description:
+				"Convert metric tire sizes to inches and compare same-rim alternatives within 3%. See diameter and speedometer differences. Unverified options are labeled.",
+			h1: "Metric to standard tire size converter",
+			intro:
+				"Convert a metric tire size such as 225/65R17 into standard inch measurements, including overall diameter, section width, sidewall height, and estimated revolutions per mile. You can also start with a tire’s diameter and width in inches to compare metric alternatives on the same rim. Comparisons stay within 3%; they do not confirm vehicle fitment. Check your vehicle’s approved size, load rating, clearance, and speedometer effect before buying.",
+		},
+		related: ["weight-converter", "percentage"],
+	},
+	{
+		slug: "towing-capacity",
+		name: "Towing Capacity & Tongue Weight Calculator",
+		category: "Automotive",
+		categorySlug: "automotive",
+		icon: "↗",
+		description:
+			"Look up a verified towing capacity and bracket the safe tongue-weight range for your trailer.",
+		fields: [
+			{
+				key: "make",
+				label: "Make",
+				type: "select",
+				defaultValue: "",
+				options: [
+					{ label: "Select a make", value: "" },
+					...TOWING_MAKES.map((make) => ({ label: make, value: make })),
+				],
+			},
+			{
+				key: "model",
+				label: "Model",
+				type: "select",
+				defaultValue: "",
+				optionsFor: "make",
+				optionsMap: TOWING_MODEL_OPTIONS,
+				help: "The verified models for your make.",
+			},
+			{
+				key: "year",
+				label: "Year",
+				type: "number",
+				min: 1990,
+				max: 2030,
+				defaultValue: 2024,
+				help: "Used to pick the rating for your model year — several trucks changed capacity across generations.",
+			},
+			{
+				key: "trailerWeight",
+				label: "Trailer weight (loaded)",
+				type: "number",
+				unit: "lb",
+				min: 0,
+				max: 40000,
+				defaultValue: 7000,
+				help: "Trailer plus everything in it — the gross weight, not the dry weight.",
+			},
+			{
+				key: "myTowingCapacity",
+				label: "Your towing capacity (if known)",
+				type: "number",
+				unit: "lb",
+				min: 0,
+				max: 40000,
+				defaultValue: 0,
+				help: "Not listed? Enter the capacity from your door jamb or owner's manual.",
+			},
+		],
+		results: [
+			{
+				key: "maxTowing",
+				label: "Max conventional towing",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"From the verified table or your own rating — the door jamb always wins.",
+			},
+			{
+				key: "tongueWeightMin",
+				label: "Tongue weight minimum (10%)",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "tongueWeightMax",
+				label: "Tongue weight maximum (15%)",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "warning", label: "Before you hook up", format: "text" },
+		],
+		calculate: (v) => {
+			const makeIn = option(v, "make", "").trim();
+			const modelIn = option(v, "model", "").trim();
+			const yearIn = Math.round(n(v, "year", 0)) || undefined;
+			const lookup =
+				makeIn && modelIn
+					? lookupTowing(makeIn, modelIn, yearIn)
+					: { row: undefined, yearInRange: true };
+			const row = lookup.row;
+			const manual = Math.max(0, n(v, "myTowingCapacity", 0));
+			const trailer = Math.max(0, n(v, "trailerWeight", 0));
+			const maxTowing = row ? row.lb : manual;
+			const tongueMin = round(trailer * 0.1);
+			const tongueMax = round(trailer * 0.15);
+			const vehicle = [makeIn, modelIn].filter(Boolean).join(" ");
+			const range = row ? yearRangeLabel(row) : "";
+			const yearNote =
+				row && !lookup.yearInRange
+					? ` Your ${yearIn ?? ""} year is outside this rating's verified range (${range}) — this is the nearest year's rating, and your truck's door jamb is the final word.`
+					: "";
+			const rangeNote =
+				row && lookup.yearInRange && range ? ` Verified range: ${range}.` : "";
+			const warning = [
+				maxTowing > 0 && trailer > maxTowing
+					? `Stop: a ${trailer.toLocaleString("en-US")} lb trailer exceeds the ${maxTowing.toLocaleString("en-US")} lb rating — do not tow it.`
+					: "",
+				row
+					? `${vehicle}: ${row.lb.toLocaleString("en-US")} lb is the properly-equipped maximum conventional towing for the common configuration. ${row.note ?? ""}${rangeNote}${yearNote} Verified against the manufacturer's towing guide, September 2026.`
+					: manual > 0
+						? `Using the ${manual.toLocaleString("en-US")} lb rating you entered.`
+						: vehicle
+							? `No verified table match for ${vehicle} — enter the capacity from your door jamb or owner's manual above.`
+							: `Pick your make and model from the lists to pull a verified capacity — or enter your own rating from the door jamb or owner's manual.`,
+				"Capacities vary by engine, axle, and package — your VIN's towing guide and door-jamb labels always win, and payload has to carry the tongue weight. Never exceed your hitch or receiver rating.",
+			]
+				.filter(Boolean)
+				.join(" ");
+			return {
+				maxTowing,
+				tongueWeightMin: tongueMin,
+				tongueWeightMax: tongueMax,
+				warning,
+			};
+		},
+		howItWorks: [
+			"A curated table of the most-towed U.S. vehicles — every domestic pickup from 1-ton down (F-150 through F-450, Silverado/Sierra 1500-3500HD, RAM 1500-3500), the full-size SUVs and vans, EV trucks, and popular imports — returns the properly-equipped maximum conventional towing for your model year; anything else uses the rating you enter from the door jamb or owner's manual.",
+			"The year you enter picks the rating: where a truck's capacity changed across generations (RAM 1500 pre/post 2019, Tundra pre/post 2022, Super Duty refreshes), the table stores one rating per year range and matches your year to it — never an average.",
+			"Conventional towing puts 10–15% of the loaded trailer weight on the hitch — the calculator brackets your trailer's tongue weight at exactly those bounds.",
+			"The warning carries the fine print: ratings swing by engine, axle, and package, fifth-wheel pin weight runs 15–25% and rides on payload, and the manufacturer's labels always beat any table.",
+		],
+		example: {
+			title: "2019 F-150, 7,000 lb trailer",
+			inputs: "Ford F-150, year 2019, 7,000 lb loaded trailer",
+			result:
+				"13,200 lb (2018-2020 generation, 3.5L EcoBoost + Max Trailer Tow) — tongue weight should land between 700 and 1,050 lb.",
+		},
+		faqs: [
+			{
+				question: "How much tongue weight is safe?",
+				answer:
+					"For a conventional ball hitch, 10–15% of the loaded trailer weight — a 7,000 lb trailer wants 700–1,050 lb on the ball. Too little invites sway; too much overloads the rear axle. Measure with a tongue-weight scale, or at a truck scale weighing the truck with and without the trailer tongue down.",
+			},
+			{
+				question: "Where do I find my exact towing capacity?",
+				answer:
+					"The door-jamb sticker, the owner's manual, and the manufacturer's towing guide for your VIN. The table here gives the common configuration's verified maximum — engines, axle ratios, and tow packages move the real number by thousands of pounds, especially on full-size trucks.",
+			},
+			{
+				question: "What's the difference between towing capacity and GCWR?",
+				answer:
+					"Towing capacity is what the hitch can pull; GCWR is the combined limit for the loaded truck plus trailer, passengers, and cargo. Payload is often the real-world limiter — the tongue weight rides in the bed, and it counts against payload before anything else goes in.",
+			},
+			{
+				question: "When do I need a weight-distributing hitch?",
+				answer:
+					"When the manufacturer requires one for your trailer weight (often around 5,000 lb and up) or whenever the rear of the vehicle squats. Spring bars shift tongue weight to the front axle, restoring steering and headlight aim — sized and adjusted per the manufacturer's instructions.",
+			},
+		],
+		seo: {
+			title: "Towing Capacity & Tongue Weight Calculator | CalcForged",
+			description:
+				"Look up verified towing capacities for the most-towed vehicles — all domestic trucks from 1-ton down, SUVs, vans, EVs, and popular imports — and compute the safe 10–15% tongue-weight range.",
+			h1: "Towing capacity & tongue weight calculator",
+			intro:
+				"Towing numbers are safety data, so this calculator keeps them honest. Enter your make, model, and year — every domestic truck from 1-ton down (F-150 through F-450 Dually, Silverado and Sierra 1500-3500HD, RAM 1500-3500), the full-size SUVs and vans, the EV trucks that tow, and the most-towed imports (Tacoma, Tundra, 4Runner, Grand Cherokee, Gladiator, Titan, and more) return a capacity verified against the manufacturer's own towing guide, stated for the properly-equipped configuration with the real range spelled out — and matched to your model year, because RAM 1500, Tundra, and Super Duty ratings changed across generations. Unlisted vehicles take your capacity from the door jamb or owner's manual. Add your loaded trailer weight and the calculator brackets the tongue weight at the safe 10–15% band for a conventional ball hitch — 700 to 1,050 lb on a 7,000 lb trailer — and flags it plainly if the trailer exceeds the rating. Fifth-wheel owners: pin weight runs 15–25% of trailer weight and counts against payload, and the door-jamb labels always win over any table.",
+		},
+		related: ["tire-size"],
+	},
+	{
+		slug: "battery-runtime",
+		name: "Battery Reserve Capacity & Runtime Calculator",
+		category: "Automotive",
+		categorySlug: "automotive",
+		icon: "▱",
+		description:
+			"Estimate accessory runtime from a battery's reserve-capacity rating and electrical load.",
+		fields: [
+			{
+				key: "reserveCapacity",
+				label: "Battery reserve capacity",
+				type: "number",
+				unit: "minutes",
+				min: 1,
+				max: 600,
+				defaultValue: 120,
+				help: "Find RC on the battery label or manufacturer specification. The standard RC test is 25 amps at 80°F (26.7°C) to 10.5 volts.",
+			},
+			{
+				key: "loadMode",
+				label: "How do you know the load?",
+				type: "select",
+				defaultValue: "amps",
+				options: [
+					{ label: "Current draw (amps)", value: "amps" },
+					{ label: "Power draw (watts)", value: "watts" },
+				],
+			},
+			{
+				key: "loadAmps",
+				label: "Accessory current draw",
+				type: "number",
+				unit: "A",
+				min: 0.1,
+				max: 500,
+				step: 0.1,
+				defaultValue: 5,
+				visibleWhen: { key: "loadMode", values: ["amps"] },
+				help: "Use the accessory label or manual. For multiple devices, add their current draws.",
+			},
+			{
+				key: "loadWatts",
+				label: "Accessory power draw",
+				type: "number",
+				unit: "W",
+				min: 1,
+				max: 6000,
+				defaultValue: 60,
+				visibleWhen: { key: "loadMode", values: ["watts"] },
+				help: "Enter the total watts for all accessories running at once.",
+			},
+			{
+				key: "systemVoltage",
+				label: "Electrical system voltage",
+				type: "select",
+				defaultValue: "12",
+				options: [
+					{ label: "12 V system", value: "12" },
+					{ label: "24 V system", value: "24" },
+				],
+				visibleWhen: { key: "loadMode", values: ["watts"] },
+			},
+			{
+				key: "usableFraction",
+				label: "Capacity to use in estimate",
+				type: "select",
+				defaultValue: "0.5",
+				options: [
+					{ label: "25% — conservative", value: "0.25" },
+					{ label: "50% — cautious planning", value: "0.5" },
+					{ label: "75% — limited reserve", value: "0.75" },
+					{
+						label: "100% — full RC equivalent (not a recommended target)",
+						value: "1",
+					},
+				],
+				help: "This is a planning fraction of the simple RC equivalent, not a battery-safe discharge limit. Follow the vehicle and battery maker's guidance.",
+			},
+		],
+		results: [
+			{
+				key: "loadCurrent",
+				label: "Estimated load",
+				unit: "A",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"Watts are divided by nominal system voltage when you enter power.",
+			},
+			{
+				key: "equivalentCapacity",
+				label: "Simple RC equivalent",
+				unit: "Ah",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"RC minutes × 25 A ÷ 60; not interchangeable with a manufacturer’s 20-hour amp-hour rating.",
+			},
+			{
+				key: "runtimeMinutes",
+				label: "Estimated runtime at selected fraction",
+				unit: "min",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"A rough constant-load estimate based on the standard RC test; real runtime may differ substantially.",
+			},
+			{
+				key: "runtimeHours",
+				label: "Estimated runtime",
+				unit: "hours",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "warning",
+				label: "Important battery note",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const rc = Math.max(1, n(v, "reserveCapacity", 120));
+			const mode = option(v, "loadMode", "amps");
+			const voltage = Math.max(1, n(v, "systemVoltage", 12));
+			const load =
+				mode === "watts"
+					? Math.max(1, n(v, "loadWatts", 60)) / voltage
+					: Math.max(0.1, n(v, "loadAmps", 5));
+			const fraction = Math.min(1, Math.max(0.1, n(v, "usableFraction", 0.5)));
+			const equivalentAh = (rc * 25) / 60;
+			const minutes = (equivalentAh / load) * 60 * fraction;
+			const share = Math.round(fraction * 100);
+			const warning = `Planning estimate only: this scales the standardized ${rc} min reserve-capacity test (25 A to 10.5 V at 80°F) to your entered load and ${share}% fraction. It does not predict whether the vehicle will start afterward. Battery chemistry, age, temperature, charge level, wiring losses, and actual load change results. Protect starting reserve and follow your vehicle and battery manufacturer's guidance.`;
+			return {
+				loadCurrent: round(load, 2),
+				equivalentCapacity: round(equivalentAh, 1),
+				runtimeMinutes: round(minutes),
+				runtimeHours: round(minutes / 60, 2),
+				warning,
+			};
+		},
+		howItWorks: [
+			"Reserve capacity is the minutes a fully charged battery sustains a standardized 25-amp discharge at 80°F (26.7°C) until 10.5 volts. The calculator turns that test result into a simple amp-hour equivalent: RC minutes × 25 ÷ 60.",
+			"For a device specified in watts, current is estimated as watts ÷ nominal system voltage. Runtime then scales the RC equivalent to your load and the capacity fraction you select.",
+			"This is only a constant-load planning estimate — not a battery discharge test, a promise of real-world runtime, or a guarantee the vehicle will restart. Real battery behavior varies with chemistry, age, temperature, charge, and wiring.",
+		],
+		example: {
+			title: "120-minute RC battery, 5-amp accessory",
+			inputs: "120 min RC, 5 A load, 50% planning fraction",
+			result:
+				"Simple RC equivalent: 50 Ah. Estimated runtime at the selected fraction: about 5 hours. This is not a safe-discharge recommendation or a starting guarantee.",
+		},
+		faqs: [
+			{
+				question: "What does reserve capacity mean on a car battery?",
+				answer:
+					"Reserve capacity (RC) is the number of minutes a fully charged battery can deliver 25 amps at about 80°F (26.7°C) before its voltage falls to 10.5 V under the standardized test. Check the battery maker's specification for the rating and test conditions.",
+			},
+			{
+				question: "Can I convert reserve capacity directly to amp-hours?",
+				answer:
+					"A simple estimate is RC minutes × 25 ÷ 60. It is not an exact conversion to a battery's 20-hour amp-hour rating because the tests use different discharge rates and battery performance depends on chemistry and conditions.",
+			},
+			{
+				question: "How long can I run accessories with the engine off?",
+				answer:
+					"This tool offers a rough constant-load estimate from reserve capacity and accessory draw. Actual runtime can vary significantly; it cannot determine whether enough charge will remain to start your specific vehicle. Follow the vehicle and battery maker's guidance.",
+			},
+			{
+				question: "Does cold weather or an old battery affect runtime?",
+				answer:
+					"Yes. Temperature, battery age and condition, state of charge, load changes, wiring, and battery chemistry all affect performance. The calculation does not model those factors, so treat it as a planning estimate only.",
+			},
+		],
+		seo: {
+			title:
+				"Battery Reserve Capacity Calculator – Estimate Accessory Runtime | CalcForged",
+			description:
+				"Estimate accessory runtime from a car battery's reserve-capacity rating and electrical load. Includes an approximate RC-to-Ah conversion and clear limits.",
+			h1: "Battery reserve capacity & runtime calculator",
+			intro:
+				"A battery's reserve-capacity rating comes from a standardized 25-amp test — not from your specific accessories. Enter the battery's RC minutes and the load in amps or watts to see a simple runtime estimate, with an adjustable planning fraction. The calculation is a rough comparison, not a safe-discharge target or a guarantee your vehicle will start afterward; temperature, battery health, charge level, and electrical conditions all matter.",
+		},
+		related: ["tire-size", "towing-capacity"],
+	},
+	{
+		slug: "train-scale-converter",
+		name: "Model Train Scale Converter",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "▬",
+		description:
+			"Convert real dimensions to model size — or back — across Z, N, HO, O, G, and more.",
+		fields: [
+			{
+				key: "dimension",
+				label: "Dimension",
+				type: "number",
+				min: 0.1,
+				max: 10000,
+				step: "any",
+				defaultValue: 40,
+			},
+			{
+				key: "unit",
+				label: "Unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Feet", value: "ft" },
+					{ label: "Inches", value: "in" },
+					{ label: "Centimeters", value: "cm" },
+					{ label: "Meters", value: "m" },
+				],
+			},
+			{
+				key: "scale",
+				label: "Scale",
+				type: "select",
+				defaultValue: "87.1",
+				options: [
+					{ label: "Z — 1:220", value: "220" },
+					{ label: "N — 1:160", value: "160" },
+					{ label: "TT — 1:120", value: "120" },
+					{ label: "HO — 1:87.1", value: "87.1" },
+					{ label: "OO — 1:76 (UK)", value: "76" },
+					{ label: "S — 1:64", value: "64" },
+					{ label: "O — 1:48", value: "48" },
+					{ label: "G — 1:22.5 (garden)", value: "22.5" },
+				],
+			},
+			{
+				key: "direction",
+				label: "Direction",
+				type: "select",
+				defaultValue: "toModel",
+				options: [
+					{ label: "Real → model", value: "toModel" },
+					{ label: "Model → real", value: "toReal" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "realSize",
+				label: "Real-world size",
+				unit: "in",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "modelSize",
+				label: "Model size",
+				unit: "in",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "modelMm",
+				label: "Model size",
+				unit: "mm",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "comparison",
+				label: "Same object in other scales",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const ratio = Math.max(1, n(v, "scale", 87.1));
+			const raw = Math.max(0.01, n(v, "dimension", 40));
+			const unit = option(v, "unit", "ft");
+			const toInches =
+				unit === "ft"
+					? raw * 12
+					: unit === "in"
+						? raw
+						: unit === "cm"
+							? raw / 2.54
+							: raw * 39.3701;
+			const toReal = option(v, "direction", "toModel") === "toReal";
+			const realIn = toReal ? raw * ratio : toInches;
+			const modelIn = toReal ? raw : toInches / ratio;
+			const comparison = `Same real object: Z ≈ ${round(realIn / 220, 2)} in · N ≈ ${round(realIn / 160, 2)} in · O ≈ ${round(realIn / 48, 2)} in · G ≈ ${round(realIn / 22.5, 2)} in.`;
+			return {
+				realSize: round(realIn, 2),
+				modelSize: round(modelIn, 2),
+				modelMm: round(modelIn * 25.4, 1),
+				comparison,
+			};
+		},
+		howItWorks: [
+			"Each scale is a ratio — HO runs 1:87.1 (3.5 mm to the foot), N 1:160, O 1:48, OO 1:76, G 1:22.5.",
+			"Real → model divides your dimension by the ratio after converting to inches; model → real multiplies back out.",
+			"The comparison line sizes the same real object in Z, N, O, and G so you can see at a glance which scale fits the shelf you actually have.",
+		],
+		example: {
+			title: "40 ft boxcar in HO",
+			inputs: "40 ft, HO (1:87.1)",
+			result:
+				"About 5.5 in long (140 mm) — the same boxcar is 3.0 in in N and 10.0 in in O.",
+		},
+		faqs: [
+			{
+				question: "What's the difference between HO and OO?",
+				answer:
+					"Both run on the same 16.5 mm track. OO is 1:76 (4 mm to the foot — the UK standard), so its bodies are about 15% larger than HO's 1:87.1 — which is why British stock looks chunky next to continental equipment on a shared layout.",
+			},
+			{
+				question: "Which scales are the biggest?",
+				answer:
+					"G at 1:22.5 is the common garden scale, running outdoors on 45 mm track; #1 gauge and 1:20.3 live nearby. At the other end, Z at 1:220 fits a complete layout on a door or coffee table.",
+			},
+			{
+				question: "How much space does N save over HO?",
+				answer:
+					"N is about half the linear size of HO (1:160 vs 1:87.1), so the same real-world scene covers roughly 30% of the footprint — about four times the railroad in the same room, or the same railroad in a quarter of it.",
+			},
+			{
+				question: "Why is G listed at 1:22.5?",
+				answer:
+					"G is really a track gauge, not one ratio: LGB's 1:22.5 is the most common, but 1:20.3, 1:24, and 1:29 all share the same 45 mm rails. Narrow-gauge prototypes account for most of the mixing, and modelers choose knowingly.",
+			},
+		],
+		seo: {
+			title:
+				"Model Train Scale Converter – Z, N, HO, O & G Ratios | CalcForged",
+			description:
+				"Convert real dimensions to model train size in Z, N, TT, HO, OO, S, O, and G scales — or model size back to the real world.",
+			h1: "Model train scale converter",
+			intro:
+				"Every model railroad question starts with the same arithmetic: a 40-foot boxcar is 5.5 inches long in HO, and everything else follows from the ratio. This train scale converter handles Z (1:220), N (1:160), TT (1:120), HO (1:87.1), OO (1:76), S (1:64), O (1:48), and G (1:22.5) in both directions — type a real dimension in feet, inches, centimeters, or meters and get the model size in inches and millimeters, or measure a model and recover the real-world size. The comparison line sizes the same object in Z, N, O, and G at once, so deciding whether a helper yard fits on the shelf takes one glance instead of six divisions.",
+		},
+		related: ["yarn-yardage", "filament-cost"],
+	},
+	{
+		slug: "miniature-scale-converter",
+		name: "Miniature Scale Converter",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "◆",
+		description:
+			"Convert real-world heights to 1:50, 1:56, 1:64, and 1:100 miniature scales, or convert a figure back to real size.",
+		fields: [
+			{
+				key: "height",
+				label: "Height",
+				type: "number",
+				min: 0.1,
+				max: 10000,
+				step: "any",
+				defaultValue: 6,
+			},
+			{
+				key: "unit",
+				label: "Unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Feet", value: "ft" },
+					{ label: "Inches", value: "in" },
+					{ label: "Centimeters", value: "cm" },
+					{ label: "Millimeters", value: "mm" },
+				],
+			},
+			{
+				key: "figureScale",
+				label: "Figure scale",
+				type: "select",
+				defaultValue: "56",
+				options: [
+					{ label: "15 mm — ~1:100 (big historical battles)", value: "100" },
+					{ label: "25 mm — ~1:64 (classic lines)", value: "64" },
+					{
+						label: "28 mm heroic — ~1:56 (D&D, fantasy standard)",
+						value: "56",
+					},
+					{ label: "32 mm — ~1:50 (newer Warhammer)", value: "50" },
+				],
+			},
+			{
+				key: "direction",
+				label: "Direction",
+				type: "select",
+				defaultValue: "toModel",
+				options: [
+					{ label: "Real → figure", value: "toModel" },
+					{ label: "Figure → real", value: "toReal" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "realSize",
+				label: "Real-world height",
+				unit: "in",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "modelMm",
+				label: "Figure height",
+				unit: "mm",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "modelIn",
+				label: "Figure height",
+				unit: "in",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "note",
+				label: "Proportions note",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const ratio = Math.max(1, n(v, "figureScale", 56));
+			const raw = Math.max(0.1, n(v, "height", 6));
+			const unit = option(v, "unit", "ft");
+			const toReal = option(v, "direction", "toModel") === "toReal";
+			const realMm = toReal
+				? raw * ratio
+				: unit === "ft"
+					? raw * 304.8
+					: unit === "in"
+						? raw * 25.4
+						: unit === "cm"
+							? raw * 10
+							: raw;
+			const modelMm = toReal ? raw : realMm / ratio;
+			const scaleNames: Record<string, string> = {
+				"100": "15 mm",
+				"64": "25 mm",
+				"56": "28 mm heroic",
+				"50": "32 mm",
+			};
+			const ranges: Record<string, string> = {
+				"100": "about 1:100",
+				"64": "about 1:64 (some lines run 1:72)",
+				"56": "about 1:56 (some lines run 1:60–61)",
+				"50": "about 1:50 (some lines run 1:48–54)",
+			};
+			const name = scaleNames[String(ratio)] ?? "figure scale";
+			return {
+				realSize: round(realMm / 25.4, 2),
+				modelMm: round(modelMm, 1),
+				modelIn: round(modelMm / 25.4, 2),
+				note: `${name} corresponds to ${ranges[String(ratio)] ?? "its nominal ratio"}. "Heroic" lines run chunkier than true scale — oversized heads, hands, and weapons so the figure reads at arm's length — which is why a 6-ft human lands near 32 mm in 28 mm heroic.`,
+			};
+		},
+		howItWorks: [
+			"Figure scales are ratios: 15 mm runs about 1:100, 25 mm about 1:64, 28 mm heroic about 1:56, and 32 mm about 1:50.",
+			"Real → figure divides your height by the ratio after converting to millimeters; figure → real multiplies back out.",
+			"The proportions note flags the heroic caveat — oversized heads and hands mean a printed true-scale figure looks lanky next to heroic metal or plastic.",
+		],
+		example: {
+			title: "6 ft human in 28 mm heroic",
+			inputs: "6 ft, 28 mm heroic (~1:56)",
+			result:
+				"About 33 mm tall (1.3 in) — chunkier proportions than a true 1:56 figure.",
+		},
+		faqs: [
+			{
+				question: "What scale are D&D miniatures?",
+				answer:
+					"Most official and third-party D&D minis are 28–32 mm heroic: a Medium human stands roughly 30–33 mm tall on a 25 mm (1 inch) base. The base is a game convention, not a scale measurement.",
+			},
+			{
+				question: "28 mm or 32 mm — which do I buy?",
+				answer:
+					"They mix fine on the table. 32 mm runs a slightly larger ratio (about 1:50) with beefier proportions; modern Warhammer moved to 32 mm while D&D and most fantasy lines sit at 28 mm heroic. Pick one for a rank-and-file army, mix freely for an adventuring party.",
+			},
+			{
+				question: "Can I 3D print true-scale miniatures?",
+				answer:
+					"Yes — rescale a 32 mm sculpt to 1:56 for true proportions, but heads and weapons will look small next to heroic metal or plastic. Many printers compromise around 1:50–52 for 'heroic-plus' that matches a mixed collection.",
+			},
+			{
+				question: "Do bases tell me the scale?",
+				answer:
+					"No — bases follow game rules (25 mm rounds for Medium D&D creatures, 32 mm under newer editions), not figure height. Judge scale by the figure's overall height, and remember manufacturers often measure foot-to-eye, which is one more reason ratios are approximate.",
+			},
+		],
+		seo: {
+			title: "Miniature Scale Converter: 1:50, 1:56, 1:100 | CalcForged",
+			description:
+				"Convert real heights to 15, 25, 28 mm heroic, or 32 mm miniatures. See 1:50, 1:56, 1:64, and 1:100 ratios, or convert a figure back to real size.",
+			h1: "Miniature scale converter",
+			intro:
+				"Use this miniature scale converter for common ratios, including 1:50, 1:56, 1:64, and 1:100. Enter a real-world height to calculate a figure’s model size, or enter the miniature’s height to estimate its real-world size. Choose 15 mm, 25 mm, 28 mm heroic, or 32 mm figures. Heroic miniatures have intentionally chunkier proportions than true-scale models, so treat the result as a scale estimate.",
+		},
+		related: ["train-scale-converter", "filament-cost", "resin-cost"],
+	},
+	{
+		slug: "filament-cost",
+		name: "Filament Cost Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "▤",
+		description:
+			"Price a 3D print from slicer weight, spool price, and your failure rate.",
+		fields: [
+			{
+				key: "modelWeight",
+				label: "Model weight",
+				type: "number",
+				unit: "g",
+				min: 1,
+				max: 5000,
+				defaultValue: 50,
+				help: "Read it from your slicer after slicing — it includes supports and multi-color purge.",
+			},
+			{
+				key: "spoolPrice",
+				label: "Spool price",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.5,
+				defaultValue: 20,
+			},
+			{
+				key: "spoolWeight",
+				label: "Spool weight",
+				type: "number",
+				unit: "g",
+				min: 50,
+				max: 10000,
+				defaultValue: 1000,
+			},
+			{
+				key: "failPct",
+				label: "Failure allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				defaultValue: 10,
+				help: "Covers spaghetti prints and aborted starts; drop toward 0% once your first layer is dialed in.",
+			},
+		],
+		results: [
+			{
+				key: "costPerPrint",
+				label: "Filament cost per print",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "costPerGram",
+				label: "Cost per gram",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "printsPerSpool",
+				label: "Prints per spool",
+				unit: "prints",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "note",
+				label: "Electricity & reality check",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const weight = Math.max(1, n(v, "modelWeight", 50));
+			const price = Math.max(0, n(v, "spoolPrice", 20));
+			const spool = Math.max(1, n(v, "spoolWeight", 1000));
+			const fail = Math.min(100, Math.max(0, n(v, "failPct", 10))) / 100;
+			const costPerGram = price / spool;
+			const costPerPrint = weight * costPerGram * (1 + fail);
+			const printsPerSpool = Math.floor(spool / (weight * (1 + fail)));
+			return {
+				costPerPrint: round(costPerPrint, 2),
+				costPerGram: round(costPerGram, 3),
+				printsPerSpool,
+				note: `The ${Math.round(fail * 100)}% allowance covers spaghetti and aborted first layers — drop it toward 0% once the machine is dialed in. Electricity is typically pennies: a desktop FDM printer draws 50–150 W and a typical print uses about 0.4 kWh, roughly 6¢ at common U.S. rates.`,
+			};
+		},
+		howItWorks: [
+			"Cost per gram is spool price divided by spool weight; a print's share is that number times the slicer's weight estimate.",
+			"The failure allowance inflates each print's cost and deflates prints-per-spool by the same factor, so the math absorbs the spaghetti you know is coming.",
+			"Electricity barely registers — desktop printers draw 50–150 W, and a typical print consumes around 0.4 kWh, a few cents at most.",
+		],
+		example: {
+			title: "50 g mini on a $20 spool",
+			inputs: "50 g model, $20 per 1,000 g spool, 10% failure allowance",
+			result:
+				"$1.10 per print at $0.02 per gram — about 18 prints from one spool.",
+		},
+		faqs: [
+			{
+				question: "PLA vs PETG — does the price differ?",
+				answer:
+					"Both run about $15–25 per kilogram in standard colors, with PETG typically a dollar or two higher. Specialty filaments — carbon-fiber blends, silk, wood-fill — run $30–50, which is why the calculator takes your actual spool price.",
+			},
+			{
+				question: "Where do I read the print weight?",
+				answer:
+					"From your slicer after slicing — it reports filament grams used, already including supports and multi-color purge. Use that number rather than the model file's own weight.",
+			},
+			{
+				question: "What failure rate should I use?",
+				answer:
+					"New setups see 10–20% failed prints; a well-tuned machine sits at 2–5%. The 10% default splits the difference and self-corrects as your first layers improve — set it honestly and the per-print cost stays real.",
+			},
+			{
+				question: "Does wet filament change the math?",
+				answer:
+					"It changes the failure rate, not the price per gram: moist PLA strings, pops, and snaps mid-print. Dry it (PLA at 45–50 °C for 4–6 hours, PETG hotter at 55–65 °C) and your allowance can drop.",
+			},
+		],
+		seo: {
+			title: "Filament Cost Calculator – 3D Print Cost per Print | CalcForged",
+			description:
+				"Calculate what a 3D print costs in filament — cost per gram, cost per print, and prints per spool, with a failure allowance built in.",
+			h1: "Filament cost calculator",
+			intro:
+				"What does a 3D print actually cost? Take the slicer's weight estimate — it already includes supports and purge — multiply by your spool's price per gram, and add a failure allowance so the prints that end as spaghetti still get paid for. This filament cost calculator does that arithmetic and tells you the other number everyone forgets: prints per spool, so a 50-gram mini on a $20 spool runs about $1.10 with a 10% allowance and one kilogram covers roughly 18 of them. Electricity is in the note too, because it barely matters — desktop printers draw 50–150 W and a typical print consumes around 0.4 kWh, a few cents at U.S. rates.",
+		},
+		related: ["resin-cost", "miniature-scale-converter"],
+	},
+	{
+		slug: "resin-cost",
+		name: "Resin Print Cost Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "◈",
+		description:
+			"Price a resin print from slicer volume, supports, and bottle cost.",
+		fields: [
+			{
+				key: "volumeMl",
+				label: "Model volume",
+				type: "number",
+				unit: "ml",
+				min: 0.1,
+				max: 5000,
+				step: "any",
+				defaultValue: 40,
+				help: "From your slicer's resin-usage estimate.",
+			},
+			{
+				key: "density",
+				label: "Resin density",
+				type: "number",
+				unit: "g/ml",
+				min: 0.8,
+				max: 1.5,
+				step: 0.01,
+				defaultValue: 1.1,
+				help: "Standard resins run about 1.05–1.12 g/ml — check your resin's data sheet.",
+			},
+			{
+				key: "bottleSize",
+				label: "Bottle size",
+				type: "number",
+				unit: "g",
+				min: 100,
+				max: 10000,
+				defaultValue: 1000,
+			},
+			{
+				key: "bottlePrice",
+				label: "Bottle price",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.5,
+				defaultValue: 35,
+			},
+			{
+				key: "supportPct",
+				label: "Support allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				defaultValue: 15,
+				help: "Supports typically add 10–30% resin; tree supports sit at the low end.",
+			},
+			{
+				key: "failPct",
+				label: "Failure allowance",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				defaultValue: 10,
+			},
+		],
+		results: [
+			{
+				key: "resinGrams",
+				label: "Resin per print",
+				unit: "g",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "costPerPrint",
+				label: "Resin cost per print",
+				unit: "$",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "printsPerBottle",
+				label: "Prints per bottle",
+				unit: "prints",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "note", label: "Safety & extras", format: "text" },
+		],
+		calculate: (v) => {
+			const volume = Math.max(0.1, n(v, "volumeMl", 40));
+			const density = Math.max(0.5, n(v, "density", 1.1));
+			const bottle = Math.max(1, n(v, "bottleSize", 1000));
+			const price = Math.max(0, n(v, "bottlePrice", 35));
+			const support = Math.min(100, Math.max(0, n(v, "supportPct", 15))) / 100;
+			const fail = Math.min(100, Math.max(0, n(v, "failPct", 10))) / 100;
+			const grams = volume * density * (1 + support);
+			const costPerPrint = grams * (price / bottle) * (1 + fail);
+			const printsPerBottle = Math.floor(bottle / grams);
+			return {
+				resinGrams: round(grams, 1),
+				costPerPrint: round(costPerPrint, 2),
+				printsPerBottle,
+				note: "Wash-and-cure consumables (IPA, filters, FEP film) add a little per print. Uncured resin is safe for nobody's skin: nitrile gloves, ventilation, and no bare-hand handling until it's cured.",
+			};
+		},
+		howItWorks: [
+			"Slicer volume converts to grams through the resin's density — standard resins run about 1.05–1.12 g/ml — then the support allowance adds its share.",
+			"Cost per print is grams times price per gram, inflated by the failure allowance the way failed exposures eat resin and time.",
+			"Prints per bottle divides bottle size by per-print grams and rounds down — the bottom of the bottle always stays dirty.",
+		],
+		example: {
+			title: "40 ml mini on a $35 bottle",
+			inputs: "40 ml model, 1.1 g/ml density, 15% supports, 10% failures",
+			result:
+				"About 51 g of resin per print — $1.95 each, roughly 19 minis per 1 kg bottle.",
+		},
+		faqs: [
+			{
+				question: "Is resin printing cheaper than filament?",
+				answer:
+					"Per gram, no — resin runs roughly double filament's price. But minis and detailed parts are small: a 1 kg bottle covers about 19 typical 40 ml prints at $1–2 of resin each. Big functional parts stay filament territory.",
+			},
+			{
+				question: "How much resin do supports add?",
+				answer:
+					"Typically 10–30% on top of the model, depending on overhangs and support style — tree supports sit at the low end, heavy full-contact supports at the top. Hollowing a model cuts it further, but always add drain holes.",
+			},
+			{
+				question: "What's resin density, and why does it matter?",
+				answer:
+					"Slicers report volume while resin is sold by weight, so density is the bridge. Standard resins run about 1.05–1.12 g/ml in the bottle (cured parts end up denser still); the exact number is on the technical data sheet.",
+			},
+			{
+				question: "How long does resin keep?",
+				answer:
+					"Sealed bottles last 1–2 years in a cool, dark place; an opened bottle is best within 6–12 months. Stir well before every pour — settled pigment throws your exposure settings off.",
+			},
+		],
+		seo: {
+			title:
+				"Resin Print Cost Calculator – Cost per Mini & Bottle | CalcForged",
+			description:
+				"Calculate resin cost per print from slicer volume, density, supports, and bottle price — plus prints per bottle and safe-handling notes.",
+			h1: "Resin print cost calculator",
+			intro:
+				"Resin math has one extra step filament doesn't: slicers report volume, but resin is sold by weight, and density is the bridge. This resin cost calculator takes your model's volume, applies a density of about 1.05–1.12 g/ml for standard resins, adds the 10–30% that supports typically consume, and prices the print against your bottle — a 40 ml mini lands near 51 grams and about $1.95 on a $35 bottle, with roughly 19 prints to the kilogram. The failure allowance is there because failed exposures waste resin and time the same way spaghetti prints waste filament. The note carries the part that isn't optional: uncured resin needs nitrile gloves and ventilation, every time.",
+		},
+		related: ["filament-cost", "miniature-scale-converter"],
+	},
+	{
+		slug: "sandwich-quantity",
+		name: "Sandwich Quantity Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "▤",
+		description:
+			"Estimate whole sandwiches and serving pieces for a lunch, light meal, or buffet.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 10000,
+				defaultValue: 30,
+			},
+			{
+				key: "plan",
+				label: "How sandwiches fit the menu",
+				type: "select",
+				defaultValue: "main",
+				options: [
+					{ label: "Main meal - 1 full sandwich per guest", value: "main" },
+					{ label: "Light meal with sides - 3/4 per guest", value: "sides" },
+					{
+						label: "Appetizer beside other food - 1/2 per guest",
+						value: "appetizer",
+					},
+				],
+				help: "Serving amounts are planning estimates. Adjust for appetite and the rest of the menu.",
+			},
+			{
+				key: "cut",
+				label: "Cut each sandwich into",
+				type: "select",
+				defaultValue: "2",
+				options: [
+					{ label: "1 whole piece", value: "1" },
+					{ label: "2 halves", value: "2" },
+					{ label: "4 quarters", value: "4" },
+				],
+			},
+			{
+				key: "buffer",
+				label: "Extra for seconds and surprises",
+				type: "select",
+				defaultValue: "10",
+				options: [
+					{ label: "No extra", value: "0" },
+					{ label: "10% extra", value: "10" },
+					{ label: "15% extra", value: "15" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "baseEquivalents",
+				label: "Base sandwich equivalents",
+				unit: "sandwiches",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "wholeSandwiches",
+				label: "Whole sandwiches to prepare",
+				unit: "sandwiches",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "servingPieces",
+				label: "Pieces to serve",
+				unit: "pieces",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "extraSandwiches",
+				label: "Extra sandwiches in buffer",
+				unit: "sandwiches",
+				format: "number",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = Math.max(0, n(v, "guests", 30));
+			const plan = option(v, "plan", "main");
+			const perGuest: Record<string, number> = {
+				main: 1,
+				sides: 0.75,
+				appetizer: 0.5,
+			};
+			const base = guests * (perGuest[plan] ?? 1);
+			const buffer = Math.max(0, n(v, "buffer", 10));
+			const wholeSandwiches = ceil(base * (1 + buffer / 100));
+			const cutCounts: Record<string, number> = { "1": 1, "2": 2, "4": 4 };
+			const cutPieces = cutCounts[option(v, "cut", "2")] ?? 2;
+			return {
+				baseEquivalents: round(base, 1),
+				wholeSandwiches,
+				servingPieces: wholeSandwiches * cutPieces,
+				extraSandwiches: Math.max(0, wholeSandwiches - ceil(base)),
+			};
+		},
+		howItWorks: [
+			"Multiply the guest count by the selected full-sandwich portion: 1 for a main meal, 0.75 for a light meal with sides, or 0.5 for an appetizer spread.",
+			"Add the selected buffer and round up to whole sandwiches.",
+			"The cut setting changes the piece count only. Halves and quarters do not change the amount of food you prepare.",
+		],
+		example: {
+			title: "30-person lunch",
+			inputs: "30 guests, sandwiches as the main meal, 10% extra, cut in half",
+			result: "Prepare 33 whole sandwiches, or 66 halves.",
+		},
+		faqs: [
+			{
+				question: "How many sandwiches should I plan per person?",
+				answer:
+					"For a standard meal, a practical catering starting point is one full sandwich per guest, or two halves, plus a 10% to 15% buffer. Choose a lighter plan when sandwiches share the menu with substantial sides or other mains.",
+			},
+			{
+				question:
+					"Does cutting sandwiches in half mean I need twice as much food?",
+				answer:
+					"No. The tool counts full-sandwich equivalents first. Halves and quarters only change the number of pieces on the platter.",
+			},
+			{
+				question: "Should I always add a buffer?",
+				answer:
+					"No. The buffer is optional. Ten to fifteen percent gives a cushion for seconds and an uncertain headcount; use zero when portions and attendance are firm.",
+			},
+			{
+				question: "Are these exact portions?",
+				answer:
+					"No. Guest appetites, sandwich size, event length, and the rest of the menu vary. Use the result as a planning estimate and adjust the serving plan to fit your event.",
+			},
+		],
+		seo: {
+			title: "Sandwich Quantity Calculator - Sandwiches & Pieces | CalcForged",
+			description:
+				"Estimate how many whole sandwiches to prepare, how many halves or quarters to serve, and an optional event buffer.",
+			h1: "Sandwich quantity calculator",
+			intro:
+				"Planning sandwiches for a group is easier when the serving plan is clear. Enter your guest count, choose whether sandwiches are the main meal or part of a larger spread, then set a buffer and serving cut. The calculator rounds up to whole sandwiches and shows the piece count for your platter. Treat the portions as planning estimates; appetites, sandwich size, and other food on the table all matter.",
+		},
+		related: [
+			"catering-food-quantity",
+			"appetizers-per-person",
+			"charcuterie-board",
+		],
+	},
+	{
+		slug: "charcuterie-board",
+		name: "Charcuterie Board Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◈",
+		description:
+			"Turn a guest count into cheese, meat, cracker, and filler amounts for a board that holds.",
+		fields: [
+			{
+				key: "guests",
+				label: "Guests",
+				type: "number",
+				unit: "people",
+				min: 1,
+				max: 500,
+				defaultValue: 12,
+			},
+			{
+				key: "boardStyle",
+				label: "Role of the board",
+				type: "select",
+				defaultValue: "appetizer",
+				options: [
+					{
+						label: "Appetizer alongside dinner — 2 oz each of cheese and meat",
+						value: "appetizer",
+					},
+					{ label: "The board IS the meal — 3.5 oz each", value: "meal" },
+				],
+			},
+			{
+				key: "cheeseVarieties",
+				label: "Cheese varieties",
+				type: "number",
+				unit: "kinds",
+				min: 1,
+				max: 10,
+				defaultValue: 3,
+			},
+			{
+				key: "meatVarieties",
+				label: "Meat varieties",
+				type: "number",
+				unit: "kinds",
+				min: 0,
+				max: 10,
+				defaultValue: 2,
+			},
+		],
+		results: [
+			{
+				key: "cheeseLb",
+				label: "Cheese total",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "meatLb",
+				label: "Meat total",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+			},
+			{ key: "crackers", label: "Crackers", format: "text", estimate: true },
+			{
+				key: "shoppingList",
+				label: "Shopping list",
+				format: "text",
+				estimate: true,
+			},
+		],
+		calculate: (v) => {
+			const guests = Math.max(1, n(v, "guests", 12));
+			const meal = option(v, "boardStyle", "appetizer") === "meal";
+			const ozCheese = meal ? 3.5 : 2;
+			const ozMeat = meal ? 3.5 : 2;
+			const cheeseLb = round((guests * ozCheese) / 16, 1);
+			const meatLb = round((guests * ozMeat) / 16, 1);
+			const crackerOz = meal ? 2 : 1.5;
+			const crackerLb = round((guests * crackerOz) / 16, 1);
+			const crackerBoxes = ceil((guests * crackerOz) / 8);
+			const cheeseVarieties = Math.max(1, n(v, "cheeseVarieties", 3));
+			const meatVarieties = Math.max(0, n(v, "meatVarieties", 2));
+			const cheesePer =
+				Math.ceil((guests * ozCheese) / cheeseVarieties / 4) * 4;
+			const meatPer =
+				Math.ceil((guests * ozMeat) / Math.max(1, meatVarieties) / 2) * 2;
+			const fillLb = round((guests * 3) / 16, 1);
+			const lines = [
+				`Cheese — ${cheeseLb} lb total: ${cheeseVarieties} varieties × ~${cheesePer} oz each (round up to whole blocks at the counter).`,
+				meatVarieties > 0
+					? `Meat — ${meatLb} lb total: ${meatVarieties} varieties × ~${meatPer} oz each (an 8 oz pack covers about ${Math.max(1, Math.round((8 * meatVarieties) / ozMeat))} guests per variety).`
+					: "Meat — none planned; a spread or pâté makes a good savory anchor instead.",
+				`Crackers — ${crackerLb} lb total: about ${crackerBoxes} standard 8 oz boxes.`,
+				`Fillers — about ${fillLb} lb combined of fruit, nuts, and olives or pickles (2–3 oz per person) to plug the gaps.`,
+			];
+			return {
+				cheeseLb,
+				meatLb,
+				crackers: `${crackerLb} lb — about ${crackerBoxes} standard boxes (${crackerOz} oz per guest).`,
+				shoppingList: lines.join("\n"),
+			};
+		},
+		howItWorks: [
+			"Appetizer boards plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each — 7 oz of board per person.",
+			"Crackers run 1.5–2 oz per guest, and fruit, nuts, and olives add another 2–3 oz per person to fill the visual gaps.",
+			"The shopping list divides totals across your variety counts and rounds up to store-friendly packages — whole blocks and 8 oz meat packs, never 4.7 oz.",
+		],
+		example: {
+			title: "12 guests, board is dinner",
+			inputs: "12 guests, the board IS the meal, 3 cheeses, 2 meats",
+			result:
+				"About 2.6 lb each of cheese and meat — 16 oz wedges ×3, ~22 oz meat packs ×2, plus 3 cracker boxes and 2.3 lb of fillers.",
+		},
+		faqs: [
+			{
+				question: "How much charcuterie per person?",
+				answer:
+					"For an appetizer board alongside dinner, 2 oz of cheese and 2 oz of meat per guest. When the board is the meal, 3–4 oz each — the calculator plans 3.5 — plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the board.",
+			},
+			{
+				question: "How far ahead can I buy?",
+				answer:
+					"Hard cheeses keep 1–2 weeks (rewrap in parchment, not plastic) and unopened cured meats keep for weeks. Buy soft cheeses and cut fruit 1–2 days out, and slice cured meats the day of for the best look.",
+			},
+			{
+				question: "How long can a board sit out?",
+				answer:
+					"Follow the 2-hour rule: perishable food is safe at room temperature about two hours (one hour above 90 °F). Set out half the meat and refill from the fridge, and keep soft cheeses chilled until the last minute.",
+			},
+			{
+				question: "How many cheeses and meats for a good board?",
+				answer:
+					"Three cheeses and two meats cover most parties: one soft, one firm, one blue or aged; one salami-style, one prosciutto-style. Bigger crowds scale quantities before varieties — more of what worked beats a crowded board.",
+			},
+		],
+		seo: {
+			title: "Charcuterie Board Calculator – Amounts Per Person | CalcForged",
+			description:
+				"Calculate cheese, meat, crackers, and fillers per person for a charcuterie board — appetizer or board-as-meal — rounded to store-friendly packages.",
+			h1: "Charcuterie board calculator",
+			intro:
+				"How much charcuterie per person is the difference between a board that holds and a board that gets picked clean in ten minutes. For an appetizer spread alongside dinner, plan 2 oz each of cheese and meat per guest; when the board is the meal, that climbs to about 3.5 oz each, plus 1–2 oz of crackers and 2–3 oz of fruit, nuts, and olives to fill the gaps. Enter your guest count, the board's role, and how many cheeses and meats you want, and the calculator returns totals in pounds plus a shopping list divided by variety and rounded up to store-friendly packages — whole cheese blocks, 8 oz meat packs, full cracker boxes. The buying-ahead and 2-hour-room rules are in the FAQs, because a board is only as good as when it was built.",
+		},
+		related: ["appetizers-per-person", "wedding-dessert-table", "pizza-party"],
+	},
+	{
+		slug: "christmas-lights",
+		name: "Christmas Lights Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "✳",
+		description:
+			"Estimate strand feet, sets to buy, and outlet load for a Christmas tree or a full roofline outline.",
+		fields: [
+			{
+				key: "mode",
+				label: "Where are you hanging lights?",
+				type: "select",
+				defaultValue: "tree",
+				options: [
+					{ label: "A Christmas tree", value: "tree" },
+					{ label: "Roofline & house outline", value: "roofline" },
+				],
+			},
+			{
+				key: "treeHeight",
+				label: "Tree height",
+				type: "number",
+				unit: "ft",
+				min: 2,
+				max: 15,
+				defaultValue: 7,
+				help: "Floor to tip of the tree, not to the star.",
+				visibleWhen: { key: "mode", values: ["tree"] },
+			},
+			{
+				key: "fullness",
+				label: "How full should it look?",
+				type: "select",
+				defaultValue: "classic",
+				options: [
+					{ label: "Sparse — branches show through", value: "sparse" },
+					{ label: "Classic — the standard glow", value: "classic" },
+					{ label: "Full — lush and bright", value: "full" },
+					{ label: "Showstopper — wall of light", value: "showstopper" },
+				],
+				visibleWhen: { key: "mode", values: ["tree"] },
+			},
+			{
+				key: "bulbSpacing",
+				label: "Bulb spacing on the strand",
+				type: "select",
+				defaultValue: "4",
+				options: [
+					{ label: "2.5 in — dense mini sets", value: "2.5" },
+					{ label: "4 in — standard mini sets", value: "4" },
+					{ label: "6 in — wide-spaced sets", value: "6" },
+				],
+				help: "Usually on the box: strand length divided by light count.",
+				visibleWhen: { key: "mode", values: ["tree"] },
+			},
+			{
+				key: "eaves",
+				label: "Straight edges to outline",
+				type: "number",
+				unit: "ft",
+				min: 0,
+				max: 2000,
+				defaultValue: 120,
+				help: "Eaves, porch, garage — walk the run and add the lengths together.",
+				visibleWhen: { key: "mode", values: ["roofline"] },
+			},
+			{
+				key: "gableCount",
+				label: "Triangle gables to outline",
+				type: "number",
+				unit: "gables",
+				min: 0,
+				max: 6,
+				defaultValue: 2,
+				help: "Set 0 if you're lighting only the flat edges.",
+				visibleWhen: { key: "mode", values: ["roofline"] },
+			},
+			{
+				key: "gableWidth",
+				label: "Gable width",
+				type: "number",
+				unit: "ft",
+				min: 0,
+				max: 60,
+				defaultValue: 24,
+				help: "Across the base of one triangle.",
+				visibleWhen: { key: "mode", values: ["roofline"] },
+			},
+			{
+				key: "gableRise",
+				label: "Gable rise",
+				type: "number",
+				unit: "ft",
+				min: 0,
+				max: 30,
+				defaultValue: 8,
+				help: "From the eave line up to the peak.",
+				visibleWhen: { key: "mode", values: ["roofline"] },
+			},
+			{
+				key: "waste",
+				label: "Extra for corners & the outlet run",
+				type: "select",
+				defaultValue: "15",
+				options: [
+					{ label: "10% — simple straight runs", value: "10" },
+					{ label: "15% — corners, typical house", value: "15" },
+					{ label: "20% — many corners, long outlet run", value: "20" },
+				],
+				visibleWhen: { key: "mode", values: ["roofline"] },
+			},
+			{
+				key: "strandLength",
+				label: "Length per strand or reel",
+				type: "number",
+				unit: "ft",
+				min: 5,
+				max: 200,
+				defaultValue: 25,
+				help: "On the box — 25 ft is a typical 100-count mini set.",
+			},
+			{
+				key: "bulbType",
+				label: "Bulb type",
+				type: "select",
+				defaultValue: "led",
+				options: [
+					{ label: "LED — low draw, more strands per outlet", value: "led" },
+					{ label: "Incandescent — traditional warm glow", value: "inc" },
+				],
+			},
+		],
+		results: [
+			{
+				key: "bulbs",
+				label: "Bulbs needed",
+				unit: "bulbs",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"From the classic rule of about 100 lights per vertical foot; sparse or fuller shifts that.",
+			},
+			{
+				key: "strandFeet",
+				label: "Lit length needed",
+				unit: "ft",
+				format: "number",
+				estimate: true,
+			},
+			{
+				key: "strands",
+				label: "Strands to buy",
+				unit: "strands",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"Rounded up — one spare strand is never wasted at clipping-up height.",
+			},
+			{
+				key: "watts",
+				label: "Estimated total draw",
+				unit: "W",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"From typical per-foot wattage; the label on your sets is the real number.",
+			},
+			{ key: "power", label: "Power plan", format: "text" },
+		],
+		calculate: (v) => {
+			const mode = option(v, "mode", "tree");
+			const strandLength = Math.max(5, n(v, "strandLength", 25));
+			const led = option(v, "bulbType", "led") === "led";
+			let bulbs: string | number = "";
+			let strandFeet = 0;
+			let perFoot = 0;
+			if (mode === "tree") {
+				const height = Math.max(2, n(v, "treeHeight", 7));
+				const rates: Record<string, number> = {
+					sparse: 50,
+					classic: 100,
+					full: 150,
+					showstopper: 200,
+				};
+				const spacing = Math.max(1, n(v, "bulbSpacing", 4));
+				const bulbCount = Math.round(
+					height * (rates[option(v, "fullness", "classic")] ?? 100),
+				);
+				bulbs = bulbCount;
+				strandFeet = (bulbCount * spacing) / 12;
+				perFoot = led ? 0.25 : 1.6;
+			} else {
+				const rakePerGable =
+					n(v, "gableWidth", 0) > 0
+						? 2 *
+							Math.sqrt(
+								(n(v, "gableWidth", 0) / 2) ** 2 + n(v, "gableRise", 0) ** 2,
+							)
+						: 0;
+				strandFeet =
+					(n(v, "eaves", 0) +
+						rakePerGable * Math.max(0, n(v, "gableCount", 0))) *
+					(1 + n(v, "waste", 15) / 100);
+				perFoot = led ? 1 : 7;
+			}
+			const strands = ceil(strandFeet / strandLength);
+			const watts = Math.round(strandFeet * perFoot);
+			const wattsPerStrand = Math.max(1, Math.round(perFoot * strandLength));
+			const maxPerCircuit = Math.floor(1440 / wattsPerStrand);
+			const circuits = Math.max(1, ceil(strands / Math.max(1, maxPerCircuit)));
+			let power: string;
+			if (strandFeet < 1) {
+				power =
+					"Enter the lengths you plan to light and the numbers will fill in.";
+			} else if (led) {
+				power = `About ${watts}W total — LED sets draw roughly ${wattsPerStrand}W per ${strandLength}-ft strand, so one standard outdoor outlet carries this with room to spare. Check each set's label for its own end-to-end connection limit.`;
+			} else if (mode === "tree") {
+				power = `About ${watts}W total — incandescent minis run near ${wattsPerStrand}W per strand, so keep the tree on its own outlet and mind what else shares the circuit. Check each set's label for its end-to-end limit.`;
+			} else if (circuits > 1) {
+				power = `About ${watts}W — incandescent C9s run near ${wattsPerStrand}W per strand, and a standard 15-amp circuit plans to about 1,440W, so split this display across ${circuits} outdoor outlets. Check each set's label for its end-to-end limit.`;
+			} else {
+				power = `About ${watts}W — incandescent C9s run near ${wattsPerStrand}W per strand; one standard 15-amp outlet (about 1,440W planning limit) can carry it, but nothing else should share the circuit. Check each set's label for its end-to-end limit.`;
+			}
+			return { bulbs, strandFeet: round(strandFeet), strands, watts, power };
+		},
+		howItWorks: [
+			"Tree mode starts from the classic rule of thumb — about 100 mini lights per vertical foot for the standard look, from 50 for sparse branches to 200 for a full wall of light — then converts bulbs to feet of strand using the bulb spacing printed on the box.",
+			"Roofline mode adds up your straight edges and computes each gable's two sloped sides from width and rise with basic geometry, then pads the total by 10–20% for corners, plug ends, and the run back to the outlet.",
+			"Both modes estimate total wattage from typical per-foot draw (LED minis ~0.25 W/ft, incandescent minis ~1.6, LED C9 ~1, incandescent C9 ~7) against the roughly 1,440W planning limit of a standard 15-amp circuit, so you know how many outlets the display needs.",
+		],
+		example: {
+			title: "A 7 ft tree and a two-gable roofline",
+			inputs:
+				"Tree: 7 ft, classic, 4-inch spacing. Roofline: 120 ft of eaves, two 24-ft gables with 8-ft rise, 15% extra. 25-ft strands.",
+			result:
+				"Tree: about 700 bulbs ≈ 233 ft of strand — 10 strands. Roofline: about 204 ft — 9 strands. In LED that draws roughly 200W on one outlet; in incandescent C9s it's ~1,430W, split across two.",
+		},
+		faqs: [
+			{
+				question: "How many feet of lights for a 7-foot tree?",
+				answer:
+					"A classic 7-foot tree wants about 700 mini lights — roughly 100 per vertical foot. In strand feet that's about 145 ft at 2.5-inch spacing, 230 ft at 4-inch, or 350 ft at 6-inch, which is why two people with the same tree buy different amounts. Match your strand's spacing and the calculator does the rest.",
+			},
+			{
+				question:
+					"How many strings of Christmas lights can I connect end to end?",
+				answer:
+					"Follow the limit printed on the set — the plugs, wiring, and fuse are rated for it. As a planning figure, a standard 15-amp circuit carries about 1,440W for sustained loads: 40W incandescent sets use that up quickly, while LED sets barely register. Count what else shares the circuit, too.",
+			},
+			{
+				question: "LED or incandescent Christmas lights?",
+				answer:
+					"LED draws a fraction of the power, runs cooler, and lets one outlet carry far more strands; incandescent gives the traditional warm glow but adds real wattage fast. For a whole roofline, LED usually pays for itself in fewer cords, clips, and outlets.",
+			},
+			{
+				question: "How do I measure my roofline for lights?",
+				answer:
+					"Walk the edges you'll light with a tape, or measure along the ground and add the overhang. For a gable, measure the base width and the peak height — each sloped side is the square root of half-the-width squared plus the rise squared. Add 10–15% for corners and the run back to the outlet.",
+			},
+		],
+		seo: {
+			title: "Christmas Lights Calculator – Tree & Roofline Feet | CalcForged",
+			description:
+				"How many feet of Christmas lights do you need? Estimate bulbs, strand length, sets to buy, and outlet load for a tree or a full roofline outline.",
+			h1: "Christmas lights calculator",
+			intro:
+				"How many feet of Christmas lights you need comes down to two very different measurements: the tree and the roofline. A classic tree wants about 100 mini lights per vertical foot — 700 bulbs on a 7-footer — but the same 700 bulbs is 145 feet of strand at 2.5-inch spacing or 230 feet at 4-inch, so spacing decides what you actually buy. A roofline is pure geometry: straight eave runs plus each gable's two sloped sides, padded 10–15% for corners and the plug run. This calculator handles both, then estimates the total wattage against a standard outdoor outlet, so you know whether one cord carries the whole display or it needs a second one.",
+		},
+		related: ["party-ice", "balloon-quantity", "pizza-party"],
+	},
+	{
+		slug: "christmas-tree-water",
+		name: "Christmas Tree Water & Stand Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "✳",
+		description:
+			"Check a fresh-cut Christmas tree's stand water capacity, trunk fit, and ceiling clearance.",
+		fields: [
+			{
+				key: "treeHeight",
+				label: "Tree height to the tip",
+				type: "number",
+				unit: "ft",
+				min: 2,
+				max: 20,
+				step: 0.5,
+				defaultValue: 7,
+			},
+			{
+				key: "ceilingHeight",
+				label: "Room ceiling height",
+				type: "number",
+				unit: "ft",
+				min: 6,
+				max: 20,
+				step: 0.5,
+				defaultValue: 9,
+			},
+			{
+				key: "topperHeight",
+				label: "Topper height",
+				type: "number",
+				unit: "in",
+				min: 0,
+				max: 36,
+				step: 0.5,
+				defaultValue: 6,
+			},
+			{
+				key: "clearance",
+				label: "Space wanted above topper",
+				type: "number",
+				unit: "in",
+				min: 0,
+				max: 24,
+				step: 0.5,
+				defaultValue: 6,
+			},
+			{
+				key: "trunkDiameter",
+				label: "Trunk diameter",
+				type: "number",
+				unit: "in",
+				min: 1,
+				max: 12,
+				step: 0.25,
+				defaultValue: 3,
+			},
+			{
+				key: "standCapacity",
+				label: "Stand usable water capacity",
+				type: "number",
+				unit: "gal",
+				min: 0,
+				max: 20,
+				step: 0.25,
+				defaultValue: 1,
+				help: "Use the capacity from the stand's product details.",
+			},
+			{
+				key: "standMaxTrunk",
+				label: "Stand's rated maximum trunk diameter",
+				type: "number",
+				unit: "in",
+				min: 1,
+				max: 12,
+				step: 0.25,
+				defaultValue: 4,
+				help: "Check the stand label. Do not shave the tree trunk to make it fit.",
+			},
+		],
+		results: [
+			{
+				key: "minimumCapacity",
+				label: "Minimum stand water capacity",
+				unit: "gal",
+				format: "number",
+				estimate: true,
+				interpretation:
+					"Based on one quart of capacity per inch of trunk diameter.",
+			},
+			{ key: "capacityCheck", label: "Water capacity check", format: "text" },
+			{ key: "trunkCheck", label: "Trunk fit check", format: "text" },
+			{
+				key: "clearanceAbove",
+				label: "Space above topper",
+				unit: "in",
+				format: "number",
+			},
+			{ key: "heightCheck", label: "Height check", format: "text" },
+		],
+		calculate: (v) => {
+			const treeHeight = Math.max(0, n(v, "treeHeight", 7));
+			const ceilingHeight = Math.max(0, n(v, "ceilingHeight", 9));
+			const topperHeight = Math.max(0, n(v, "topperHeight", 6));
+			const wantedClearance = Math.max(0, n(v, "clearance", 6));
+			const trunkDiameter = Math.max(0, n(v, "trunkDiameter", 3));
+			const standCapacity = Math.max(0, n(v, "standCapacity", 1));
+			const standMaxTrunk = Math.max(0, n(v, "standMaxTrunk", 4));
+			const minimumCapacity = trunkDiameter / 4;
+			const capacityDifference = round(standCapacity - minimumCapacity, 2);
+			const capacityCheck =
+				standCapacity >= minimumCapacity
+					? `Meets the minimum, with ${capacityDifference} gal above the guideline.`
+					: `Short by ${round(minimumCapacity - standCapacity, 2)} gal. Choose a stand with more usable capacity.`;
+			const trunkCheck =
+				trunkDiameter <= standMaxTrunk
+					? `Fits the stand rating of up to ${round(standMaxTrunk, 2)} in.`
+					: `Does not fit: the trunk is ${round(trunkDiameter - standMaxTrunk, 2)} in wider than the stand rating. Do not shave the trunk.`;
+			const clearanceAbove = round(
+				(ceilingHeight - treeHeight) * 12 - topperHeight,
+				1,
+			);
+			const heightCheck =
+				clearanceAbove >= wantedClearance
+					? `Fits with ${clearanceAbove} in above the topper.`
+					: `Needs ${round(wantedClearance - clearanceAbove, 1)} more in of room. Choose a shorter tree or topper.`;
+			return {
+				minimumCapacity: round(minimumCapacity, 2),
+				capacityCheck,
+				trunkCheck,
+				clearanceAbove,
+				heightCheck,
+			};
+		},
+		howItWorks: [
+			"The National Christmas Tree Association's stand guideline is 1 quart of water capacity per inch of trunk diameter. The result converts that to gallons and compares it with your stand's usable capacity.",
+			"The trunk-fit check compares the tree's measured diameter with the maximum printed for your stand. The stand must support the trunk without trimming away its outer wood.",
+			"Ceiling space is room height minus tree height and topper height. The height check compares that space with the clearance you want.",
+		],
+		example: {
+			title: "7-foot tree in a 9-foot room",
+			inputs:
+				"3-inch trunk, 6-inch topper, 6-inch clearance, 1-gallon stand rated for a 4-inch trunk",
+			result:
+				"Minimum stand capacity: 0.75 gal. The stand meets the water guideline and trunk rating; 18 inches remain above the topper.",
+		},
+		faqs: [
+			{
+				question: "How much water capacity should a Christmas tree stand have?",
+				answer:
+					"The National Christmas Tree Association recommends stand capacity of about 1 quart per inch of stem diameter. This is a capacity guideline, not a promise of daily water use. Check the stand each day and keep the cut end under water.",
+			},
+			{
+				question: "How do I know if my tree trunk fits the stand?",
+				answer:
+					"Compare the trunk diameter with the stand's rated size range. The National Christmas Tree Association advises against whittling the sides of the trunk because the outer wood takes up water efficiently.",
+			},
+			{
+				question: "How much room should I leave above a Christmas tree?",
+				answer:
+					"Measure from the floor to the ceiling, then subtract the tree height and topper height. Add the clearance you want before deciding whether the tree will fit.",
+			},
+			{
+				question: "Does this apply to an artificial tree?",
+				answer:
+					"No. The water-capacity estimate is for a fresh-cut tree in a reservoir stand. Artificial trees do not need a water reservoir.",
+			},
+		],
+		seo: {
+			title: "Christmas Tree Water & Stand Size Calculator | CalcForged",
+			description:
+				"Check Christmas tree stand water capacity, trunk fit, and room clearance for a fresh-cut tree.",
+			h1: "Christmas tree water and stand calculator",
+			intro:
+				"A real Christmas tree needs a stand that fits its trunk and holds enough water. Enter the trunk diameter and the stand's usable capacity to compare it with the National Christmas Tree Association's one-quart-per-inch capacity guideline. Add your room height, tree height, topper, and preferred clearance to check whether the tree fits. Check the reservoir daily and keep the cut end submerged; this is a planning check, not a substitute for the stand maker's size rating.",
+		},
+		related: ["christmas-lights"],
+	},
+	{
+		slug: "unit-price-comparison",
+		name: "Price Per Ounce / Unit Price Comparison Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "$",
+		description:
+			"Compare grocery package prices by weight, volume, or count using the same unit basis.",
+		fields: [
+			{
+				key: "productA",
+				label: "Product A name",
+				type: "text",
+				defaultValue: "Product A",
+			},
+			{
+				key: "priceA",
+				label: "Product A price",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 2.49,
+			},
+			{
+				key: "sizeA",
+				label: "Product A package size",
+				type: "number",
+				min: 0,
+				max: 1000000,
+				step: "any",
+				defaultValue: 16,
+			},
+			{
+				key: "unitA",
+				label: "Product A size unit",
+				type: "select",
+				defaultValue: "oz",
+				options: UNIT_PRICE_UNITS,
+				help: "Ounces (oz) measure weight; fluid ounces (fl oz) measure volume.",
+			},
+			{
+				key: "productB",
+				label: "Product B name",
+				type: "text",
+				defaultValue: "Product B",
+			},
+			{
+				key: "priceB",
+				label: "Product B price",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 3.5,
+			},
+			{
+				key: "sizeB",
+				label: "Product B package size",
+				type: "number",
+				min: 0,
+				max: 1000000,
+				step: "any",
+				defaultValue: 24,
+			},
+			{
+				key: "unitB",
+				label: "Product B size unit",
+				type: "select",
+				defaultValue: "oz",
+				options: UNIT_PRICE_UNITS,
+				help: "Choose a unit with the same dimension as Product A.",
+			},
+		],
+		results: [
+			{ key: "validation", label: "Comparison", format: "text" },
+			{ key: "unitPriceA", label: "Product A unit price", format: "text" },
+			{ key: "unitPriceB", label: "Product B unit price", format: "text" },
+			{ key: "lowerPrice", label: "Lower unit-price option", format: "text" },
+			{ key: "difference", label: "Difference per unit", format: "text" },
+			{ key: "workings", label: "Workings", format: "text" },
+		],
+		calculate: calculateUnitPrice,
+		howItWorks: [
+			"Enter each package's shelf price, size, and printed unit. Use the same price basis for both products.",
+			"Each package is converted to a common basis: weight to ounces, volume to US fluid ounces, and count to items. Weight ounces and fluid ounces are different dimensions; this calculator never estimates ingredient density or converts weight into volume.",
+			"Divide package price by its normalized size. The lower price is selected before rounding; displayed unit rates round to four decimal places.",
+		],
+		example: {
+			title: "Two sizes, one price basis",
+			inputs:
+				"Illustrative inputs: $2.49 for 16 oz and $3.50 for 24 oz, both by weight.",
+			result:
+				"Product A: $0.1556/oz. Product B: $0.1458/oz. Product B is lower by $0.0098/oz.",
+		},
+		faqs: [
+			{
+				question: "Is an ounce the same as a fluid ounce?",
+				answer:
+					"No. An ounce (oz) measures weight; a US fluid ounce (fl oz) measures volume. They are not interchangeable. Choose units of the same dimension to compare packages.",
+			},
+			{
+				question: "Which package units can I compare?",
+				answer:
+					"Compare weight with weight, volume with volume, or count with count. Supported weight units convert to ounces, supported US volume units convert to US fluid ounces, and each stays an individual count.",
+			},
+			{
+				question: "How is the lower price chosen?",
+				answer:
+					"The comparison uses the full converted values before rounding. Unit prices are displayed to four decimal places so small differences remain visible.",
+			},
+			{
+				question: "Can it convert cups or fluid ounces into ounces by weight?",
+				answer:
+					"No. That would require a density for the specific product. Use the weight converter or volume converter for conversions within one dimension; neither assumes a product's density.",
+			},
+		],
+		seo: {
+			title:
+				"Price Per Ounce and Unit Price Comparison Calculator | CalcForged",
+			description:
+				"Compare grocery package prices by weight, volume, or count. Convert compatible units exactly, see unit prices, and identify the lower-cost package.",
+			h1: "Compare prices by unit",
+			intro:
+				"Two packages can carry different sizes and different units. Enter each price and package size to compare by ounce, US fluid ounce, or item. Weight and volume stay separate, so an ounce by weight is never treated as a fluid ounce. Sample prices are illustrative; replace them with the shelf prices you see.",
+		},
+		related: ["weight-converter", "volume-converter"],
+	},
+	{
+		slug: "equipment-operating-cost-per-hour",
+		name: "Equipment Operating Cost Per Hour Calculator",
+		category: "Business",
+		categorySlug: "business",
+		icon: "◷",
+		description:
+			"Estimate equipment cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor.",
+		fields: [
+			{
+				key: "purchaseCost",
+				label: "Purchase or replacement cost",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 1000000000,
+				step: 0.01,
+				defaultValue: 25000,
+			},
+			{
+				key: "resaleValue",
+				label: "Expected resale value",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 1000000000,
+				step: 0.01,
+				defaultValue: 5000,
+				help: "Expected value at the end of the assumed useful life.",
+			},
+			{
+				key: "lifetimeHours",
+				label: "Lifetime operating hours",
+				type: "number",
+				unit: "hr",
+				min: 0,
+				max: 1000000000,
+				step: 1,
+				defaultValue: 5000,
+				help: "Total operating hours expected over the machine's useful life.",
+			},
+			{
+				key: "fuelUse",
+				label: "Fuel consumption per hour",
+				type: "number",
+				unit: "gal/hr",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 2,
+				help: "Enter 0 for both fuel fields if the machine has no fuel cost; electricity is not included.",
+			},
+			{
+				key: "fuelPrice",
+				label: "Fuel price per gallon",
+				type: "number",
+				unit: "$/gal",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 3.5,
+			},
+			{
+				key: "maintenanceCost",
+				label: "Maintenance and repair cost per hour",
+				type: "number",
+				unit: "$/hr",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 5,
+				help: "Enter your own average maintenance and repair cost per operating hour.",
+			},
+			{
+				key: "annualOverhead",
+				label: "Annual fixed overhead (optional)",
+				type: "number",
+				unit: "$/yr",
+				min: 0,
+				max: 1000000000,
+				step: 0.01,
+				defaultValue: 1200,
+				help: "Leave at $0 when you are not allocating annual overhead to this machine.",
+			},
+			{
+				key: "annualHours",
+				label: "Annual operating hours (optional)",
+				type: "number",
+				unit: "hr/yr",
+				min: 0,
+				max: 1000000000,
+				step: 1,
+				defaultValue: 600,
+				help: "Required above 0 if annual fixed overhead is greater than $0.",
+			},
+			{
+				key: "operatorLabor",
+				label: "Operator labor per hour (optional)",
+				type: "number",
+				unit: "$/hr",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 25,
+				help: "Enter $0 to exclude operator labor.",
+			},
+			{
+				key: "billingRate",
+				label: "Billing rate per machine hour (optional)",
+				type: "number",
+				unit: "$/hr",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				defaultValue: 65,
+				help: "Enter $0 or leave blank to hide gross-dollar and margin results.",
+			},
+		],
+		results: [
+			{ key: "validation", label: "Estimate", format: "text" },
+			{
+				key: "depreciationPerHour",
+				label: "Depreciation cost per hour",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "fuelPerHour",
+				label: "Fuel cost per hour",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "maintenancePerHour",
+				label: "Maintenance and repair per hour",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "overheadPerHour",
+				label: "Fixed overhead per hour",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "operatorLaborPerHour",
+				label: "Operator labor per hour",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "totalPerHour",
+				label: "Total operating cost per hour",
+				format: "currency",
+				estimate: true,
+			},
+			{
+				key: "grossDollarsPerHour",
+				label: "Gross dollars after listed costs per hour",
+				format: "currency",
+				estimate: true,
+				interpretation:
+					"Billing rate - entered hourly costs, before other expenses and taxes.",
+			},
+			{
+				key: "marginPercent",
+				label: "Margin after listed costs",
+				format: "percent",
+				estimate: true,
+				interpretation: "(Billing rate - total cost) ÷ billing rate × 100.",
+			},
+			{ key: "workings", label: "Cost breakdown and formulas", format: "text" },
+		],
+		calculate: calculateEquipmentCost,
+		howItWorks: [
+			"Depreciation per hour is (purchase or replacement cost - expected resale value) divided by lifetime operating hours.",
+			"Fuel cost per hour is fuel consumed per hour multiplied by fuel price per gallon. Add your maintenance and repair cost per operating hour.",
+			"Optional annual fixed overhead is divided by annual operating hours. Optional operator labor is added per hour; leave optional costs at $0 to exclude them.",
+			"Total operating cost per hour is the sum of the displayed components. If you enter a billing rate, gross dollars per hour equal billing rate minus listed costs; margin is gross dollars divided by billing rate.",
+		],
+		example: {
+			title: "Illustrative machine estimate",
+			inputs:
+				"$25,000 cost, $5,000 resale, 5,000 lifetime hours; 2 gal/hr at $3.50/gal; $5/hr maintenance; $1,200 annual overhead over 600 hours; $25/hr labor; $65/hr billing rate.",
+			result:
+				"$43.00 estimated operating cost per hour. After the listed costs, gross dollars are $22.00/hr and margin is 33.85%.",
+		},
+		faqs: [
+			{
+				question: "How is depreciation spread across hours?",
+				answer:
+					"Subtract expected resale value from purchase or replacement cost, then divide the difference by lifetime operating hours. The inputs are your assumptions, not a resale-value forecast.",
+			},
+			{
+				question: "What happens when I leave optional costs out?",
+				answer:
+					"Annual overhead, annual operating hours, operator labor, and billing rate may be left blank or set to $0. Omitted optional costs count as zero. If overhead is greater than $0, annual operating hours must also be greater than 0.",
+			},
+			{
+				question: "What is included in gross dollars and margin?",
+				answer:
+					"Gross dollars per hour are your billing rate minus the costs entered here. Margin is that amount divided by the billing rate. Other expenses, fees, and taxes are not included unless you add them to your own cost inputs.",
+			},
+			{
+				question: "Is this accounting or tax advice?",
+				answer:
+					"No. This is an estimate based on your inputs, not accounting or tax advice. Check your records and consult a qualified professional for accounting or tax treatment.",
+			},
+		],
+		seo: {
+			title: "Equipment Operating Cost Per Hour Calculator | CalcForged",
+			description:
+				"Estimate machinery cost per operating hour from depreciation, fuel, maintenance, optional overhead, and labor. Add a billing rate to see gross dollars and margin.",
+			h1: "Equipment operating cost per hour",
+			intro:
+				"Price an operating hour from the costs you enter: depreciation, fuel, maintenance and repairs, optional annual overhead, and optional operator labor. Add a billing rate to compare it with the listed hourly cost. Results are estimates based on your inputs, not accounting or tax advice. The prefilled values are illustrative; replace them with your own.",
+		},
+		related: ["gig-driver-mileage-tracker", "fuel-mileage"],
+	},
+	{
+		slug: "board-feet",
+		name: "Board Feet Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "▤",
+		description:
+			"Calculate board-foot volume for lumber pieces, with an optional material-cost estimate.",
+		fields: [
+			{
+				key: "thickness",
+				label: "Thickness",
+				type: "number",
+				unit: "in",
+				min: 0.01,
+				max: 1000,
+				step: "any",
+				defaultValue: 1.5,
+			},
+			{
+				key: "width",
+				label: "Width",
+				type: "number",
+				unit: "in",
+				min: 0.01,
+				max: 1000,
+				step: "any",
+				defaultValue: 5.5,
+			},
+			{
+				key: "length",
+				label: "Length",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 8,
+			},
+			{
+				key: "lengthUnit",
+				label: "Length unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Feet", value: "ft" },
+					{ label: "Inches", value: "in" },
+				],
+			},
+			{
+				key: "pieces",
+				label: "Identical pieces",
+				type: "number",
+				unit: "pieces",
+				min: 1,
+				max: 1000000,
+				step: 1,
+				defaultValue: 10,
+				help: "Use one set of dimensions for pieces that are the same size.",
+			},
+			{
+				key: "pricePerBoardFoot",
+				label: "Price per board foot (optional)",
+				type: "number",
+				unit: "$ / BF",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				help: "Leave blank to skip the material-cost estimate.",
+			},
+		],
+		results: [
+			{ key: "validation", label: "Check", format: "text" },
+			{
+				key: "perPiece",
+				label: "Board feet per piece",
+				unit: "BF",
+				format: "number",
+			},
+			{ key: "total", label: "Total board feet", unit: "BF", format: "number" },
+			{
+				key: "materialCost",
+				label: "Material cost estimate",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: calculateBoardFeet,
+		howItWorks: [
+			"Enter one set of thickness and width dimensions in inches, then choose whether the piece length is in feet or inches. Use the dimensions relevant to the order; this is geometric volume, not a log-scale estimate.",
+			"One board foot is 144 cubic inches. For one piece, multiply thickness × width × length (all in inches) and divide by 144.",
+			"Multiply board feet per piece by the count of identical pieces. Enter a price per board foot only when you want a material-cost estimate. This is different from a deck-board count, which estimates how many boards cover an area.",
+		],
+		example: {
+			title: "Ten matching boards",
+			inputs:
+				"Illustrative dimensions: 1.5 in thick × 5.5 in wide × 8 ft long, quantity 10.",
+			result: "Each piece is 5.5 board feet; the total is 55 board feet.",
+		},
+		faqs: [
+			{
+				question: "What is one board foot?",
+				answer:
+					"A board foot is a volume of 144 cubic inches, such as a piece 1 inch thick, 12 inches wide, and 12 inches long. This calculator applies that definition to the dimensions you enter.",
+			},
+			{
+				question: "Should I use nominal or actual lumber dimensions?",
+				answer:
+					"Use the dimensions that match the basis of your order or quote. The calculator does not convert a nominal label to actual dimensions.",
+			},
+			{
+				question: "How is this different from a deck-board calculator?",
+				answer:
+					"This tool calculates lumber volume in board feet. A deck-board calculator estimates the number of boards needed to cover a deck area.",
+			},
+		],
+		sources: [
+			{
+				label:
+					"Utah State University Forestry Extension — board-foot definition",
+				url: "https://extension.usu.edu/forestry/publications/utah-forest-facts/007-forestry-terms",
+			},
+		],
+		seo: {
+			title: "Board Feet Calculator: Lumber Volume & Cost | CalcForged",
+			description:
+				"Calculate board feet for one or more matching lumber pieces from thickness, width, length, and quantity. Add a price per board foot for an optional cost estimate.",
+			h1: "Board feet calculator",
+			intro:
+				"Estimate lumber volume from the dimensions on your cut list. Enter thickness and width in inches, choose feet or inches for length, and set the number of matching pieces. The calculator uses the standard 144-cubic-inch board-foot unit; it does not estimate log yield or replace a deck-board count.",
+		},
+		related: ["deck-boards", "area"],
+	},
+	{
+		slug: "soap",
+		name: "Soap Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "◒",
+		description:
+			"Estimate lye and water for a blend of common soapmaking oils, with a superfat and solution setting.",
+		fields: [
+			{
+				key: "oils",
+				label: "Oil blend",
+				type: "ingredient-list",
+				ingredientSchema: {
+					first: "Oil blend",
+					amount: "Weight (g)",
+					unit: "",
+					name: "Oil",
+					amountPlaceholder: "500",
+					namePlaceholder: "Choose an oil",
+				},
+				ingredientOptions: SOAP_OIL_OPTIONS,
+				ingredientUnit: "g",
+				help: "Enter each oil weight in grams. The reference table covers seven common oils and fats.",
+			},
+			{
+				key: "lyeType",
+				label: "Lye type",
+				type: "select",
+				defaultValue: "naoh",
+				options: [
+					{ label: "NaOH (sodium hydroxide)", value: "naoh" },
+					{ label: "KOH (potassium hydroxide)", value: "koh" },
+				],
+				help: "NaOH and KOH use different reference SAP values.",
+			},
+			{
+				key: "superfat",
+				label: "Superfat / lye discount",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 50,
+				step: 0.1,
+				defaultValue: 5,
+			},
+			{
+				key: "waterMode",
+				label: "Water setting",
+				type: "select",
+				defaultValue: "concentration",
+				options: [
+					{ label: "Lye concentration", value: "concentration" },
+					{ label: "Water-to-lye ratio", value: "ratio" },
+				],
+			},
+			{
+				key: "lyeConcentration",
+				label: "Lye concentration",
+				type: "number",
+				unit: "%",
+				min: 1,
+				max: 99,
+				step: 0.1,
+				defaultValue: 33,
+				visibleWhen: { key: "waterMode", values: ["concentration"] },
+				help: "Lye weight ÷ (lye weight + water weight).",
+			},
+			{
+				key: "waterToLyeRatio",
+				label: "Water-to-lye ratio",
+				type: "number",
+				unit: ": 1 lye",
+				min: 0.1,
+				max: 20,
+				step: 0.1,
+				defaultValue: 2,
+				visibleWhen: { key: "waterMode", values: ["ratio"] },
+				help: "Enter water weight per 1 part lye by weight.",
+			},
+		],
+		results: [
+			{ key: "validation", label: "Note", format: "text" },
+			{
+				key: "totalOils",
+				label: "Total oil blend",
+				unit: "g",
+				format: "number",
+			},
+			{ key: "lyeKind", label: "Lye type", format: "text" },
+			{ key: "lye", label: "Lye required", unit: "g", format: "number" },
+			{
+				key: "water",
+				label: "Water for solution",
+				unit: "g",
+				format: "number",
+			},
+			{
+				key: "concentration",
+				label: "Resulting lye concentration",
+				format: "percent",
+			},
+			{ key: "workings", label: "SAP values and calculation", format: "text" },
+		],
+		calculate: calculateSoap,
+		howItWorks: [
+			"Choose each oil from the reference list and enter its weight in grams. The list uses the published NaOH and KOH SAP values shown by SoapCalc; the table is intentionally limited to seven common oils and fats.",
+			"For each oil, multiply its weight by its selected lye-type SAP value and add the results. Apply the superfat discount: base lye × (1 − superfat ÷ 100).",
+			"Set water by lye concentration or by a water-to-lye weight ratio. For concentration, water = lye × (100 − concentration) ÷ concentration. The lye amount assumes 100% lye purity; natural oil batches and supplier lye purity can vary, so independently verify the full formula before making soap.",
+		],
+		example: {
+			title: "An illustrative olive-oil batch",
+			inputs:
+				"1,000 g olive oil, NaOH, 5% superfat, and a 33% lye concentration.",
+			result:
+				"Using the listed 0.135 NaOH SAP value: 128.25 g NaOH and about 260.39 g water. The published reference values are rounded; this is a formulation estimate, not a safety certification.",
+		},
+		faqs: [
+			{
+				question: "Are the SAP values exact for every oil?",
+				answer:
+					"No. The selected values are reference values published by SoapCalc, and natural oils can vary by crop and supplier. We show the source and the selected table value in the calculation details; confirm the specific oil and lye information you use.",
+			},
+			{
+				question: "Does this account for lye purity?",
+				answer:
+					"No. It assumes 100% lye purity. Supplier specifications and calculators may use a different purity assumption, especially for potassium hydroxide. Recheck the complete recipe against your supplier's specifications and a trusted soapmaking reference before use.",
+			},
+			{
+				question: "What safety steps should I follow?",
+				answer:
+					"Lye is corrosive. Follow the current safety information for your lye, use protective gloves and eye protection, and work with suitable ventilation. Always add lye to water, never water to lye. This calculator does not certify a recipe as safe.",
+			},
+			{
+				question:
+					"Does this calculator include every soapmaking oil or the liquid-soap process?",
+				answer:
+					"No. It offers a limited list of seven common oils and fats from the linked reference table. It does not accept custom oils, dual-lye recipes, additives, fragrance limits, a lye-purity adjustment, or the separate cooking and dilution stages used in liquid-soap recipes.",
+			},
+		],
+		sources: [
+			{
+				label: "SoapCalc — oil chart and published NaOH/KOH SAP values",
+				url: "https://soapcalc.net/oil-list",
+			},
+			{
+				label: "SoapCalc — lye calculator and recipe method",
+				url: "https://soapcalc.net/calculator",
+			},
+			{
+				label:
+					"Handcrafted Soap & Cosmetic Guild — superfatting and lye discount",
+				url: "https://www.soapguild.org/tools-and-resources/resource-center/166/superfatting-lye-discount/",
+			},
+			{
+				label:
+					"Handcrafted Soap & Cosmetic Guild — beginner cold-process soap guide and lye handling",
+				url: "https://www.soapguild.org/tools-and-resources/resource-center/42/make-cp-soap/",
+			},
+		],
+		seo: {
+			title: "Soap Calculator: Lye, Water & Superfat | CalcForged",
+			description:
+				"Calculate NaOH or KOH for a blend of seven common oils, with adjustable superfat and lye concentration or water-to-lye ratio. Includes SAP sources and safety limits.",
+			h1: "Soap calculator",
+			intro:
+				"Build a simple oil blend and estimate lye and water by weight. Choose NaOH or KOH, set a superfat, and pick lye concentration or water-to-lye ratio. The limited SAP values vary by oil and supplier, and the calculation assumes 100% lye purity. Lye is corrosive: wear gloves and eye protection, use ventilation, and always add lye to water, never water to lye. Verify the complete recipe before use.",
+		},
+		related: ["weight-converter", "cups-to-grams"],
+	},
+	{
+		slug: "aquarium-volume",
+		name: "Aquarium Volume Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "▱",
+		description:
+			"Estimate the geometric capacity of a rectangular aquarium from inside dimensions, in US gallons and liters.",
+		fields: [
+			{
+				key: "length",
+				label: "Inside length",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 36,
+			},
+			{
+				key: "width",
+				label: "Inside width",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 18,
+			},
+			{
+				key: "height",
+				label: "Inside height",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 18,
+			},
+			{
+				key: "dimensionUnit",
+				label: "Dimension unit",
+				type: "select",
+				defaultValue: "in",
+				options: [
+					{ label: "Inches", value: "in" },
+					{ label: "Centimeters", value: "cm" },
+				],
+				help: "Use inside dimensions. Outside measurements include the tank walls.",
+			},
+		],
+		results: [
+			{ key: "validation", label: "Check", format: "text" },
+			{ key: "gallons", label: "US gallons", unit: "US gal", format: "number" },
+			{ key: "liters", label: "Liters", unit: "L", format: "number" },
+		],
+		calculate: calculateAquarium,
+		howItWorks: [
+			"Enter inside length, width, and height for a rectangular tank. Convert all three measurements using the same unit.",
+			"Multiply the dimensions to get cubic inches, then divide by 231 cubic inches per US liquid gallon. Convert US gallons to liters using 3.785411784 L per gallon, derived from the exact U.S. customary volume definition and metric units.",
+			"This is the geometric volume of the rectangular space. The actual water amount can be lower because of substrate, equipment, decorations, and the space left below the rim. No livestock, medication, or animal-health advice is included.",
+		],
+		example: {
+			title: "A 36 × 18 × 18 inch rectangle",
+			inputs: "Inside dimensions: 36 in × 18 in × 18 in.",
+			result: "About 50.49 US gallons, or 191.14 liters of geometric capacity.",
+		},
+		faqs: [
+			{
+				question: "Should I use inside or outside tank dimensions?",
+				answer:
+					"Use the inside dimensions to estimate the space available within a rectangular tank. Outside dimensions include the glass or acrylic walls and give a larger geometric result.",
+			},
+			{
+				question: "Does this show the actual water volume?",
+				answer:
+					"It shows the geometric capacity of the empty rectangular space. It does not subtract substrate, decorations, equipment, or the unfilled space at the top, so the amount of water in a filled tank can be lower.",
+			},
+			{
+				question:
+					"Does it work for bow-front, cylindrical, or hexagonal tanks?",
+				answer:
+					"No. The formula assumes a rectangular prism. Non-rectangular tanks need a shape-specific formula.",
+			},
+			{
+				question: "Does this recommend stocking or medication amounts?",
+				answer:
+					"No. It only calculates geometric volume from the dimensions you enter.",
+			},
+		],
+		sources: [
+			{
+				label:
+					"NIST Handbook 44, Appendix C — U.S. customary units, including 231 cubic inches per gallon",
+				url: "https://www.nist.gov/document/2026-nist-handbook-44-appendix-c",
+			},
+			{
+				label:
+					"NIST Guide to the SI, Appendix B.8 — U.S. gallon-to-liter conversion",
+				url: "https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8",
+			},
+		],
+		seo: {
+			title: "Aquarium Volume Calculator: Gallons & Liters | CalcForged",
+			description:
+				"Calculate the geometric volume of a rectangular aquarium from inside dimensions in inches or centimeters. See US gallons and liters, with the assumptions stated clearly.",
+			h1: "Aquarium volume calculator",
+			intro:
+				"Measure the inside length, width, and height of a rectangular tank to estimate its geometric capacity in US gallons and liters. The result is the empty rectangular volume, not the actual water left after substrate, equipment, decorations, or fill level.",
+		},
+		related: ["volume-converter", "area"],
+	},
+	{
+		slug: "sourdough",
+		name: "Sourdough Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "⌁",
+		description:
+			"Scale sourdough ingredients by total flour, hydration, starter percentage, starter hydration, and salt.",
+		fields: [
+			{
+				key: "totalFlour",
+				label: "Total flour (including starter flour)",
+				type: "number",
+				unit: "g",
+				min: 1,
+				max: 1000000,
+				step: "any",
+				defaultValue: 500,
+				help: "This is the complete flour basis. Flour already inside the starter counts toward it.",
+			},
+			{
+				key: "hydration",
+				label: "Target total hydration",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 500,
+				step: 0.1,
+				defaultValue: 75,
+				help: "Total water ÷ total flour, including water and flour from the starter.",
+			},
+			{
+				key: "starterPercent",
+				label: "Starter weight as % of total flour",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 500,
+				step: 0.1,
+				defaultValue: 20,
+				help: "Starter's full weight divided by total flour weight.",
+			},
+			{
+				key: "starterHydration",
+				label: "Starter hydration",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 1000,
+				step: 0.1,
+				defaultValue: 100,
+				help: "Starter water weight ÷ starter flour weight. 100% means equal weights of water and flour.",
+			},
+			{
+				key: "saltPercent",
+				label: "Salt as % of total flour",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				step: 0.1,
+				defaultValue: 2,
+			},
+		],
+		results: [
+			{ key: "validation", label: "Check", format: "text" },
+			{ key: "flourToAdd", label: "Flour to add", unit: "g", format: "number" },
+			{ key: "starter", label: "Starter to add", unit: "g", format: "number" },
+			{
+				key: "starterBreakdown",
+				label: "Flour + water inside starter",
+				format: "text",
+			},
+			{ key: "waterToAdd", label: "Water to add", unit: "g", format: "number" },
+			{ key: "salt", label: "Salt to add", unit: "g", format: "number" },
+			{
+				key: "doughWeight",
+				label: "Total dough weight",
+				unit: "g",
+				format: "number",
+			},
+			{
+				key: "hydrationResult",
+				label: "Target total hydration",
+				format: "percent",
+			},
+		],
+		calculate: calculateSourdough,
+		howItWorks: [
+			"Enter the target total flour weight. This basis includes the flour already in your starter; the tool then shows how much additional flour to add.",
+			"Starter weight is the entered percentage of total flour. Its hydration splits that weight into starter flour and starter water. Those parts are counted toward total flour and target total water, so the added amounts subtract them.",
+			"Salt is calculated as a percentage of total flour. Overall hydration is total water divided by total flour. All weights are grams; a 100%-hydration starter contains equal weights of flour and water.",
+		],
+		example: {
+			title: "500 g total flour, including starter",
+			inputs:
+				"75% total hydration, starter at 20% of total flour and 100% hydration, salt at 2%.",
+			result:
+				"Add 450 g flour, 100 g starter (50 g flour + 50 g water), 325 g water, and 10 g salt. Total dough weight: 885 g.",
+		},
+		faqs: [
+			{
+				question: "Does total flour include the flour in the starter?",
+				answer:
+					"Yes. The input is the total flour for the whole dough, including starter flour. The result separates the flour already in the starter from the flour you still need to add.",
+			},
+			{
+				question: "What does starter percentage mean here?",
+				answer:
+					"It is the full starter weight divided by the total flour weight. Starter hydration then divides that starter weight into flour and water.",
+			},
+			{
+				question: "How is total hydration calculated?",
+				answer:
+					"Total hydration is total water divided by total flour. Both the water and flour carried by the starter count, following the standard sourdough hydration convention.",
+			},
+			{
+				question:
+					"Can the target hydration be lower than the water already in my starter?",
+				answer:
+					"No. The calculator reports a validation message if the starter already contributes more water than the target allows. Raise the target hydration or adjust the starter settings.",
+			},
+		],
+		sources: [
+			{
+				label: "King Arthur Baking — baker's percentage",
+				url: "https://www.kingarthurbaking.com/pro/reference/bakers-percentage",
+			},
+			{
+				label:
+					"King Arthur Baking — hydration and starter flour/water accounting",
+				url: "https://www.kingarthurbaking.com/blog/2023/01/11/bread-hydration",
+			},
+		],
+		seo: {
+			title: "Sourdough Calculator: Flour, Water, Starter & Salt | CalcForged",
+			description:
+				"Scale sourdough ingredients from total flour, target hydration, starter percentage and hydration, and salt. Starter flour and water are counted in the totals.",
+			h1: "Sourdough calculator",
+			intro:
+				"Scale a sourdough formula in grams without losing track of the starter. Enter total flour (including the flour in your starter), target total hydration, starter weight as a percentage of total flour, starter hydration, and salt percentage. The results separate what is already in the starter from what you still need to add.",
+		},
+		related: ["recipe-scaling", "cups-to-grams", "volume-converter"],
+	},
+	{
+		slug: "firewood",
+		name: "Firewood Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "▧",
+		description:
+			"Calculate stacked firewood volume in cubic feet and cords, with an optional price estimate.",
+		fields: [
+			{
+				key: "length",
+				label: "Stack length",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 8,
+			},
+			{
+				key: "width",
+				label: "Stack width",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 4,
+			},
+			{
+				key: "height",
+				label: "Stack height",
+				type: "number",
+				min: 0.01,
+				max: 100000,
+				step: "any",
+				defaultValue: 4,
+			},
+			{
+				key: "dimensionUnit",
+				label: "Dimension unit",
+				type: "select",
+				defaultValue: "ft",
+				options: [
+					{ label: "Feet", value: "ft" },
+					{ label: "Inches", value: "in" },
+				],
+			},
+			{
+				key: "pricePerCord",
+				label: "Price per cord (optional)",
+				type: "number",
+				unit: "$ / cord",
+				min: 0,
+				max: 1000000,
+				step: 0.01,
+				help: "Leave blank to skip the cost estimate.",
+			},
+		],
+		results: [
+			{ key: "validation", label: "Check", format: "text" },
+			{
+				key: "cubicFeet",
+				label: "Stacked volume",
+				unit: "cu ft",
+				format: "number",
+			},
+			{
+				key: "cords",
+				label: "Cord equivalent",
+				unit: "cord",
+				format: "number",
+			},
+			{
+				key: "cost",
+				label: "Cost estimate",
+				format: "currency",
+				estimate: true,
+			},
+		],
+		calculate: calculateFirewood,
+		howItWorks: [
+			"Measure the full stack's length, width, and height in feet or inches. Use consistent units for all three dimensions.",
+			"Multiply the dimensions after converting inches to feet to get stacked cubic feet. One standard cord is 128 stacked cubic feet, so divide the stack volume by 128 to find the cord equivalent.",
+			"A stacked-cord measurement includes the air spaces between pieces; it is not the volume of solid wood alone. Add a price per cord only for an optional estimate. No heating-value or BTU estimate is included.",
+		],
+		example: {
+			title: "A full cord-sized stack",
+			inputs: "8 ft long × 4 ft wide × 4 ft high.",
+			result: "128 cubic feet of stacked volume, equal to 1 cord.",
+		},
+		faqs: [
+			{
+				question: "What is one standard cord?",
+				answer:
+					"One standard cord is the volume of a stack 8 feet long, 4 feet high, and 4 feet wide: 128 cubic feet.",
+			},
+			{
+				question: "Does a cord mean 128 cubic feet of solid wood?",
+				answer:
+					"No. The 128 cubic feet describes the stacked pile, including spaces between pieces. Solid-wood volume is lower and varies with the size and shape of the pieces.",
+			},
+			{
+				question: "Can I estimate price?",
+				answer:
+					"Yes. Enter your own quoted price per cord; the calculator multiplies it by the stack's cord equivalent. It does not provide market prices.",
+			},
+			{
+				question: "Does this estimate heat output?",
+				answer:
+					"No. It only estimates stacked volume and cord equivalent. It makes no BTU or heating-performance claim.",
+			},
+		],
+		sources: [
+			{
+				label:
+					"University of Minnesota Extension — standard cord dimensions and stacked volume",
+				url: "https://extension.umn.edu/natural-resources/forestry-and-wildlife/forestry/managing-woodlands/sampling-and-measuring-timber",
+			},
+		],
+		seo: {
+			title: "Firewood Calculator: Cords & Stacked Volume | CalcForged",
+			description:
+				"Calculate stacked firewood volume from length, width, and height. Convert cubic feet to cords and optionally estimate cost from your price per cord.",
+			h1: "Firewood calculator",
+			intro:
+				"Measure a firewood stack and see its volume in cubic feet and standard cord equivalents. The cord result is stacked volume, which includes air spaces between pieces; it is not a solid-wood measurement or a heat-output estimate.",
+		},
+		related: ["board-feet", "deck-boards"],
+	},
 ];
 
 function parseRecipeAmount(raw: string): number | null {
-  const amount = raw.trim().replace(/,/g, "");
-  if (!amount) return null;
-  const mixed = /^([+-]?\d+)\s+(\d+)\/(\d+)$/.exec(amount);
-  if (mixed) {
-    const whole = Number(mixed[1]);
-    const numerator = Number(mixed[2]);
-    const denominator = Number(mixed[3]);
-    if (denominator === 0) return null;
-    return whole < 0 ? whole - numerator / denominator : whole + numerator / denominator;
-  }
-  const fraction = /^([+-]?\d+)\/(\d+)$/.exec(amount);
-  if (fraction) {
-    const denominator = Number(fraction[2]);
-    if (denominator === 0) return null;
-    return Number(fraction[1]) / denominator;
-  }
-  const numeric = Number(amount);
-  return Number.isFinite(numeric) ? numeric : null;
+	const amount = raw.trim().replace(/,/g, "");
+	if (!amount) return null;
+	const mixed = /^([+-]?\d+)\s+(\d+)\/(\d+)$/.exec(amount);
+	if (mixed) {
+		const whole = Number(mixed[1]);
+		const numerator = Number(mixed[2]);
+		const denominator = Number(mixed[3]);
+		if (denominator === 0) return null;
+		return whole < 0
+			? whole - numerator / denominator
+			: whole + numerator / denominator;
+	}
+	const fraction = /^([+-]?\d+)\/(\d+)$/.exec(amount);
+	if (fraction) {
+		const denominator = Number(fraction[2]);
+		if (denominator === 0) return null;
+		return Number(fraction[1]) / denominator;
+	}
+	const numeric = Number(amount);
+	return Number.isFinite(numeric) ? numeric : null;
 }
 
 const US_VOLUME_ML: Record<string, number> = {
-  tsp: 4.92892159375,
-  tbsp: 14.78676478125,
-  cup: 236.5882365,
-  "fl-oz": 29.5735295625,
-  pint: 473.176473,
-  quart: 946.352946,
-  gallon: 3785.411784,
-  "imperial-pint": 568.26125,
-  "imperial-fl-oz": 28.4130625,
+	tsp: 4.92892159375,
+	tbsp: 14.78676478125,
+	cup: 236.5882365,
+	"fl-oz": 29.5735295625,
+	pint: 473.176473,
+	quart: 946.352946,
+	gallon: 3785.411784,
+	"imperial-pint": 568.26125,
+	"imperial-fl-oz": 28.4130625,
 };
 const METRIC_VOLUME_ML: Record<string, number> = { ml: 1, l: 1000 };
 const US_WEIGHT_G: Record<string, number> = { oz: 28.349523125, lb: 453.59237 };
 const METRIC_WEIGHT_G: Record<string, number> = { g: 1, kg: 1000 };
 
 function normalizedRecipeUnit(raw: string) {
-  const unit = raw.toLowerCase().trim().replace(/\./g, "").replace(/[\s_-]+/g, "");
-  if (["tsp", "tsps", "teaspoon", "teaspoons"].includes(unit)) return "tsp";
-  if (["tbsp", "tbs", "tablespoon", "tablespoons", "tbl", "tablesp"].includes(unit)) return "tbsp";
-  if (["floz", "fluidoz", "fluidounce", "fluidounces"].includes(unit)) return "fl-oz";
-  if (["imperialfloz", "imperialfluidounce", "imperialfluidounces", "ukfloz", "ukfluidounce", "ukfluidounces"].includes(unit)) return "imperial-fl-oz";
-  if (["cup", "cups"].includes(unit)) return "cup";
-  if (["pint", "pints", "pt", "pts"].includes(unit)) return "pint";
-  if (["imperialpint", "ukpint", "imppint"].includes(unit)) return "imperial-pint";
-  if (["quart", "quarts", "qt", "qts"].includes(unit)) return "quart";
-  if (["gallon", "gallons", "gal", "gals"].includes(unit)) return "gallon";
-  if (["g", "gram", "grams"].includes(unit)) return "g";
-  if (["kg", "kilogram", "kilograms"].includes(unit)) return "kg";
-  if (["ml", "milliliter", "milliliters", "millilitre", "millilitres"].includes(unit)) return "ml";
-  if (["l", "liter", "liters", "litre", "litres"].includes(unit)) return "l";
-  if (["oz", "ounce", "ounces"].includes(unit)) return "oz";
-  if (["lb", "lbs", "pound", "pounds"].includes(unit)) return "lb";
-  return unit;
+	const unit = raw
+		.toLowerCase()
+		.trim()
+		.replace(/\./g, "")
+		.replace(/[\s_-]+/g, "");
+	if (["tsp", "tsps", "teaspoon", "teaspoons"].includes(unit)) return "tsp";
+	if (
+		["tbsp", "tbs", "tablespoon", "tablespoons", "tbl", "tablesp"].includes(
+			unit,
+		)
+	)
+		return "tbsp";
+	if (["floz", "fluidoz", "fluidounce", "fluidounces"].includes(unit))
+		return "fl-oz";
+	if (
+		[
+			"imperialfloz",
+			"imperialfluidounce",
+			"imperialfluidounces",
+			"ukfloz",
+			"ukfluidounce",
+			"ukfluidounces",
+		].includes(unit)
+	)
+		return "imperial-fl-oz";
+	if (["cup", "cups"].includes(unit)) return "cup";
+	if (["pint", "pints", "pt", "pts"].includes(unit)) return "pint";
+	if (["imperialpint", "ukpint", "imppint"].includes(unit))
+		return "imperial-pint";
+	if (["quart", "quarts", "qt", "qts"].includes(unit)) return "quart";
+	if (["gallon", "gallons", "gal", "gals"].includes(unit)) return "gallon";
+	if (["g", "gram", "grams"].includes(unit)) return "g";
+	if (["kg", "kilogram", "kilograms"].includes(unit)) return "kg";
+	if (
+		["ml", "milliliter", "milliliters", "millilitre", "millilitres"].includes(
+			unit,
+		)
+	)
+		return "ml";
+	if (["l", "liter", "liters", "litre", "litres"].includes(unit)) return "l";
+	if (["oz", "ounce", "ounces"].includes(unit)) return "oz";
+	if (["lb", "lbs", "pound", "pounds"].includes(unit)) return "lb";
+	return unit;
 }
 
 function formatDecimal(value: number, digits: number) {
-  return String(Number(value.toFixed(digits)));
+	return String(Number(value.toFixed(digits)));
 }
 
 function formatUSVolume(milliliters: number) {
-  if (milliliters >= US_VOLUME_ML.cup / 2) {
-    const cups = milliliters / US_VOLUME_ML.cup;
-    const formattedCups = formatFraction(cups, [2, 3, 4, 8]);
-    return `${formattedCups} ${formattedCups === "1" ? "cup" : "cups"}`;
-  }
-  if (milliliters >= US_VOLUME_ML.tbsp) return `${formatFraction(milliliters / US_VOLUME_ML.tbsp, [2, 3, 4, 8])} tbsp`;
-  return `${formatFraction(milliliters / US_VOLUME_ML.tsp, [2, 3, 4, 8])} tsp`;
+	if (milliliters >= US_VOLUME_ML.cup / 2) {
+		const cups = milliliters / US_VOLUME_ML.cup;
+		const formattedCups = formatFraction(cups, [2, 3, 4, 8]);
+		return `${formattedCups} ${formattedCups === "1" ? "cup" : "cups"}`;
+	}
+	if (milliliters >= US_VOLUME_ML.tbsp)
+		return `${formatFraction(milliliters / US_VOLUME_ML.tbsp, [2, 3, 4, 8])} tbsp`;
+	return `${formatFraction(milliliters / US_VOLUME_ML.tsp, [2, 3, 4, 8])} tsp`;
 }
 
 function formatMetricVolume(milliliters: number) {
-  if (milliliters >= 1000) return `${formatDecimal(milliliters / 1000, 2)} L`;
-  return `${formatDecimal(milliliters, milliliters < 10 ? 1 : 0)} mL`;
+	if (milliliters >= 1000) return `${formatDecimal(milliliters / 1000, 2)} L`;
+	return `${formatDecimal(milliliters, milliliters < 10 ? 1 : 0)} mL`;
 }
 
 function formatUSWeight(grams: number) {
-  if (grams >= US_WEIGHT_G.lb) return `${formatDecimal(grams / US_WEIGHT_G.lb, 1)} lb`;
-  return `${formatDecimal(grams / US_WEIGHT_G.oz, 1)} oz`;
+	if (grams >= US_WEIGHT_G.lb)
+		return `${formatDecimal(grams / US_WEIGHT_G.lb, 1)} lb`;
+	return `${formatDecimal(grams / US_WEIGHT_G.oz, 1)} oz`;
 }
 
 function formatMetricWeight(grams: number) {
-  if (grams >= 1000) return `${formatDecimal(grams / 1000, 2)} kg`;
-  return `${Math.round(grams)} g`;
+	if (grams >= 1000) return `${formatDecimal(grams / 1000, 2)} kg`;
+	return `${Math.round(grams)} g`;
 }
 
-function formatScaledRecipeIngredient(rawAmount: string, rawUnit: string, ingredient: string, factor: number, system: "us" | "metric") {
-  const amount = parseRecipeAmount(rawAmount);
-  const unit = rawUnit.trim();
-  const name = ingredient.trim();
-  if (amount === null) return [rawAmount.trim(), unit, name].filter(Boolean).join(" ");
+function formatScaledRecipeIngredient(
+	rawAmount: string,
+	rawUnit: string,
+	ingredient: string,
+	factor: number,
+	system: "us" | "metric",
+) {
+	const amount = parseRecipeAmount(rawAmount);
+	const unit = rawUnit.trim();
+	const name = ingredient.trim();
+	if (amount === null)
+		return [rawAmount.trim(), unit, name].filter(Boolean).join(" ");
 
-  const scaledAmount = amount * factor;
-  const unitKey = normalizedRecipeUnit(unit);
-  const usVolume = US_VOLUME_ML[unitKey];
-  const metricVolume = METRIC_VOLUME_ML[unitKey];
-  const usWeight = US_WEIGHT_G[unitKey];
-  const metricWeight = METRIC_WEIGHT_G[unitKey];
-  const joinName = (quantity: string) => [quantity, name].filter(Boolean).join(" ");
+	const scaledAmount = amount * factor;
+	const unitKey = normalizedRecipeUnit(unit);
+	const usVolume = US_VOLUME_ML[unitKey];
+	const metricVolume = METRIC_VOLUME_ML[unitKey];
+	const usWeight = US_WEIGHT_G[unitKey];
+	const metricWeight = METRIC_WEIGHT_G[unitKey];
+	const joinName = (quantity: string) =>
+		[quantity, name].filter(Boolean).join(" ");
 
-  if (usVolume !== undefined) {
-    const milliliters = scaledAmount * usVolume;
-    if (system === "metric") return joinName(formatMetricVolume(milliliters));
-    if (unitKey === "imperial-pint" || unitKey === "imperial-fl-oz") return joinName(formatUSVolume(milliliters));
-    if (unitKey === "tsp" && scaledAmount >= 12) return joinName(`${formatFraction(scaledAmount / 48)} ${scaledAmount / 48 <= 1 ? "cup" : "cups"}`);
-    if (unitKey === "tsp" && scaledAmount >= 3) return joinName(`${formatFraction(scaledAmount / 3)} tbsp`);
-    if (unitKey === "tbsp" && scaledAmount >= 4) return joinName(`${formatFraction(scaledAmount / 16)} ${scaledAmount / 16 <= 1 ? "cup" : "cups"}`);
-    if (unitKey === "fl-oz" && scaledAmount >= 4) return joinName(formatUSVolume(milliliters));
-    return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
-  }
+	if (usVolume !== undefined) {
+		const milliliters = scaledAmount * usVolume;
+		if (system === "metric") return joinName(formatMetricVolume(milliliters));
+		if (unitKey === "imperial-pint" || unitKey === "imperial-fl-oz")
+			return joinName(formatUSVolume(milliliters));
+		if (unitKey === "tsp" && scaledAmount >= 12)
+			return joinName(
+				`${formatFraction(scaledAmount / 48)} ${scaledAmount / 48 <= 1 ? "cup" : "cups"}`,
+			);
+		if (unitKey === "tsp" && scaledAmount >= 3)
+			return joinName(`${formatFraction(scaledAmount / 3)} tbsp`);
+		if (unitKey === "tbsp" && scaledAmount >= 4)
+			return joinName(
+				`${formatFraction(scaledAmount / 16)} ${scaledAmount / 16 <= 1 ? "cup" : "cups"}`,
+			);
+		if (unitKey === "fl-oz" && scaledAmount >= 4)
+			return joinName(formatUSVolume(milliliters));
+		return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
+	}
 
-  if (metricVolume !== undefined) {
-    const milliliters = scaledAmount * metricVolume;
-    return joinName(system === "metric" ? formatMetricVolume(milliliters) : formatUSVolume(milliliters));
-  }
-  if (metricWeight !== undefined) {
-    const grams = scaledAmount * metricWeight;
-    return joinName(system === "metric" ? formatMetricWeight(grams) : formatUSWeight(grams));
-  }
-  if (usWeight !== undefined) {
-    const grams = scaledAmount * usWeight;
-    if (system === "metric") return joinName(formatMetricWeight(grams));
-    if (unitKey === "oz" && scaledAmount >= 16) return joinName(`${formatFraction(scaledAmount / 16)} lb`);
-    return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
-  }
+	if (metricVolume !== undefined) {
+		const milliliters = scaledAmount * metricVolume;
+		return joinName(
+			system === "metric"
+				? formatMetricVolume(milliliters)
+				: formatUSVolume(milliliters),
+		);
+	}
+	if (metricWeight !== undefined) {
+		const grams = scaledAmount * metricWeight;
+		return joinName(
+			system === "metric" ? formatMetricWeight(grams) : formatUSWeight(grams),
+		);
+	}
+	if (usWeight !== undefined) {
+		const grams = scaledAmount * usWeight;
+		if (system === "metric") return joinName(formatMetricWeight(grams));
+		if (unitKey === "oz" && scaledAmount >= 16)
+			return joinName(`${formatFraction(scaledAmount / 16)} lb`);
+		return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
+	}
 
-  return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
+	return [formatFraction(scaledAmount), unit, name].filter(Boolean).join(" ");
 }
 
 function formatFraction(value: number, denominators = [2, 3, 4, 8, 16]) {
-  const whole = Math.floor(value);
-  const remainder = value - whole;
-  let bestNumerator = 0;
-  let bestDenominator = 1;
-  let bestDifference = Math.abs(remainder);
-  for (const denominator of denominators) {
-    for (let numerator = 1; numerator < denominator; numerator++) {
-      const difference = Math.abs(remainder - numerator / denominator);
-      if (difference < bestDifference) {
-        bestNumerator = numerator;
-        bestDenominator = denominator;
-        bestDifference = difference;
-      }
-    }
-  }
-  if (Math.abs(1 - remainder) < bestDifference) return String(whole + 1);
-  if (bestNumerator === 0) return String(whole);
-  const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
-  const divisor = gcd(bestNumerator, bestDenominator);
-  const fraction = `${bestNumerator / divisor}/${bestDenominator / divisor}`;
-  return whole ? `${whole} ${fraction}` : fraction;
+	const whole = Math.floor(value);
+	const remainder = value - whole;
+	let bestNumerator = 0;
+	let bestDenominator = 1;
+	let bestDifference = Math.abs(remainder);
+	for (const denominator of denominators) {
+		for (let numerator = 1; numerator < denominator; numerator++) {
+			const difference = Math.abs(remainder - numerator / denominator);
+			if (difference < bestDifference) {
+				bestNumerator = numerator;
+				bestDenominator = denominator;
+				bestDifference = difference;
+			}
+		}
+	}
+	if (Math.abs(1 - remainder) < bestDifference) return String(whole + 1);
+	if (bestNumerator === 0) return String(whole);
+	const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+	const divisor = gcd(bestNumerator, bestDenominator);
+	const fraction = `${bestNumerator / divisor}/${bestDenominator / divisor}`;
+	return whole ? `${whole} ${fraction}` : fraction;
 }
 
-export const categories: { name: Category; slug: string; description: string; seoDescription?: string }[] = [
-  { name: "Food & Catering", slug: "food-catering", description: "Plan portions, menus, and recipes with less guesswork.", seoDescription: "Plan portions for catered meals, BBQ, taco bars, appetizers, pizza, wings, sandwiches, and charcuterie. Scale recipes or convert cups to grams in one place." },
-  { name: "Home Improvement", slug: "home-improvement", description: "Get practical material estimates before you start." },
-  { name: "Construction", slug: "construction", description: "Turn dimensions into order-ready quantities.", seoDescription: "Estimate concrete volume, rebar quantities, and driveway gravel with construction calculators. Enter dimensions, check the assumptions, and plan what to order." },
-  { name: "Events", slug: "events", description: "Make guest counts and event budgets easier to plan.", seoDescription: "Plan wedding meals and dessert tables, party ice, or balloon quantities with event calculators. Enter guest counts and event details to get practical estimates." },
-  { name: "Business", slug: "business", description: "Check costs, margins, and operating decisions." },
-  { name: "Hobbies", slug: "hobbies", description: "Useful tools for projects and pastimes.", seoDescription: "Use hobby calculators for model trains, miniatures, yarn, 3D print costs, lumber, soap, aquariums, and firewood. Check sizes, quantities, and project costs." },
-  { name: "Automotive", slug: "automotive", description: "Maintenance and ownership planning tools." },
-  { name: "Everyday Life", slug: "everyday-life", description: "Small decisions, answered clearly.", seoDescription: "Find calculators for percentages, tips, unit prices, age, dates, time, and conversions, plus Christmas lights and tree stands. Enter values and see the math." },
-  { name: "Finance", slug: "finance", description: "Loans, savings, and money decisions made clear.", seoDescription: "Compare mortgage and loan payments, estimate savings and compound interest, or model an investment. Enter your numbers to see payments, growth, and assumptions." },
-  { name: "Health", slug: "health", description: "Quick health checks and personal timelines.", seoDescription: "Estimate BMI, calories and TDEE, walking steps, or a pregnancy due date with health calculators. Review each result and its assumptions for general planning." },
-  { name: "Travel", slug: "travel", description: "Money and time, converted for wherever you're headed.", seoDescription: "Plan travel with currency and time zone calculators. Convert amounts or compare local times before a trip, meeting, or call. Enter values to see the result." },
-  { name: "Education", slug: "education", description: "Grades, roots, and quick academic answers." },
+export const categories: {
+	name: Category;
+	slug: string;
+	description: string;
+	seoDescription?: string;
+}[] = [
+	{
+		name: "Food & Catering",
+		slug: "food-catering",
+		description: "Plan portions, menus, and recipes with less guesswork.",
+		seoDescription:
+			"Plan portions for catered meals, BBQ, taco bars, appetizers, pizza, wings, sandwiches, and charcuterie. Scale recipes or convert cups to grams in one place.",
+	},
+	{
+		name: "Home Improvement",
+		slug: "home-improvement",
+		description: "Get practical material estimates before you start.",
+	},
+	{
+		name: "Construction",
+		slug: "construction",
+		description: "Turn dimensions into order-ready quantities.",
+		seoDescription:
+			"Estimate concrete volume, rebar quantities, and driveway gravel with construction calculators. Enter dimensions, check the assumptions, and plan what to order.",
+	},
+	{
+		name: "Events",
+		slug: "events",
+		description: "Make guest counts and event budgets easier to plan.",
+		seoDescription:
+			"Plan wedding meals and dessert tables, party ice, or balloon quantities with event calculators. Enter guest counts and event details to get practical estimates.",
+	},
+	{
+		name: "Business",
+		slug: "business",
+		description: "Check costs, margins, and operating decisions.",
+	},
+	{
+		name: "Hobbies",
+		slug: "hobbies",
+		description: "Useful tools for projects and pastimes.",
+		seoDescription:
+			"Use hobby calculators for model trains, miniatures, yarn, 3D print costs, lumber, soap, aquariums, and firewood. Check sizes, quantities, and project costs.",
+	},
+	{
+		name: "Automotive",
+		slug: "automotive",
+		description: "Maintenance and ownership planning tools.",
+	},
+	{
+		name: "Everyday Life",
+		slug: "everyday-life",
+		description: "Small decisions, answered clearly.",
+		seoDescription:
+			"Find calculators for percentages, tips, unit prices, age, dates, time, and conversions, plus Christmas lights and tree stands. Enter values and see the math.",
+	},
+	{
+		name: "Finance",
+		slug: "finance",
+		description: "Loans, savings, and money decisions made clear.",
+		seoDescription:
+			"Compare mortgage and loan payments, estimate savings and compound interest, or model an investment. Enter your numbers to see payments, growth, and assumptions.",
+	},
+	{
+		name: "Health",
+		slug: "health",
+		description: "Quick health checks and personal timelines.",
+		seoDescription:
+			"Estimate BMI, calories and TDEE, walking steps, or a pregnancy due date with health calculators. Review each result and its assumptions for general planning.",
+	},
+	{
+		name: "Travel",
+		slug: "travel",
+		description: "Money and time, converted for wherever you're headed.",
+		seoDescription:
+			"Plan travel with currency and time zone calculators. Convert amounts or compare local times before a trip, meeting, or call. Enter values to see the result.",
+	},
+	{
+		name: "Education",
+		slug: "education",
+		description: "Grades, roots, and quick academic answers.",
+	},
 ];
 
 export const calculatorDefinitions = definitions;
-export const calculatorsBySlug = Object.fromEntries(definitions.map((d) => [d.slug, d])) as Record<string, CalculatorDefinition>;
-export const categoryBySlug = Object.fromEntries(categories.map((c) => [c.slug, c])) as Record<string, (typeof categories)[number]>;
+export const calculatorsBySlug = Object.fromEntries(
+	definitions.map((d) => [d.slug, d]),
+) as Record<string, CalculatorDefinition>;
+export const categoryBySlug = Object.fromEntries(
+	categories.map((c) => [c.slug, c]),
+) as Record<string, (typeof categories)[number]>;

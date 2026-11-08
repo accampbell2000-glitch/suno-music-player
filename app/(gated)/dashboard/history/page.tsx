@@ -12,8 +12,8 @@ export default function HistoryPage() {
 			<div>
 				<h1 className="text-2xl font-semibold">History</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Your last 20 calculations, kept automatically while you&apos;re
-					signed in. Reopen one and it comes back with the numbers you used.
+					Your last 20 calculations, kept automatically while you&apos;re signed
+					in. Reopen one and it comes back with the numbers you used.
 				</p>
 			</div>
 			<HistoryPanel />
