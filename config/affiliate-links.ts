@@ -1103,6 +1103,11 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 		blurb: "Use the calculated dimensions when resizing and exporting an image.",
 		query: "image editing software resize export",
 	},
+	"business-days": {
+		name: "Business planner",
+		blurb: "Keep project deadlines visible while you plan working weeks.",
+		query: "business planner weekly calendar",
+	},
 	"length-converter": {
 		name: "Tape measure",
 		blurb: "One tape, both unit systems — measure once, convert never.",
@@ -1113,6 +1118,11 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 		blurb:
 			"Cups, ounces, and milliliters in one set — the converters' physical cousins.",
 		query: "measuring cup set metric us",
+	},
+	"grams-to-cups": {
+		name: "Dry measuring cup set",
+		blurb: "Measure the estimated cup amount with standard dry cups.",
+		query: "dry measuring cup set stainless",
 	},
 	"cups-to-grams": {
 		name: "Digital kitchen scale",
@@ -1191,6 +1201,21 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 		name: "World time clock",
 		blurb: "Check local times across regions while scheduling or traveling.",
 		query: "world time zone clock",
+	},
+	"ratio-simplifier": {
+		name: "Scientific calculator",
+		blurb: "Check ratio work alongside other calculations and formulas.",
+		query: "scientific calculator ratios math",
+	},
+	"px-to-rem": {
+		name: "Coding monitor",
+		blurb: "Inspect responsive layouts on a dedicated display.",
+		query: "computer monitor for coding web development",
+	},
+	"sale-price": {
+		name: "Pocket calculator",
+		blurb: "Check price reductions and savings away from the browser.",
+		query: "pocket calculator with large percent key",
 	},
 	percentage: {
 		name: "Pocket calculator",
@@ -1344,6 +1369,23 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			name: "Baking conversion chart",
 			blurb:
 				"Keep common kitchen measurements visible while adjusting a recipe.",
+			query: "baking measurement conversion chart magnet",
+		},
+	],
+	"grams-to-cups": [
+		{
+			name: "Digital kitchen scale",
+			blurb: "Weigh ingredients before converting them to a volume estimate.",
+			query: "digital kitchen scale grams",
+		},
+		{
+			name: "Stainless measuring spoons",
+			blurb: "Measure smaller amounts when the result is below one cup.",
+			query: "stainless steel measuring spoons set",
+		},
+		{
+			name: "Baking conversion chart",
+			blurb: "Keep common volume and weight references handy in the kitchen.",
 			query: "baking measurement conversion chart magnet",
 		},
 	],
@@ -1609,6 +1651,57 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			query: "world time desk clock multiple time zones",
 		},
 	],
+	"ratio-simplifier": [
+		{
+			name: "Digital kitchen scale",
+			blurb: "Weigh ingredients when applying recipe ratios precisely.",
+			query: "digital kitchen scale grams",
+		},
+		{
+			name: "Measuring cup set",
+			blurb: "Measure ingredients consistently for recipe proportions.",
+			query: "measuring cup set metric us",
+		},
+		{
+			name: "Ratio and proportion workbook",
+			blurb: "Practice equivalent ratios with worked math examples.",
+			query: "ratio and proportion workbook math",
+		},
+	],
+	"px-to-rem": [
+		{
+			name: "Programming keyboard",
+			blurb: "Keep a comfortable keyboard at hand while editing stylesheets.",
+			query: "mechanical keyboard programming",
+		},
+		{
+			name: "Laptop stand",
+			blurb: "Raise a laptop screen when checking designs at different sizes.",
+			query: "adjustable laptop stand desk",
+		},
+		{
+			name: "CSS reference book",
+			blurb: "Keep a printed CSS reference nearby while building pages.",
+			query: "CSS reference book web development",
+		},
+	],
+	"sale-price": [
+		{
+			name: "Coupon organizer",
+			blurb: "Keep paper coupons together while comparing sale prices.",
+			query: "coupon organizer wallet discounts",
+		},
+		{
+			name: "Retail price label gun",
+			blurb: "Mark updated prices on products for a store promotion.",
+			query: "retail price label gun",
+		},
+		{
+			name: "Price tag labels",
+			blurb: "Label merchandise with the updated price after a markdown.",
+			query: "price tag labels sale markdown",
+		},
+	],
 	percentage: [
 		{
 			name: "Scientific calculator",
@@ -1659,6 +1752,23 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			name: "Monitor for photo editing",
 			blurb: "A larger workspace for checking image composition and proportions.",
 			query: "monitor for photo editing",
+		},
+	],
+	"business-days": [
+		{
+			name: "Desk calendar",
+			blurb: "Keep upcoming deadlines visible while planning weekdays.",
+			query: "desk calendar large date",
+		},
+		{
+			name: "Weekly planner",
+			blurb: "Lay out workdays, appointments, and project due dates.",
+			query: "weekly planner notebook",
+		},
+		{
+			name: "Wall calendar",
+			blurb: "See a month's deadlines at a glance.",
+			query: "wall calendar large writing space",
 		},
 	],
 	"length-converter": [

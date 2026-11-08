@@ -1,8 +1,12 @@
 import { calculateAspectRatio } from "./aspect-ratio";
+import { calculateBusinessDays } from "./business-days";
+import { calculatePxRem } from "./px-rem";
+import { simplifyRatio } from "./ratio-simplifier";
 import {
 	compileFunctionExpression,
 	sampleFunctionGraph,
 } from "./function-graph";
+import { calculateSalePrice } from "./sale-price";
 import { calculateSalesTax } from "./sales-tax";
 import {
 	lookupTowing,
@@ -412,6 +416,48 @@ const COMMON_CUP_WEIGHTS: {
 	{ id: "panko", label: "Japanese panko breadcrumbs", grams: 50, cups: 1 },
 	{ id: "coconut-flour", label: "Coconut flour", grams: 128, cups: 1 },
 	{ id: "spelt-flour", label: "Spelt flour", grams: 99, cups: 1 },
+	{ id: "almond-butter", label: "Almond butter", grams: 68, cups: 0.25 },
+	{ id: "baking-powder", label: "Baking powder", grams: 4, cups: 1 / 48 },
+	{ id: "baking-soda", label: "Baking soda", grams: 3, cups: 1 / 96 },
+	{ id: "banana-mashed", label: "Bananas (mashed)", grams: 227, cups: 1 },
+	{ id: "breadcrumbs-dried", label: "Breadcrumbs (dried)", grams: 28, cups: 0.25 },
+	{ id: "breadcrumbs-fresh", label: "Breadcrumbs (fresh)", grams: 21, cups: 0.25 },
+	{ id: "brown-rice-flour", label: "Brown rice flour", grams: 128, cups: 1 },
+	{ id: "buckwheat-flour", label: "Buckwheat flour", grams: 120, cups: 1 },
+	{ id: "cake-flour", label: "Unbleached cake flour", grams: 120, cups: 1 },
+	{ id: "chickpea-flour", label: "Chickpea flour", grams: 85, cups: 1 },
+	{ id: "chia-seeds", label: "Chia seeds", grams: 37, cups: 0.25 },
+	{
+		id: "coconut-sweetened-shredded",
+		label: "Coconut (sweetened, shredded)",
+		grams: 85,
+		cups: 1,
+	},
+	{
+		id: "coconut-unsweetened-shredded",
+		label: "Coconut (unsweetened, shredded)",
+		grams: 53,
+		cups: 1,
+	},
+	{ id: "coconut-oil", label: "Coconut oil", grams: 113, cups: 0.5 },
+	{ id: "coconut-sugar", label: "Coconut sugar", grams: 77, cups: 0.5 },
+	{ id: "cranberries-dried", label: "Cranberries (dried)", grams: 57, cups: 0.5 },
+	{
+		id: "cream-heavy-light-half-and-half",
+		label: "Cream (heavy, light, or half & half)",
+		grams: 227,
+		cups: 1,
+	},
+	{ id: "oat-flour", label: "Oat flour", grams: 92, cups: 1 },
+	{ id: "pumpkin-puree", label: "Pumpkin purée", grams: 227, cups: 1 },
+	{ id: "semolina-flour", label: "Semolina flour", grams: 163, cups: 1 },
+	{
+		id: "sweetened-condensed-milk",
+		label: "Sweetened condensed milk",
+		grams: 78,
+		cups: 0.25,
+	},
+	{ id: "tahini", label: "Tahini paste", grams: 128, cups: 0.5 },
 ];
 const CUP_VOLUME_EQUIVALENTS: Record<string, number> = {
 	cup: 1,
@@ -2115,7 +2161,7 @@ const definitions: CalculatorDefinition[] = [
 			{
 				question: "Can I convert the result back to cups?",
 				answer:
-					"This tool starts with volume and estimates a weight for the selected ingredient. For other recipe scaling and supported unit changes, use Recipe Scaling; for volume or mass alone, use the Volume Converter or Weight Converter.",
+					"Yes. Use the Grams to Cups Calculator and select the same ingredient reference. It estimates volume from the same chart weights, so preparation and packing still matter.",
 			},
 		],
 		sources: [
@@ -2132,7 +2178,107 @@ const definitions: CalculatorDefinition[] = [
 			intro:
 				"A cup of flour does not weigh the same as a cup of sugar. Choose a listed ingredient, enter a volume, and get a gram estimate based on a published kitchen weight chart. Brand, packing, sifting, and preparation change the result, so treat each value as a reference and weigh ingredients when precision matters.",
 		},
-		related: ["recipe-scaling", "volume-converter", "weight-converter"],
+		related: ["grams-to-cups", "recipe-scaling", "volume-converter"],
+	},
+	{
+		slug: "grams-to-cups",
+		name: "Grams to Cups Calculator",
+		category: "Food & Catering",
+		categorySlug: "food-catering",
+		icon: "◉",
+		description:
+			"Estimate US cups from grams using an ingredient-specific reference weight.",
+		fields: [
+			{
+				key: "amount",
+				label: "Amount",
+				type: "number",
+				unit: "g",
+				min: 0,
+				max: 100000,
+				step: 0.01,
+				defaultValue: 120,
+			},
+			{
+				key: "ingredient",
+				label: "Ingredient and preparation",
+				type: "select",
+				defaultValue: "all-purpose-flour",
+				options: COMMON_CUP_WEIGHTS.map(({ id, label }) => ({
+					label,
+					value: id,
+				})),
+				help: "Choose the preparation that matches your ingredient.",
+			},
+		],
+		results: [
+			{ key: "volumeText", label: "Estimated volume", format: "text", estimate: true },
+			{
+				key: "gramsPerCup",
+				label: "Reference weight",
+				unit: "g per US cup",
+				format: "number",
+			},
+			{ key: "formula", label: "Calculation", format: "text" },
+			{ key: "note", label: "Note", format: "text" },
+		],
+		calculate: (v) => {
+			const ingredient =
+				COMMON_CUP_WEIGHTS.find(
+					(item) => item.id === option(v, "ingredient", "all-purpose-flour"),
+				) ?? COMMON_CUP_WEIGHTS[0];
+			const grams = Math.max(0, n(v, "amount", 120));
+			const gramsPerCup = ingredient.grams / ingredient.cups;
+			const cups = round(grams / gramsPerCup, 3);
+			const volumeText = cups === 1 ? "1 US cup" : `${cups} US cups`;
+			return {
+				volumeText,
+				gramsPerCup: Math.round(gramsPerCup),
+				formula: `${round(grams, 2)} g ÷ ${Math.round(gramsPerCup)} g per US cup = ${volumeText}.`,
+				note: "An ingredient-specific estimate. Packing, brand, and preparation can change the volume.",
+			};
+		},
+		howItWorks: [
+			"Choose the ingredient and preparation that match your recipe. The calculator uses that entry's reference grams per US cup.",
+			"It divides the entered grams by the selected ingredient's grams-per-cup reference and rounds the estimated volume to 3 decimal places.",
+			"Cup weights vary with ingredient, brand, and preparation. Weigh ingredients when precision matters, especially for baking.",
+		],
+		example: {
+			title: "Convert 120g of all-purpose flour",
+			inputs: "120g all-purpose flour",
+			result: "About 1 US cup using the chart reference of 120g per US cup.",
+		},
+		faqs: [
+			{
+				question: "Why does the ingredient matter?",
+				answer: "Grams measure mass and cups measure volume. Different ingredients, and different ways of preparing them, have different weights per cup.",
+			},
+			{
+				question: "Are these weights universal?",
+				answer: "No. The reference values come from King Arthur Baking's ingredient weight chart. Brand, packing, sifting, particle size, and preparation can change the volume, so treat the result as an estimate.",
+			},
+			{
+				question: "Which cup standard does the calculator use?",
+				answer: "It reports US cups using the selected ingredient's chart reference. A recipe using a metric 250 ml cup may give a different result.",
+			},
+			{
+				question: "Can I convert cups back to grams?",
+				answer: "Yes. Use the Cups to Grams Calculator and select the same ingredient reference. It uses the same chart weights in the opposite direction.",
+			},
+		],
+		sources: [
+			{
+				label: "King Arthur Baking, Ingredient Weight Chart",
+				url: "https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+			},
+		],
+		seo: {
+			title: "Grams to Cups Calculator by Ingredient | CalcForged",
+			description: "Convert grams to US cups by ingredient using chart-based reference weights. Choose an ingredient and preparation for an estimated volume.",
+			h1: "Grams to cups, by ingredient",
+			intro: "Grams measure weight and cups measure volume, so the conversion depends on the ingredient. Choose a listed ingredient and preparation to estimate US cups from grams using the same published chart as the companion Cups-to-Grams calculator.",
+		},
+		related: ["cups-to-grams", "recipe-scaling", "volume-converter"],
 	},
 	{
 		slug: "paint",
@@ -6200,6 +6346,265 @@ const definitions: CalculatorDefinition[] = [
 		related: ["tip", "weight-converter", "square-root-cube-root"],
 	},
 	{
+		slug: "sale-price",
+		name: "Sale Price Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "%",
+		description:
+			"Find the sale price after one percentage discount and see how much you save before tax.",
+		fields: [
+			{
+				key: "originalPrice",
+				label: "Original price",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 80,
+			},
+			{
+				key: "discountPercent",
+				label: "Discount",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				step: 0.01,
+				defaultValue: 25,
+				help: "Enter one discount from 0% to 100%.",
+			},
+		],
+		results: [
+			{
+				key: "salePrice",
+				label: "Sale price before tax",
+				unit: "$",
+				format: "currency",
+			},
+			{
+				key: "discountAmount",
+				label: "Amount saved",
+				unit: "$",
+				format: "currency",
+			},
+			{ key: "formula", label: "Calculation", format: "text" },
+			{ key: "validation", label: "Note", format: "text" },
+		],
+		calculate: (v) =>
+			calculateSalePrice(
+				v.originalPrice as string | number | undefined,
+				v.discountPercent as string | number | undefined,
+			),
+		howItWorks: [
+			"Multiply the original price by the discount percentage divided by 100 to get the discount amount.",
+			"The discount amount is rounded to cents, then subtracted from the original price to get the sale price.",
+			"This applies one percentage discount. Sales tax and stacked discounts are not included.",
+		],
+		example: {
+			title: "Find the price after a 25% discount",
+			inputs: "$80 original price; 25% off",
+			result: "$20.00 saved; $60.00 sale price before tax.",
+		},
+		faqs: [
+			{
+				question: "How do I calculate a sale price?",
+				answer: "Multiply the original price by the discount rate to find the savings, then subtract those savings from the original price. For example, 25% off $80 saves $20, leaving a $60 price before tax.",
+			},
+			{
+				question: "Does this include sales tax?",
+				answer: "No. The result is the discounted price before tax. Use the applicable tax rate separately; tax rules vary by location and purchase.",
+			},
+			{
+				question: "Can I combine two discounts?",
+				answer: "This calculator applies one percentage discount. To apply a second discount, use the first sale price as the new original price and enter the second rate.",
+			},
+			{
+				question: "How are cents rounded?",
+				answer: "The discount amount rounds to the nearest cent first. The sale price is the original price minus that rounded discount.",
+			},
+		],
+		seo: {
+			title: "Sale Price Calculator: Discount Price and Savings | CalcForged",
+			description: "Calculate the price after one percentage discount and see how much you save. Amounts are rounded to cents; tax and stacked discounts are not included.",
+			h1: "Sale price calculator",
+			intro: "Enter an original price and one percentage discount to see your savings and the price before tax. The discount amount rounds to the nearest cent. Sales tax and stacked promotions are not included.",
+		},
+		related: ["percentage", "sales-tax", "tip"],
+	},
+	{
+		slug: "px-to-rem",
+		name: "Pixels to REM Calculator",
+		category: "Business",
+		categorySlug: "business",
+		icon: "⇄",
+		description: "Convert pixels to rem or rem to pixels using an editable root font size.",
+		fields: [
+			{
+				key: "mode",
+				label: "Direction",
+				type: "select",
+				defaultValue: "px-to-rem",
+				options: [
+					{ label: "Pixels to REM", value: "px-to-rem" },
+					{ label: "REM to pixels", value: "rem-to-px" },
+				],
+			},
+			{
+				key: "pixels",
+				label: "Pixels",
+				type: "number",
+				unit: "px",
+				step: 0.01,
+				defaultValue: 24,
+				visibleWhen: { key: "mode", values: ["px-to-rem"] },
+			},
+			{
+				key: "rem",
+				label: "REM",
+				type: "number",
+				unit: "rem",
+				step: 0.0001,
+				defaultValue: 1.5,
+				visibleWhen: { key: "mode", values: ["rem-to-px"] },
+			},
+			{
+				key: "rootFontSize",
+				label: "Root font size",
+				type: "number",
+				unit: "px",
+				min: 0.01,
+				step: 0.01,
+				defaultValue: 16,
+				help: "Defaults to 16px. Change it to match your stylesheet's root size.",
+			},
+		],
+		results: [
+			{ key: "cssValue", label: "CSS value", format: "text" },
+			{ key: "formula", label: "Formula", format: "text" },
+			{ key: "note", label: "Note", format: "text" },
+		],
+		calculate: (v) => {
+			const mode = v.mode === "rem-to-px" ? "rem-to-px" : "px-to-rem";
+			const value = mode === "rem-to-px" ? v.rem : v.pixels;
+			return calculatePxRem(
+				mode,
+				value as string | number | undefined,
+				v.rootFontSize as string | number | undefined,
+			);
+		},
+		howItWorks: [
+			"For pixels to REM, divide the pixel value by the root font size: rem = px ÷ root px.",
+			"For REM to pixels, multiply the REM value by the root font size: px = rem × root px.",
+			"The root font size defaults to 16px and can be changed to match your stylesheet. REM output rounds to 4 decimal places; pixel output rounds to 2.",
+		],
+		example: {
+			title: "Convert 24px using a 16px root size",
+			inputs: "24px; root font size 16px",
+			result: "1.5rem.",
+		},
+		faqs: [
+			{
+				question: "How do I convert pixels to REM?",
+				answer: "Divide the pixel value by the root font size. With a 16px root size, 24px is 1.5rem.",
+			},
+			{
+				question: "Does this always use a 16px root size?",
+				answer: "No. Sixteen pixels is only the starting value here. Enter the root font size used by your stylesheet.",
+			},
+			{
+				question: "How are the results rounded?",
+				answer: "REM values round to 4 decimal places and pixel values round to 2 decimal places.",
+			},
+			{
+				question: "Does this change my CSS?",
+				answer: "No. It calculates a value and shows the formula. You decide where to use it in your styles.",
+			},
+		],
+		seo: {
+			title: "Pixels to REM Calculator: PX to REM and REM to PX | CalcForged",
+			description: "Convert px to rem or rem to px using a root font size you set. The starting value is 16px, and the calculator shows its formula and rounding.",
+			h1: "Pixels to REM calculator",
+			intro: "Convert px to rem or rem to px using your stylesheet's root font size. The starting value is 16px, and you can change it. REM output rounds to 4 decimal places; pixel output rounds to 2.",
+		},
+		related: ["aspect-ratio", "length-converter", "percentage"],
+	},
+	{
+		slug: "ratio-simplifier",
+		name: "Ratio Simplifier",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "÷",
+		description:
+			"Reduce whole-number or decimal ratios to their simplest equivalent form.",
+		fields: [
+			{
+				key: "firstTerm",
+				label: "First term",
+				type: "number",
+				min: 0,
+				step: 0.000001,
+				defaultValue: 12,
+				help: "Enter a non-negative number with up to 6 decimal places.",
+			},
+			{
+				key: "secondTerm",
+				label: "Second term",
+				type: "number",
+				min: 0,
+				step: 0.000001,
+				defaultValue: 18,
+				help: "Enter a non-negative number with up to 6 decimal places.",
+			},
+		],
+		results: [
+			{ key: "simplifiedRatio", label: "Simplified ratio", format: "text" },
+			{ key: "commonFactor", label: "Common factor", format: "text" },
+			{ key: "formula", label: "Calculation", format: "text" },
+			{ key: "note", label: "Note", format: "text" },
+		],
+		calculate: (v) =>
+			simplifyRatio(
+				v.firstTerm as string | number | undefined,
+				v.secondTerm as string | number | undefined,
+			),
+		howItWorks: [
+			"The calculator aligns decimal places, then finds the greatest common factor of the resulting whole numbers.",
+			"It divides both terms by that factor and returns the simplest equivalent whole-number ratio.",
+			"Each term can have up to 6 decimal places. One term may be zero, but both cannot be zero.",
+		],
+		example: {
+			title: "Reduce 12:18",
+			inputs: "12 and 18",
+			result: "Divide both terms by 6 to get 2:3.",
+		},
+		faqs: [
+			{
+				question: "How do I simplify a ratio?",
+				answer: "Find the greatest common factor of both terms, then divide each term by it. For 12:18, the common factor is 6, so the simplified ratio is 2:3.",
+			},
+			{
+				question: "Can I simplify ratios with decimals?",
+				answer: "Yes. Enter decimals with up to 6 places. The calculator aligns their decimal places before finding the common factor.",
+			},
+			{
+				question: "What if one term is zero?",
+				answer: "One term can be zero, but both cannot. For example, 0:5 simplifies to 0:1, and 5:0 simplifies to 1:0.",
+			},
+			{
+				question: "Does the result stay a whole-number ratio?",
+				answer: "Yes. Decimal input terms are scaled to the same precision first, so the simplified result uses whole numbers.",
+			},
+		],
+		seo: {
+			title: "Ratio Simplifier: Reduce Ratios to Simplest Form | CalcForged",
+			description: "Simplify whole-number or decimal ratios by dividing both terms by their greatest common factor. Accepts non-negative inputs with up to six decimal places.",
+			h1: "Ratio simplifier",
+			intro: "Enter two non-negative terms to reduce a ratio to simplest form. Whole numbers and decimals up to six places are supported, and the calculator shows the common factor and each step.",
+		},
+		related: ["percentage", "aspect-ratio", "length-converter"],
+	},
+	{
 		slug: "weight-converter",
 		name: "Weight Converter",
 		category: "Everyday Life",
@@ -6819,6 +7224,78 @@ const definitions: CalculatorDefinition[] = [
 				'"How old are you" has a simple answer until a form asks for it exactly. Enter a date of birth and this calculator returns the precise age in years, months, and days as of today (or any date you choose), plus the total days lived, a countdown to the next birthday, and the weekday you were born on. Calendar-accurate, including leap years — useful for applications, anniversaries, milestone planning, and settling birthday debates.',
 		},
 		related: ["pregnancy-due-date", "bmi", "percentage"],
+	},
+	{
+		slug: "business-days",
+		name: "Business Days Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "◫",
+		description:
+			"Count weekdays between two dates, excluding Saturdays and Sundays. Public holidays are not excluded.",
+		fields: [
+			{
+				key: "startDate",
+				label: "Start date",
+				type: "text",
+				defaultToday: true,
+				help: "Enter a date as YYYY-MM-DD.",
+			},
+			{
+				key: "endDate",
+				label: "End date",
+				type: "text",
+				defaultToday: true,
+				help: "Enter a date as YYYY-MM-DD.",
+			},
+		],
+		results: [
+			{ key: "businessDays", label: "Business days", unit: "days", format: "number" },
+			{ key: "calendarDays", label: "Elapsed calendar days", unit: "days", format: "number" },
+			{ key: "weekendDays", label: "Weekend days excluded", unit: "days", format: "number" },
+			{ key: "countingRule", label: "Counting rule", format: "text" },
+			{ key: "validation", label: "Input check", format: "text" },
+		],
+		calculate: (v) =>
+			calculateBusinessDays(
+				String(v.startDate ?? ""),
+				String(v.endDate ?? ""),
+			),
+		howItWorks: [
+			"The calculator counts Monday through Friday after the earlier date and through the later date. The earlier date is not counted; the later date is counted if it is a weekday.",
+			"Saturdays and Sundays are excluded. Public holidays are not removed, so check local holidays separately when they matter.",
+			"Enter dates in either order; the calculator returns the absolute count between them.",
+		],
+		example: {
+			title: "Count weekdays across one workweek",
+			inputs: "Monday, March 2, 2026 through Monday, March 9, 2026",
+			result: "5 business days across 7 elapsed calendar days, with 2 weekend days excluded.",
+		},
+		faqs: [
+			{
+				question: "Does the count include the start date?",
+				answer: "No. The earlier date is day zero; the later date is counted if it falls Monday through Friday. This matches elapsed-date counting. If your use case counts both endpoints, add one when the earlier date is a weekday.",
+			},
+			{
+				question: "Are public holidays excluded?",
+				answer: "No. Saturdays and Sundays are excluded, but public holidays remain in the weekday count because holiday calendars vary by location.",
+			},
+			{
+				question: "What counts as a business day?",
+				answer: "Monday through Friday. This calculator does not account for public holidays or local work schedules.",
+			},
+			{
+				question: "Can I enter the dates in reverse order?",
+				answer: "Yes. The calculator returns the same absolute count whichever date you enter first.",
+			},
+		],
+		seo: {
+			title: "Business Days Calculator: Count Weekdays Between Dates | CalcForged",
+			description: "Count weekdays between two dates, excluding Saturdays and Sundays. Public holidays are not excluded, and the counting rule is shown with the result.",
+			h1: "Business days calculator",
+			intro: "Enter two dates to count weekdays between them. Saturdays and Sundays are excluded; public holidays are not. The earlier date is day zero, and the later date is counted if it falls Monday through Friday.",
+		},
+		related: ["date", "time", "age"],
 	},
 	{
 		slug: "date",
