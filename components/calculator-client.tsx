@@ -605,7 +605,7 @@ function PrintSheet({
 				</span>
 			</div>
 			<header className="cf-print-title">
-				<h1>{definition.name}</h1>
+				<h2>{definition.name}</h2>
 				<p>{definition.description}</p>
 			</header>
 			<div className="cf-print-columns">

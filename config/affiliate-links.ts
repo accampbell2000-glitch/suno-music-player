@@ -1098,6 +1098,11 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 			"Amounts planned — a big board is what makes the spread read as one.",
 		query: "large wood charcuterie serving board",
 	},
+	"aspect-ratio": {
+		name: "Image editing software",
+		blurb: "Use the calculated dimensions when resizing and exporting an image.",
+		query: "image editing software resize export",
+	},
 	"length-converter": {
 		name: "Tape measure",
 		blurb: "One tape, both unit systems — measure once, convert never.",
@@ -1221,6 +1226,16 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 		name: "Academic planner",
 		blurb: "Track assignment dates and term grades alongside GPA calculations.",
 		query: "academic planner student semester",
+	},
+	"function-graphing": {
+		name: "Graph paper notebook",
+		blurb: "Sketch equations and keep graph work organized on a grid.",
+		query: "graph paper notebook math",
+	},
+	"sales-tax": {
+		name: "Desktop calculator with tax keys",
+		blurb: "Keep a separate handheld option nearby for everyday business arithmetic.",
+		query: "desktop calculator with tax keys",
 	},
 	"square-root-cube-root": {
 		name: "Scientific calculator",
@@ -1629,6 +1644,23 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			query: "digital bathroom scale",
 		},
 	],
+	"aspect-ratio": [
+		{
+			name: "Photo printer",
+			blurb: "Print a proof to check how an image fits at its intended size.",
+			query: "photo printer",
+		},
+		{
+			name: "Graphics tablet",
+			blurb: "A pen input option for hands-on image adjustments.",
+			query: "graphics tablet photo editing",
+		},
+		{
+			name: "Monitor for photo editing",
+			blurb: "A larger workspace for checking image composition and proportions.",
+			query: "monitor for photo editing",
+		},
+	],
 	"length-converter": [
 		{
 			name: "Metric ruler",
@@ -1768,6 +1800,23 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			query: "geometry set ruler compass protractor",
 		},
 	],
+	"function-graphing": [
+		{
+			name: "Algebra reference handbook",
+			blurb: "Keep algebra rules and function examples nearby while graphing.",
+			query: "algebra formula reference handbook",
+		},
+		{
+			name: "Engineering graph paper pad",
+			blurb: "Plot coordinates by hand when you want a paper copy of a graph.",
+			query: "engineering graph paper pad",
+		},
+		{
+			name: "Dry-erase coordinate grid",
+			blurb: "Sketch and revise coordinate graphs on a reusable surface.",
+			query: "dry erase coordinate plane graph board",
+		},
+	],
 	"wedding-dessert-table": [
 		{
 			name: "Cake knife and server set",
@@ -1790,6 +1839,23 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			name: "Food container labels",
 			blurb: "Mark prepared ingredients and storage containers in the kitchen.",
 			query: "food container labels kitchen",
+		},
+	],
+	"sales-tax": [
+		{
+			name: "Carbonless receipt book",
+			blurb: "Keep a paper record of sales and customer receipts.",
+			query: "carbonless sales receipt book small business",
+		},
+		{
+			name: "Bookkeeping ledger",
+			blurb: "Record business transactions alongside your own accounting process.",
+			query: "small business bookkeeping ledger notebook",
+		},
+		{
+			name: "Invoice organizer binder",
+			blurb: "Keep invoices and transaction paperwork together for review.",
+			query: "small business invoice organizer binder",
 		},
 	],
 	"appetizers-per-person": [

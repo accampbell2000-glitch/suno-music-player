@@ -1,3 +1,9 @@
+import { calculateAspectRatio } from "./aspect-ratio";
+import {
+	compileFunctionExpression,
+	sampleFunctionGraph,
+} from "./function-graph";
+import { calculateSalesTax } from "./sales-tax";
 import {
 	lookupTowing,
 	TOWING_MAKES,
@@ -1773,6 +1779,126 @@ const definitions: CalculatorDefinition[] = [
 				"Pricing a menu item starts with knowing what it costs to make. Enter the total ingredient cost for a batch, the number of portions it produces, and the menu price per item. CalcForged shows your cost per serving, food cost percentage, and gross margin per item instantly. Use it for recipe costing, menu engineering, catering packages, or a quick check before a price change. The result covers ingredients only, so keep labor, rent, packaging, and other operating costs in your broader margin model.",
 		},
 		related: ["catering-food-quantity", "wedding-food", "recipe-scaling"],
+	},
+	{
+		slug: "sales-tax",
+		name: "Business Sales Tax Calculator",
+		category: "Business",
+		categorySlug: "business",
+		icon: "%",
+		description:
+			"Add a rate you enter to a pre-tax amount or extract the tax portion from a tax-inclusive total.",
+		fields: [
+			{
+				key: "mode",
+				label: "Calculation",
+				type: "select",
+				defaultValue: "add",
+				options: [
+					{ label: "Add tax to a price", value: "add" },
+					{ label: "Extract tax from a total", value: "extract" },
+				],
+			},
+			{
+				key: "preTaxAmount",
+				label: "Pre-tax amount",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 100,
+				visibleWhen: { key: "mode", values: ["add"] },
+			},
+			{
+				key: "taxInclusiveTotal",
+				label: "Tax-inclusive total",
+				type: "number",
+				unit: "$",
+				min: 0,
+				step: 0.01,
+				defaultValue: 100,
+				visibleWhen: { key: "mode", values: ["extract"] },
+			},
+			{
+				key: "taxRate",
+				label: "Rate you enter",
+				type: "number",
+				unit: "%",
+				min: 0,
+				step: 0.01,
+				defaultValue: "",
+				help: "Enter a rate you already have. No rate lookup is included.",
+			},
+		],
+		results: [
+			{
+				key: "preTaxAmount",
+				label: "Pre-tax amount",
+				unit: "$",
+				format: "currency",
+			},
+			{ key: "taxAmount", label: "Tax amount", unit: "$", format: "currency" },
+			{ key: "total", label: "Total", unit: "$", format: "currency" },
+			{ key: "validation", label: "Note", format: "text" },
+		],
+		calculate: (v) => {
+			const mode = String(v.mode ?? "add");
+			const amount = mode === "extract" ? v.taxInclusiveTotal : v.preTaxAmount;
+			const result = calculateSalesTax(
+				amount as string | number | undefined,
+				v.taxRate as string | number | undefined,
+				mode,
+			);
+			return {
+				preTaxAmount: result.preTaxAmount ?? "",
+				taxAmount: result.taxAmount ?? "",
+				total: result.total ?? "",
+				validation: result.validation,
+			};
+		},
+		howItWorks: [
+			"Add-tax mode calculates tax as the entered pre-tax amount multiplied by the entered rate divided by 100, then adds that tax to the price.",
+			"Extract-tax mode divides the inclusive total by 1 plus the entered rate divided by 100. The tax portion is the total minus the pre-tax amount.",
+			"Displayed amounts are rounded to cents. The result uses only the rate you enter; it does not find a rate, decide which items are taxable, or provide tax advice.",
+		],
+		example: {
+			title: "Use a rate you already have",
+			inputs: "$100 pre-tax amount; entered rate r%",
+			result: "Tax = $100 × r/100; total = $100 × (1 + r/100).",
+		},
+		faqs: [
+			{
+				question: "How does add-tax mode work?",
+				answer:
+					"It multiplies the pre-tax amount by the rate you enter, divides by 100, rounds the tax to cents, and adds it to the price.",
+			},
+			{
+				question: "How do I extract tax from a total?",
+				answer:
+					"Enter the tax-inclusive total and the rate used in that total. The calculator divides by 1 plus the rate as a decimal, then shows the difference as the tax portion.",
+			},
+			{
+				question:
+					"Does this calculator find my local rate or decide what is taxable?",
+				answer:
+					"No. It uses only the rate you enter and does not look up jurisdiction rates, determine taxable items or exemptions, file returns, or provide tax advice. Check the rules that apply to your situation with an appropriate official source or tax professional.",
+			},
+			{
+				question: "Can I use the result for filing or remitting tax?",
+				answer:
+					"No. This is arithmetic for a rate and amount you provide, not tax advice or a filing calculation. Confirm applicable rules and amounts separately.",
+			},
+		],
+		seo: {
+			title:
+				"Sales Tax Calculator – Add or Extract an Entered Rate | CalcForged",
+			description:
+				"Calculate sales tax from a rate you enter: add tax to a pre-tax price or extract the tax portion from a tax-inclusive total. No rate lookup or tax advice.",
+			h1: "Business sales tax calculator",
+			intro:
+				"Add a rate you enter to a pre-tax amount, or work backward from a tax-inclusive total to see the pre-tax amount and tax portion. The tool does arithmetic only: it does not look up jurisdiction rates, determine which products are taxable, or provide tax advice. Use the rate that applies to your own calculation and verify it separately.",
+		},
+		related: ["restaurant-food-cost", "catering-price-per-person", "tip"],
 	},
 	{
 		slug: "recipe-scaling",
@@ -5908,6 +6034,83 @@ const definitions: CalculatorDefinition[] = [
 		related: ["currency-converter", "age", "percentage"],
 	},
 	{
+		slug: "aspect-ratio",
+		name: "Aspect Ratio & Image Scaling Calculator",
+		category: "Everyday Life",
+		categorySlug: "everyday-life",
+		icon: "▭",
+		description:
+			"Find a simplified image aspect ratio or calculate new pixel dimensions for a resize that keeps the same proportions.",
+		fields: [
+			{
+				key: "mode",
+				label: "What do you need?",
+				type: "select",
+				defaultValue: "ratio",
+				options: [
+					{ label: "Find the aspect ratio", value: "ratio" },
+					{ label: "Scale to a new width", value: "resize-width" },
+					{ label: "Scale to a new height", value: "resize-height" },
+				],
+			},
+			{ key: "sourceWidth", label: "Original width", type: "number", unit: "px", min: 1, max: 1000000, step: 1, defaultValue: 1920, help: "Enter whole-pixel dimensions from 1 to 1,000,000." },
+			{ key: "sourceHeight", label: "Original height", type: "number", unit: "px", min: 1, max: 1000000, step: 1, defaultValue: 1080 },
+			{ key: "targetWidth", label: "New width", type: "number", unit: "px", min: 1, max: 1000000, step: 1, defaultValue: 1280, visibleWhen: { key: "mode", values: ["resize-width"] }, help: "Height is calculated and rounded to the nearest whole pixel." },
+			{ key: "targetHeight", label: "New height", type: "number", unit: "px", min: 1, max: 1000000, step: 1, defaultValue: 720, visibleWhen: { key: "mode", values: ["resize-height"] }, help: "Width is calculated and rounded to the nearest whole pixel." },
+		],
+		results: [
+			{ key: "aspectRatio", label: "Simplified aspect ratio", format: "text" },
+			{ key: "decimalRatio", label: "Width-to-height ratio", format: "text" },
+			{ key: "outputWidth", label: "Output width", unit: "px", format: "number" },
+			{ key: "outputHeight", label: "Output height", unit: "px", format: "number" },
+			{ key: "scalePercent", label: "Size relative to original", format: "percent" },
+			{ key: "validation", label: "Input check", format: "text" },
+		],
+		calculate: (v) =>
+			calculateAspectRatio(
+				v.sourceWidth as string | number | undefined,
+				v.sourceHeight as string | number | undefined,
+				String(v.mode ?? "ratio"),
+				v.targetWidth as string | number | undefined,
+				v.targetHeight as string | number | undefined,
+			),
+		howItWorks: [
+			"The aspect ratio is the source width-to-height pair reduced to the simplest whole-number ratio.",
+			"Choose a new width or height to calculate the other side at the same proportions. The calculated side rounds to the nearest whole pixel.",
+			"This tool calculates dimensions only. It does not crop, upload, or edit an image.",
+		],
+		example: {
+			title: "Resize a 1920 × 1080 image to 1280 pixels wide",
+			inputs: "Original: 1920 × 1080 px; new width: 1280 px",
+			result: "16:9 ratio; output is 1280 × 720 px, or 66.67% of the original size.",
+		},
+		faqs: [
+			{
+				question: "How do I find an image's aspect ratio?",
+				answer: "Choose Find the aspect ratio and enter the width and height in pixels. For example, 1920 × 1080 reduces to 16:9.",
+			},
+			{
+				question: "How do I resize without stretching an image?",
+				answer: "Choose a new width or height. The calculator scales the other dimension by the same factor and rounds it to a whole pixel.",
+			},
+			{
+				question: "Does this calculator crop or edit my image?",
+				answer: "No. It calculates dimensions only. It does not upload, crop, or edit image files.",
+			},
+			{
+				question: "Why can the output ratio differ slightly after resizing?",
+				answer: "Pixel dimensions must be whole numbers. Rounding the calculated side to the nearest pixel can slightly change the exact ratio, especially for very small outputs.",
+			},
+		],
+		seo: {
+			title: "Aspect Ratio and Image Scaling Calculator | CalcForged",
+			description: "Find a simplified image aspect ratio or calculate new pixel dimensions from a target width or height. Keeps proportions and rounds calculated dimensions to whole pixels.",
+			h1: "Aspect ratio and image scaling calculator",
+			intro: "Enter whole-pixel dimensions to find a simplified width-to-height ratio, or scale to a new width or height while keeping the same proportions. The calculated side rounds to the nearest whole pixel. This tool does not crop or edit images.",
+		},
+		related: ["length-converter", "miniature-scale-converter", "percentage"],
+	},
+	{
 		slug: "percentage",
 		name: "Percentage Calculator",
 		category: "Everyday Life",
@@ -7046,6 +7249,116 @@ const definitions: CalculatorDefinition[] = [
 				"Work out the time between two clock times, subtract an unpaid break, or add and subtract hours and minutes from a starting time. Overnight spans are handled automatically, and the result includes decimal hours for timesheets, payroll entries, or job estimates. Enter times in 24-hour format, such as 09:00 or 21:30.",
 		},
 		related: ["date", "time-zone", "age"],
+	},
+	{
+		slug: "function-graphing",
+		name: "Function Graphing Calculator",
+		category: "Education",
+		categorySlug: "education",
+		icon: "⌁",
+		description:
+			"Plot a function of x with adjustable limits, angle units, and a safe set of mathematical operations.",
+		fields: [
+			{
+				key: "expression",
+				label: "Function y = f(x)",
+				type: "text",
+				defaultValue: "x^2",
+			},
+			{ key: "xMin", label: "X minimum", type: "number", defaultValue: -10 },
+			{ key: "xMax", label: "X maximum", type: "number", defaultValue: 10 },
+			{
+				key: "angleMode",
+				label: "Angle units",
+				type: "select",
+				defaultValue: "radians",
+				options: [
+					{ label: "Radians", value: "radians" },
+					{ label: "Degrees", value: "degrees" },
+				],
+			},
+		],
+		results: [
+			{ key: "plotSamples", label: "Finite plotted samples", format: "number" },
+			{ key: "plotStatus", label: "Plot status", format: "text" },
+		],
+		calculate: (v) => {
+			const expression = String(v.expression ?? "x^2");
+			const xMin = Number(v.xMin);
+			const xMax = Number(v.xMax);
+			if (!Number.isFinite(xMin) || !Number.isFinite(xMax) || xMin >= xMax)
+				return {
+					plotSamples: 0,
+					plotStatus: "Enter finite x-axis limits with minimum below maximum.",
+				};
+			try {
+				const mode = String(v.angleMode) === "degrees" ? "degrees" : "radians";
+				const plot = sampleFunctionGraph(
+					compileFunctionExpression(expression, mode),
+					xMin,
+					xMax,
+				);
+				const plotSamples = plot.segments.reduce(
+					(total, segment) => total + segment.length,
+					0,
+				);
+				return {
+					plotSamples,
+					plotStatus: plotSamples
+						? "Function plotted."
+						: "No real values to plot in this range.",
+				};
+			} catch (error) {
+				return {
+					plotSamples: 0,
+					plotStatus:
+						error instanceof Error
+							? error.message
+							: "Check the function expression.",
+				};
+			}
+		},
+		howItWorks: [
+			"The expression is read by a small mathematical parser that accepts only x, numeric literals, +, −, *, /, ^, parentheses, pi, e, sin, cos, tan, sqrt, log, ln, and abs; it does not execute JavaScript.",
+			"The calculator samples the function across your x limits, draws axes and grid lines, and scales the vertical range to the usable values.",
+			"Undefined, non-finite, off-screen, and sharply separated samples are omitted or split into separate segments, so the plot does not bridge common discontinuities.",
+		],
+		example: {
+			title: "A quadratic function",
+			inputs: "y = x^2, x minimum −10, x maximum 10",
+			result: "A symmetric parabola with its lowest point at (0, 0).",
+		},
+		faqs: [
+			{
+				question: "Which functions and operators can I enter?",
+				answer:
+					"Use x, decimal or scientific-notation numbers, +, −, *, /, ^, parentheses, pi or π, e, sin, cos, tan, sqrt, log (base 10), ln, and abs. Write multiplication explicitly, such as 2*x.",
+			},
+			{
+				question: "Are trigonometric functions in radians or degrees?",
+				answer:
+					"Choose RAD or DEG in the graph panel. The angle mode is applied to sin, cos, and tan; the default is radians.",
+			},
+			{
+				question: "Why can a graph have a gap?",
+				answer:
+					"The plot leaves gaps where an expression is undefined, non-finite, outside the visible vertical range, or has a sharp jump between samples. This avoids drawing a line across common discontinuities such as 1/x.",
+			},
+			{
+				question: "Can I enter JavaScript or arbitrary code?",
+				answer:
+					"No. The expression is parsed against a short allowlist of mathematical tokens and functions. Unsupported names and syntax produce an inline error instead of being run.",
+			},
+		],
+		seo: {
+			title: "Function Graphing Calculator – Plot y = f(x) | CalcForged",
+			description:
+				"Graph functions of x with adjustable x limits, axes, grid, and degree or radian trigonometry. Enter supported expressions and see invalid syntax clearly.",
+			h1: "Function graphing calculator",
+			intro:
+				"Plot y = f(x) by entering an expression such as x^2 or sin(x), then set the visible x range. The graph includes axes and grid lines, supports radians or degrees for trigonometric functions, and reports unsupported expressions directly. Undefined and non-finite samples are skipped, with breaks at sharp jumps rather than a misleading line through a discontinuity.",
+		},
+		related: ["gpa", "square-root-cube-root", "compound-interest"],
 	},
 	{
 		slug: "gpa",
@@ -12024,7 +12337,9 @@ export const categories: {
 	{
 		name: "Business",
 		slug: "business",
-		description: "Check costs, margins, and operating decisions.",
+		description: "Check costs, margins, and entered-rate sales tax arithmetic.",
+		seoDescription:
+			"Check business costs and margins, plan catering prices, and calculate sales tax using a rate you enter. No jurisdiction rate lookup or tax advice is included.",
 	},
 	{
 		name: "Hobbies",
@@ -12070,6 +12385,8 @@ export const categories: {
 		name: "Education",
 		slug: "education",
 		description: "Grades, roots, and quick academic answers.",
+		seoDescription:
+			"Use education calculators for grades, roots, and graphing functions of x. Enter the values or expression to see a clear result.",
 	},
 ];
 

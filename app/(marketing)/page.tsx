@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CalculatorCard } from "@/components/calculator-card";
+import { FunctionGraphingCalculator } from "@/components/function-graphing-calculator";
 import { QuickCalculators } from "@/components/quick-calculators";
+import { SalesTaxQuickCalculator } from "@/components/sales-tax-quick-calculator";
 import {
 	calculatorDefinitions,
 	calculatorsBySlug,
@@ -25,6 +27,8 @@ export default async function Home() {
 		"wedding-food",
 		"bbq-meat",
 		"tip",
+		"investment",
+		"compound-interest",
 	];
 	const featured = FEATURED_SLUGS.map((slug) => calculatorsBySlug[slug]).filter(
 		Boolean,
@@ -128,11 +132,14 @@ export default async function Home() {
 							</h2>
 						</div>
 						<p className="cf-heading-aside">
-							Basic and scientific tools, ready on the page. No search, no
-							download.
+							Basic, scientific, graphing, and sales-tax tools are ready on the page.
 						</p>
 					</div>
 					<QuickCalculators />
+					<div className="cf-quick-addons">
+						<FunctionGraphingCalculator compact idPrefix="home-function-graph" />
+						<SalesTaxQuickCalculator idPrefix="home-sales-tax" />
+					</div>
 				</div>
 			</section>
 			<section className="cf-trust">
@@ -162,7 +169,7 @@ export default async function Home() {
 						<div>
 							<p className="cf-kicker">Start here</p>
 							<h2>
-								The six you’ll reach
+								The eight you’ll reach
 								<br />
 								<em>for first.</em>
 							</h2>

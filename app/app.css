@@ -536,7 +536,7 @@ html.cf-print-mode .cf-print-sheet * { visibility: visible; }
   .cf-print-mark { display: inline-grid; place-items: center; width: 16px; height: 16px; background: #c95d2d; color: #fff; font-family: 'Newsreader', Georgia, serif; font-size: 11pt; line-height: 1; }
   .cf-print-category { color: #68706a; font-family: 'DM Mono', monospace; font-size: 6.5pt; letter-spacing: .04em; text-align: right; }
   .cf-print-title { margin: 9px 0 11px; }
-  .cf-print-title h1 { margin: 0 0 3px; font-family: 'Newsreader', Georgia, serif; font-size: 22pt; font-weight: 500; line-height: 1; letter-spacing: -.035em; }
+  .cf-print-title h2 { margin: 0 0 3px; font-family: 'Newsreader', Georgia, serif; font-size: 22pt; font-weight: 500; line-height: 1; letter-spacing: -.035em; }
   .cf-print-title p { margin: 0; max-width: 7.2in; color: #59615c; font-size: 7.5pt; line-height: 1.3; }
   .cf-print-columns { display: grid; grid-template-columns: minmax(2.5in, .88fr) minmax(3.2in, 1.12fr); gap: 12px; align-items: start; }
   .cf-print-section { min-width: 0; border-top: 1px solid #bfc0b7; padding-top: 6px; }
@@ -724,4 +724,69 @@ html.cf-print-mode .cf-print-sheet * { visibility: visible; }
 @media print {
   .cf-print-mark { background: var(--ember-text); }
   .cf-print-section h2, .cf-print-result > .cf-print-label em, .cf-print-notes h2 { color: var(--ember-text); }
+}
+
+/* Function plotting and entered-rate sales tax share the practical calculator housing. */
+.cf-quick-addons { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, .86fr); gap: 26px; margin-top: 26px; align-items: start; }
+.cf-graph-panel, .cf-tax-panel { min-width: 0; padding: 22px; border: 1px solid #1a211d; border-radius: 17px; background: linear-gradient(155deg, #39433d 0%, #2d3530 52%, #252b28 100%); color: #f5f4ef; box-shadow: 0 16px 34px rgba(29, 33, 29, .17), inset 0 1px 0 rgba(255, 255, 255, .1); }
+.cf-graph-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.cf-graph-heading h3 { margin-top: 8px; color: #f5f4ef; font-family: 'Newsreader', Georgia, serif; font-size: 1.55rem; font-weight: 500; letter-spacing: -.025em; line-height: 1; }
+.cf-graph-angle { flex: 0 0 auto; min-width: 56px; padding: 8px 10px; border: 1px solid #8c9b8e; border-radius: 5px; background: #d4dbcf; color: #344335; font-family: 'DM Mono', monospace; font-size: .66rem; font-weight: 600; letter-spacing: .06em; cursor: pointer; }
+.cf-graph-angle:hover { background: #e0e6db; }
+.cf-graph-angle:focus-visible, .cf-graph-presets button:focus-visible, .cf-tax-modes button:focus-visible, .cf-graph-controls input:focus-visible, .cf-tax-input-wrap input:focus-visible, .cf-tax-page-link:focus-visible { outline: 2px solid #f5f4ef; outline-offset: 3px; }
+.cf-graph-controls { display: grid; grid-template-columns: minmax(0, 1fr) 92px 92px; gap: 10px; }
+.cf-graph-controls label, .cf-tax-inputs label { display: grid; gap: 6px; color: #c9d0c7; font-family: 'DM Mono', monospace; font-size: .61rem; letter-spacing: .06em; text-transform: uppercase; }
+.cf-graph-controls input, .cf-tax-input-wrap { min-width: 0; height: 42px; border: 1px solid #aab6a8; border-radius: 4px; background: linear-gradient(180deg, #e0e7d8, #cad5c1); color: #26342a; box-shadow: inset 0 2px 5px rgba(24, 32, 25, .16); }
+.cf-graph-controls input { width: 100%; padding: 0 10px; font: 600 .9rem 'DM Mono', monospace; text-transform: none; letter-spacing: 0; }
+.cf-graph-expression input { font-size: 1rem; }
+.cf-graph-syntax { margin: 9px 0 10px; color: #b9c2b8; font-size: .68rem; line-height: 1.45; }
+.cf-graph-presets { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; margin: 0 0 12px; padding: 0; border: 0; } .cf-graph-presets legend { padding: 0; }
+.cf-graph-presets button { padding: 5px 9px; border: 1px solid #8c9b8e; border-radius: 4px; background: #d4dbcf; color: #344335; font: 500 .66rem 'DM Mono', monospace; cursor: pointer; }
+.cf-graph-presets button:hover { background: #e0e6db; }
+.cf-graph-screen { position: relative; overflow: hidden; border: 6px solid #1c231f; border-radius: 8px; background: linear-gradient(180deg, #e0e7d8, #cad5c1); box-shadow: inset 0 2px 7px rgba(24, 32, 25, .25), 0 1px 0 rgba(255, 255, 255, .13); }
+.cf-graph-screen svg { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; }
+.cf-graph-paper { fill: transparent; }
+.cf-graph-gridline { stroke: #aab6a8; stroke-width: 1; }
+.cf-graph-axis { stroke: #566653; stroke-width: 1.5; }
+.cf-graph-curve { fill: none; stroke: var(--ember-text); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.cf-graph-tick { fill: #566653; font: 11px 'DM Mono', monospace; }
+.cf-graph-message { position: absolute; right: 12px; bottom: 10px; left: 12px; margin: 0; color: #455541; font: 500 .7rem 'DM Mono', monospace; text-align: center; }
+.cf-graph-message.is-error { color: #8a3f20; }
+.cf-graph-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 11px; color: #b9c2b8; font: .58rem 'DM Mono', monospace; letter-spacing: .04em; text-transform: uppercase; }
+.cf-tax-panel .cf-graph-heading { margin-bottom: 19px; }
+.cf-tax-page-link { color: #f1dfd2; font: 500 .62rem 'DM Mono', monospace; text-decoration: none; white-space: nowrap; }
+.cf-tax-page-link:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.cf-tax-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 0; margin: 0 0 18px; padding: 4px; border: 1px solid #657168; border-radius: 6px; background: #202723; } .cf-tax-modes legend { padding: 0; }
+.cf-tax-modes button { min-height: 38px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #c9d0c7; font: 500 .67rem 'DM Mono', monospace; cursor: pointer; }
+.cf-tax-modes button[aria-pressed="true"] { border-color: #c95d2d; background: var(--ember-text); color: #fff; }
+.cf-tax-modes button:hover:not([aria-pressed="true"]) { background: #39433d; color: #fff; }
+.cf-tax-inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .86fr); gap: 12px; }
+.cf-tax-input-wrap { display: flex; align-items: center; gap: 5px; padding: 0 9px; font: 600 .85rem 'DM Mono', monospace; }
+.cf-tax-input-wrap input { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #26342a; font: inherit; }
+.cf-tax-input-wrap input::placeholder { color: #68706a; font-size: .68rem; font-weight: 400; }
+.cf-tax-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 18px; }
+.cf-tax-results > div { display: grid; gap: 6px; min-width: 0; padding: 10px 9px; border: 1px solid #56615a; border-radius: 4px; background: rgba(245, 244, 239, .06); }
+.cf-tax-results span { color: #b9c2b8; font: .55rem 'DM Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
+.cf-tax-results strong { color: #f5f4ef; font: 500 1.05rem 'Newsreader', Georgia, serif; white-space: nowrap; }
+.cf-tax-results .is-total { border-color: #c95d2d; background: rgba(201, 93, 45, .16); }
+.cf-tax-results .is-total span { color: #f1dfd2; }
+.cf-tax-validation { min-height: 54px; margin: 16px 0 0; color: #f1dfd2; font-size: .76rem; line-height: 1.45; }
+.cf-tax-disclaimer { margin: 13px 0 0; color: #b9c2b8; font-size: .65rem; line-height: 1.5; }
+@media (max-width: 960px) { .cf-quick-addons { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .cf-quick-addons { gap: 22px; margin-top: 22px; }
+  .cf-graph-panel, .cf-tax-panel { padding: 16px; border-radius: 15px; }
+  .cf-graph-controls { grid-template-columns: minmax(0, 1fr) 78px 78px; gap: 7px; }
+  .cf-graph-controls input { padding-inline: 7px; font-size: .78rem; }
+  .cf-graph-expression input { font-size: .88rem; }
+  .cf-graph-tick { font-size: 13px; }
+}
+@media (max-width: 440px) {
+  .cf-graph-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cf-graph-expression { grid-column: 1 / -1; }
+  .cf-tax-inputs { grid-template-columns: 1fr; }
+  .cf-tax-results strong { font-size: .93rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-graph-angle, .cf-graph-presets button, .cf-tax-modes button { transition: none; }
 }

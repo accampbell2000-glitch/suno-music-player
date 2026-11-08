@@ -5,6 +5,7 @@ import { AffiliatePick } from "@/components/affiliate-pick";
 import { AffiliateProducts } from "@/components/affiliate-products";
 import { CalculatorCard } from "@/components/calculator-card";
 import { CalculatorClient } from "@/components/calculator-client";
+import { FunctionGraphingCalculator } from "@/components/function-graphing-calculator";
 import { FuelMileageCalculator } from "@/components/fuel-mileage-calculator";
 import { GigDriverMileageGate } from "@/components/gig-driver-mileage-gate";
 import { GigDriverMileageTracker } from "@/components/gig-driver-mileage-tracker";
@@ -122,7 +123,9 @@ export default async function CalculatorPage({
 					<h1>{definition.seo.h1}</h1>
 					<p>{definition.seo.intro}</p>
 				</div>
-				{definition.slug === "fuel-mileage" ? (
+				{definition.slug === "function-graphing" ? (
+					<FunctionGraphingCalculator idPrefix="calculator-function-graph" />
+				) : definition.slug === "fuel-mileage" ? (
 					<FuelMileageCalculator />
 				) : isGigMileageTracker ? (
 					session ? (
