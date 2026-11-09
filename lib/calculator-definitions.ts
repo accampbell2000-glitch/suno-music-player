@@ -9552,7 +9552,7 @@ const definitions: CalculatorDefinition[] = [
 		],
 		seo: {
 			title:
-				"Balloon Quantity Calculator – Balloons & Helium per Room or Car | CalcForged",
+				"Helium Balloon Calculator: Balloons per Tank | CalcForged",
 			description:
 				"Calculate how many balloons and how much helium fill a room or car interior — by balloon size, with tanks to buy and float time built in.",
 			h1: "Balloon quantity calculator",
