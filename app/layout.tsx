@@ -45,6 +45,10 @@ export default function RootLayout({
 					name="google-site-verification"
 					content="2sKVkWBNqHc5JcNEd27TlKnH2aHwwGoIxFkUh9FT9Zo"
 				/>
+				<meta
+					name="msvalidate.01"
+					content="F35942D9FEE38575D21A5FB3806C5EFB"
+				/>
 			</head>
 			<body>{children}</body>
 		</html>
