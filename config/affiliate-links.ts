@@ -19,7 +19,7 @@ export const affiliateDisclosure: string = AMAZON_TAG
 
 // CJ banner for flooring and patio-paver visitors. Keep these exact tracking URLs from the supplied creative.
 export const graboAffiliate = {
-	slugs: ["flooring", "patio-pavers"],
+	slugs: ["flooring", "patio-pavers", "deck-boards"],
 	clickUrl: "https://www.jdoqocy.com/click-101888675-17343710",
 	imageUrl: "https://www.tqlkg.com/image-101888675-17343710",
 	imageAlt: "GRABO portable electric vacuum lifter with accessories. Shop now.",
