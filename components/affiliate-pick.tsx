@@ -52,10 +52,17 @@ function AmazonPartnerPick({ slug }: { slug: string }) {
 	);
 }
 
-export function AffiliatePick({ slug }: { slug: string }) {
+export function AffiliatePick({
+	slug,
+	hideGrabo = false,
+}: {
+	slug: string;
+	hideGrabo?: boolean;
+}) {
 	const hasGrabo = graboAffiliate.slugs.includes(slug);
 	const pick = affiliateTopPicks[slug];
 
+	if (hideGrabo) return pick ? <AmazonPartnerPick slug={slug} /> : null;
 	if (hasGrabo && slug !== "deck-boards") return <GraboPartnerPick slug={slug} />;
 	if (!hasGrabo && !pick) return null;
 

@@ -1,3 +1,4 @@
+import { estimateSlabWeight } from "./slab-weight-estimate";
 import { calculateAspectRatio } from "./aspect-ratio";
 import { calculateBusinessDays } from "./business-days";
 import { calculatePxRem } from "./px-rem";
@@ -33,7 +34,7 @@ export type FieldOption = { label: string; value: string };
 export type FieldDefinition = {
 	key: string;
 	label: string;
-	type: "number" | "select" | "text" | "ingredient-list";
+	type: "number" | "select" | "text" | "checkbox" | "ingredient-list";
 	/** Dependent dropdown: the key of another select field whose value picks the option set from `optionsMap`. */
 	optionsFor?: string;
 	optionsMap?: Record<string, FieldOption[]>;
@@ -55,7 +56,8 @@ export type FieldDefinition = {
 	min?: number;
 	max?: number;
 	step?: number | "any";
-	defaultValue?: string | number;
+	defaultValue?: string | number | boolean;
+	placeholder?: string;
 	options?: FieldOption[];
 	help?: string;
 	defaultToday?: boolean;
@@ -72,7 +74,7 @@ export type ResultDefinition = {
 
 export type CalculatorValues = Record<
 	string,
-	string | number | IngredientRow[]
+	string | number | boolean | IngredientRow[]
 >;
 export type IngredientRow = {
 	id?: string;
@@ -2710,6 +2712,32 @@ const definitions: CalculatorDefinition[] = [
 				defaultValue: 12,
 			},
 			{
+				key: "weightPerPaver",
+				label: "Supplier-listed weight per paver",
+				type: "number",
+				unit: "lb",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				help: "Use the weight on the supplier label or spec sheet. Weight is not estimated from dimensions or material.",
+			},
+			{
+				key: "paverSurface",
+				label: "Paver face condition",
+				type: "select",
+				defaultValue: "",
+				placeholder: "Choose a surface condition",
+				options: [
+					{ label: "Porous", value: "porous" },
+					{ label: "Textured", value: "textured" },
+					{ label: "Rough", value: "rough" },
+					{ label: "Deeply split or open-pore (air-leaking)", value: "air-leaking" },
+					{ label: "Smooth, sealed, or non-porous", value: "smooth" },
+					{ label: "Not sure", value: "unknown" },
+				],
+				help: "Choose the face condition only. The GRABO fit check will state if a seal is required.",
+			},
+			{
 				key: "allowance",
 				label: "Extra allowance",
 				type: "number",
@@ -2750,6 +2778,21 @@ const definitions: CalculatorDefinition[] = [
 				format: "number",
 				estimate: true,
 			},
+			{
+				key: "weightPerPaver",
+				label: "Weight per paver",
+				unit: "lb",
+				format: "number",
+				interpretation: "Supplier-listed weight entered above; not estimated from dimensions or material.",
+			},
+			{
+				key: "totalWeight",
+				label: "Estimated total weight to order",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation: "Supplier-listed weight per paver × pavers to order."
+			},
 		],
 		calculate: (v) => {
 			const measureBy = option(v, "measureBy", "rectangle");
@@ -2766,18 +2809,23 @@ const definitions: CalculatorDefinition[] = [
 			const pavers = ceil(rawPavers);
 			const allowance = Math.min(50, Math.max(0, n(v, "allowance", 10))) / 100;
 			const order = ceil(rawPavers * (1 + allowance));
+			const listedWeight = n(v, "weightPerPaver", 0);
 			return {
 				area: round(area, 2),
 				coverage: round(coverage, 3),
 				pavers,
 				order,
 				extra: Math.max(0, order - pavers),
+				weightPerPaver: listedWeight > 0 ? round(listedWeight, 2) : "",
+				totalWeight:
+					listedWeight > 0 ? round(order * listedWeight, 2) : "",
 			};
 		},
 		howItWorks: [
 			"For a rectangle, multiply patio length by width. You can also enter a known area calculated elsewhere, including a combined area for an irregular layout.",
 			"Multiply each paver's face length by its face width in inches, then divide by 144 to get square feet per paver.",
 			"Divide patio area by paver coverage, add your editable allowance, and round up to whole pavers. Joint spacing and pattern-specific cuts are not modeled separately.",
+			"Enter the supplier-listed weight per paver to show that weight and multiply it by the order quantity. The calculator never derives paver weight from dimensions or material.",
 		],
 		example: {
 			title: "12 × 10 ft patio",
@@ -2803,18 +2851,195 @@ const definitions: CalculatorDefinition[] = [
 			{
 				question: "Does this estimate the base, sand, or edging?",
 				answer:
-					"No. It estimates paver pieces only; base material, bedding sand, edge restraints, labor, and cost are not included.",
+					"No. It estimates paver quantities and can multiply a supplier-listed paver weight by the order count. Base material, bedding sand, edge restraints, labor, and cost are not included.",
+			},
+			{
+				question: "How does the calculator get paver weight?",
+				answer:
+					"Enter the individual paver weight from its supplier label or spec sheet. The calculator does not estimate weight from size or material; total order weight is that supplied weight multiplied by the pavers-to-order count.",
 			},
 		],
 		seo: {
-			title: "Patio Paver Calculator – Paver Count & Allowance | CalcForged",
+			title: "Patio Paver Calculator – Paver Count & Weight | CalcForged",
 			description:
-				"Estimate how many patio pavers to buy from rectangle dimensions or a known area, paver size, and an adjustable extra allowance.",
+				"Estimate patio paver quantities and total order weight from project dimensions, paver size, a supplier-listed paver weight, and an adjustable allowance.",
 			h1: "Patio paver calculator",
 			intro:
-				"Plan a rectangular patio from its length and width, or enter an area you already calculated. Add paver face dimensions in inches and an editable allowance for cuts or breakage. CalcForged estimates the pieces needed to cover the area and the quantity to order. The calculation does not estimate base material, sand, edging, or labor.",
+				"Plan a rectangular patio from its length and width, or enter an area you already calculated. Add paver face dimensions in inches and an editable allowance for cuts or breakage. CalcForged estimates the pieces needed to cover the area and the quantity to order. Enter the paver's supplier-listed weight if you want a weight result; the calculator does not infer weight from dimensions or material.",
 		},
-		related: ["area", "flooring", "concrete"],
+		related: ["area", "flooring", "concrete", "stone-slabs"],
+	},
+	{
+		slug: "stone-slabs",
+		name: "Stone Slab, Tile & Countertop Calculator",
+		category: "Home Improvement",
+		categorySlug: "home-improvement",
+		icon: "▱",
+		description:
+			"Estimate slab weight from dimensions or enter the supplier-listed weight, then check the preview GRABO model and any surface-specific seal warning.",
+		fields: [
+			{
+				key: "material",
+				label: "Material",
+				type: "select",
+				defaultValue: "",
+				placeholder: "Choose a material",
+				options: [
+					{ label: "Granite", value: "granite" },
+					{ label: "Quartz (engineered)", value: "quartz" },
+					{ label: "Porcelain", value: "porcelain" },
+					{ label: "Glazed tile", value: "glazed-tile" },
+					{ label: "Other", value: "other" },
+				],
+				help: "Used for the rough estimate. Glazed-tile density varies widely; use supplier weight when available. Other materials need supplier-listed weight.",
+			},
+			{
+				key: "slabLengthIn",
+				label: "Slab length",
+				type: "number",
+				unit: "in",
+				min: 0.1,
+				max: 1000,
+				step: 0.1,
+				help: "Enter the full outside length. The estimate assumes a solid rectangular piece.",
+			},
+			{
+				key: "slabWidthIn",
+				label: "Slab width",
+				type: "number",
+				unit: "in",
+				min: 0.1,
+				max: 1000,
+				step: 0.1,
+			},
+			{
+				key: "slabThicknessIn",
+				label: "Slab thickness",
+				type: "number",
+				unit: "in",
+				min: 0.1,
+				max: 100,
+				step: 0.1,
+			},
+			{
+				key: "weightPerSlab",
+				label: "Supplier-listed weight per slab (optional)",
+				type: "number",
+				unit: "lb",
+				min: 0.1,
+				max: 100000,
+				step: 0.1,
+				help: "Preferred when available. If entered, this weight replaces the dimension estimate for the GRABO fit check.",
+			},
+			{
+				key: "surfaceCondition",
+				label: "Surface condition",
+				type: "select",
+				defaultValue: "",
+				placeholder: "Choose a surface condition",
+				options: [
+					{ label: "Smooth, clean, non-porous", value: "smooth-clean" },
+					{ label: "Slightly textured", value: "slightly-textured" },
+					{ label: "Rough or porous", value: "rough-porous" },
+					{ label: "Not sure", value: "unknown" },
+				],
+				help: "Choose the face condition only. The GRABO fit check will state if a seal is required.",
+			},
+		],
+		results: [
+			{
+				key: "estimatedWeight",
+				label: "Estimated weight per slab",
+				unit: "lb",
+				format: "number",
+				estimate: true,
+				interpretation: "Rough dimension-based estimate using typical material density. Glazed-tile weight is especially uncertain; product composition and cutouts can change the actual weight.",
+			},
+			{
+				key: "weightPerSlab",
+				label: "Supplier-listed weight per slab",
+				unit: "lb",
+				format: "number",
+				interpretation: "When entered, this value is used for the GRABO fit check instead of the estimate.",
+			},
+		],
+		calculate: (v) => {
+			const supplierWeight = inputNumber(v, "weightPerSlab");
+			const estimate = estimateSlabWeight(v);
+			return {
+				estimatedWeight: estimate ? round(estimate.weightLb, 1) : "",
+				weightPerSlab:
+					supplierWeight !== null && supplierWeight > 0
+						? round(supplierWeight, 1)
+						: "",
+			};
+		},
+		howItWorks: [
+			"Choose the material and enter length, width, and thickness in inches. The calculator uses the dimensions and a typical material density to estimate the weight of a solid rectangular piece.",
+			"A supplier-listed weight is more reliable. Enter it when available; it replaces the estimate for the GRABO fit check. Cutouts, product-specific density, and fabrication can change actual weight.",
+			"Choose the listed material and face condition. If the face needs a seal, the GRABO fit check names it; no seal selection is required.",
+			"The preview selects HighFlow at 242 lb or below and Pro Brushless above 242 through 375 lb on either calculator. Above 375 lb, it shows no model. Smooth faces have no seal warning; other faces show the selected model's required seal. GRABO has not confirmed this cross-category routing.",
+		],
+		example: {
+			title: "Estimate one slab",
+			inputs: "Material, length, width, and thickness; supplier-listed weight is optional",
+			result:
+				"The calculator labels the dimension-based value as an estimate and uses a supplier-listed weight instead when one is entered. The GRABO fit check also shows any required seal.",
+		},
+		faqs: [
+			{
+				question: "How is slab weight estimated?",
+				answer:
+					"The calculator multiplies length, width, and thickness by a typical density for the selected material. Rough presets use midpoint values from the sources below: granite 2.625 g/cm³, engineered quartz 2.3 g/cm³, porcelain 2.415 g/cm³, and glazed tile 2.0 g/cm³, a rough midpoint of a broad 1.5–2.5 g/cm³ tile-density range. These are not product-specific weights; glazed tile is especially variable.",
+			},
+			{
+				question: "Should I use the estimate or the supplier weight?",
+				answer:
+					"Use the supplier-listed weight when available. It replaces the estimate for the GRABO fit check. The estimate assumes a solid rectangular piece and may differ from the finished slab, especially when it has cutouts or a non-standard composition.",
+			},
+			{
+				question: "Which materials are included in the GRABO partner guidance?",
+				answer:
+					"The guidance lists granite, quartz, porcelain, and glazed tile. Other materials are not treated as a match.",
+			},
+			{
+				question: "What if the face is rough or porous?",
+				answer:
+					"Check the fit card for the seal tied to the weight-selected model. For non-smooth faces, do not lift without the seal shown. GRABO has not confirmed the cross-category model routing; verify current instructions before lifting.",
+			},
+			{
+				question: "Does a match guarantee a safe lift?",
+				answer:
+					"No. A calculator match is not a safe-lift guarantee. Verify the current official GRABO instructions and the actual setup before lifting.",
+			},
+		],
+		sources: [
+			{
+				label: "USGS granite sample bulk-density range",
+				url: "https://www.usgs.gov/publications/granite-exploration-hole-area-15-nevada-test-site-nye-county-nevada-interim-report-0",
+			},
+			{
+				label: "Vicostone quartz countertop specification (apparent density range)",
+				url: "https://us.vicostone.com/-/media/ng-files/vicostone-quartz-countertops-guide-specification_3-part-spec.pdf",
+			},
+			{
+				label: "Hitit porcelain tile Environmental Product Declaration",
+				url: "https://www.environdec.com/library/epd6762",
+			},
+			{
+				label: "Infinita Lab overview of ASTM C373 and broad ceramic/glass tile density range",
+				url: "https://infinitalab.com/services/astm-c373-ceramic-tile-water-absorption-bulk-density-testing/",
+			},
+		],
+		seo: {
+			title: "Stone Slab, Tile & Countertop Weight Calculator | CalcForged",
+			description:
+				"Estimate slab weight from dimensions or use the supplier-listed weight, then view a preview GRABO model suggestion and any required seal. Verify current instructions before lifting.",
+			h1: "Stone slab, tile & countertop weight calculator",
+			intro:
+				"Enter the slab material and dimensions for a rough weight estimate, or use the supplier-listed weight when available. The fit check uses the supplier weight when entered, otherwise the estimate, and shows any surface-specific seal warning. GRABO has not confirmed this cross-category routing; verify actual weight and current instructions before lifting.",
+		},
+		related: ["patio-pavers", "flooring", "area"],
 	},
 	{
 		slug: "flooring",

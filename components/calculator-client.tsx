@@ -1,9 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AffiliatePick } from "@/components/affiliate-pick";
-import { affiliateUrl } from "@/config/affiliate-links";
+import { GraboFitRecommendation } from "@/components/grabo-fit-recommendation";
+import {
+	affiliateUrl,
+	getGraboAffiliateClickUrl,
+	graboAffiliate,
+} from "@/config/affiliate-links";
 import type {
 	CalculatorDefinition,
 	CalculatorValues,
@@ -14,6 +20,7 @@ import {
 	calculatorsBySlug,
 	verifiedTireSizes,
 } from "@/lib/calculator-definitions";
+import { getGraboFitDecision } from "@/lib/grabo-fit";
 
 const ABRACADABRA_AFFILIATE_URL =
 	"https://www.anrdoezrs.net/click-101888675-17267207";
@@ -190,10 +197,10 @@ export function CalculatorClient({ slug }: { slug: string }) {
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			const plain: Record<string, string | number> = {};
+			const plain: Record<string, string | number | boolean> = {};
 			definition.fields.forEach((field) => {
 				if (field.type !== "ingredient-list")
-					plain[field.key] = values[field.key] as string | number;
+					plain[field.key] = values[field.key] as string | number | boolean;
 			});
 			const summary = Object.entries(plain)
 				.map(
@@ -229,7 +236,12 @@ export function CalculatorClient({ slug }: { slug: string }) {
 			for (const field of fields) {
 				const encoded = params.get(field.key);
 				if (encoded !== null && field.type !== "ingredient-list")
-					next[field.key] = field.type === "number" ? Number(encoded) : encoded;
+					next[field.key] =
+						field.type === "number"
+							? Number(encoded)
+							: field.type === "checkbox"
+								? encoded === "true"
+								: encoded;
 			}
 			return next;
 		});
@@ -273,7 +285,10 @@ export function CalculatorClient({ slug }: { slug: string }) {
 		}
 	}, [definition]);
 
-	const update = (key: string, value: string | number | IngredientRow[]) => {
+	const update = (
+		key: string,
+		value: string | number | boolean | IngredientRow[],
+	) => {
 		setValues((current) => {
 			const next = { ...current, [key]: value };
 			// A dependent dropdown resets when its parent changes, so a stale child
@@ -318,7 +333,11 @@ export function CalculatorClient({ slug }: { slug: string }) {
 		const params = new URLSearchParams();
 		definition.fields.forEach((field) => {
 			const value = values[field.key];
-			if (typeof value === "string" || typeof value === "number")
+			if (
+				typeof value === "string" ||
+				typeof value === "number" ||
+				typeof value === "boolean"
+			)
 				params.set(field.key, String(value));
 		});
 		if (definition.slug === "recipe-scaling")
@@ -423,6 +442,23 @@ export function CalculatorClient({ slug }: { slug: string }) {
 								);
 							}
 							const fieldId = `cf-${definition.slug}-${field.key}`;
+							if (field.type === "checkbox")
+								return (
+									<label
+										className="cf-field cf-checkbox-field"
+										htmlFor={fieldId}
+										key={field.key}
+									>
+										<input
+											id={fieldId}
+											type="checkbox"
+											checked={values[field.key] === true}
+											onChange={(event) => update(field.key, event.target.checked)}
+										/>
+										<span>{field.label}</span>
+										{field.help && <small>{field.help}</small>}
+									</label>
+								);
 							return (
 								<label className="cf-field" htmlFor={fieldId} key={field.key}>
 									<span>{field.label}</span>
@@ -443,11 +479,12 @@ export function CalculatorClient({ slug }: { slug: string }) {
 															update(field.key, event.target.value)
 														}
 													>
-														{field.optionsFor && (
+														{(field.optionsFor || field.placeholder) && (
 															<option value="" disabled>
-																{opts.length
-																	? `Choose a ${field.label.toLowerCase()}`
-																	: "Choose an option"}
+																{field.placeholder ??
+																	(opts.length
+																		? `Choose a ${field.label.toLowerCase()}`
+																		: "Choose an option")}
 															</option>
 														)}
 														{opts.map((option) => (
@@ -470,7 +507,9 @@ export function CalculatorClient({ slug }: { slug: string }) {
 													update(
 														field.key,
 														field.type === "number"
-															? Number(event.target.value)
+															? event.target.value === ""
+																? ""
+																: Number(event.target.value)
 															: event.target.value,
 													)
 												}
@@ -567,7 +606,16 @@ export function CalculatorClient({ slug }: { slug: string }) {
 							{notice}
 						</p>
 					)}
-					<AffiliatePick slug={definition.slug} />
+					{(definition.slug === "patio-pavers" ||
+						definition.slug === "stone-slabs") && (
+						<GraboFitRecommendation slug={definition.slug} values={values} />
+					)}
+					{definition.slug === "patio-pavers" ||
+					definition.slug === "stone-slabs" ? (
+						<AffiliatePick slug={definition.slug} hideGrabo />
+					) : (
+						<AffiliatePick slug={definition.slug} />
+					)}
 					<AbracadabraPartyPick slug={definition.slug} />
 				</div>
 			</div>
@@ -592,6 +640,16 @@ function PrintSheet({
 	const printableResults = definition.results.filter(
 		(result) => results[result.key] !== undefined && results[result.key] !== "",
 	);
+	const isGraboCalculator = ["patio-pavers", "stone-slabs"].includes(
+		definition.slug,
+	);
+	const graboDecision = isGraboCalculator
+		? getGraboFitDecision(definition.slug, values)
+		: null;
+	const graboClickUrl =
+		graboDecision?.status === "match"
+			? getGraboAffiliateClickUrl(graboDecision.modelCode)
+			: null;
 
 	return (
 		<section className="cf-print-sheet">
@@ -682,6 +740,8 @@ function PrintSheet({
 								displayValue =
 									options.find((option) => option.value === String(value ?? ""))
 										?.label ?? (value ? String(value) : "Not selected");
+							} else if (field.type === "checkbox") {
+								displayValue = value === true ? "Yes" : "No";
 							} else {
 								const unit =
 									field.unit && Number(value) === 1 && field.unit.endsWith("s")
@@ -745,6 +805,84 @@ function PrintSheet({
 					</div>
 				</section>
 			</div>
+			{isGraboCalculator && graboDecision && (
+				<section
+					className={`cf-print-grabo${graboDecision.status === "match" && graboClickUrl ? " is-match" : " is-no-match"}`}
+					aria-label="Printed GRABO fit check"
+				>
+					<div className="cf-print-grabo-main">
+						{graboDecision.status === "match" && graboClickUrl ? (
+							<>
+								<span className="cf-print-grabo-kicker">
+									GRABO product suggestion
+								</span>
+								<h2>
+									{graboDecision.modelName} ({graboDecision.modelCode})
+								</h2>
+								<p className="cf-print-grabo-rating">
+									Stated rating: <strong>{graboDecision.ratingLb} lb</strong>
+								</p>
+								{graboDecision.sealNote && (
+									<strong className="cf-print-grabo-seal">
+										{graboDecision.sealNote}
+									</strong>
+								)}
+								<p className="cf-print-grabo-message">
+									{graboDecision.message}
+								</p>
+								<p className="cf-print-grabo-caution">
+									This preview uses weight-band routing not confirmed by GRABO
+									across these calculator categories. It is not a safe-lift
+									determination. Verify actual weight, the surface, and current GRABO
+									instructions before lifting.
+								</p>
+								<a
+									href={graboClickUrl}
+									target="_blank"
+									rel="sponsored nofollow noopener"
+									className="cf-print-grabo-link"
+								>
+									<Image
+										src={graboAffiliate.imageUrl}
+										width={970}
+										height={250}
+										alt={graboAffiliate.imageAlt}
+										loading="eager"
+									/>
+									<span>View this GRABO model</span>
+								</a>
+								<small>{graboAffiliate.disclosure}</small>
+							</>
+						) : (
+							<>
+								<span className="cf-print-grabo-kicker">GRABO fit check</span>
+								<h2>No model recommendation</h2>
+								<p>{graboDecision.message}</p>
+								<p className="cf-print-grabo-caution">
+									Weight-band routing across these calculator categories is not
+									confirmed by GRABO. Verify actual weight and current instructions
+									before lifting.
+								</p>
+							</>
+						)}
+					</div>
+					{graboDecision.status === "match" && graboClickUrl && (
+						<div className="cf-print-grabo-qr">
+							<QRCodeSVG
+								value={graboClickUrl}
+								size={96}
+								level="M"
+								marginSize={4}
+								fgColor="#1d211d"
+								bgColor="#ffffff"
+								title={`QR code for ${graboDecision.modelName} affiliate link`}
+							/>
+							<strong>Scan for this model</strong>
+							<span>{graboDecision.modelCode}</span>
+						</div>
+					)}
+				</section>
+			)}
 			<section className="cf-print-notes">
 				<h2>Additional notes</h2>
 				<div className="cf-print-note-lines" aria-hidden="true">

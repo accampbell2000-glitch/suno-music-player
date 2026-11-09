@@ -17,7 +17,7 @@ export const affiliateDisclosure: string = AMAZON_TAG
 	? "As an Amazon Associate I earn from qualifying purchases."
 	: "These are product recommendations. Any affiliate relationship is disclosed beside the link.";
 
-// CJ banner for flooring and patio-paver visitors. Keep these exact tracking URLs from the supplied creative.
+// Keep the supplied GRABO banner and disclosure; the fit card selects a tracked destination by model.
 export const graboAffiliate = {
 	slugs: ["flooring", "patio-pavers", "deck-boards"],
 	clickUrl: "https://www.jdoqocy.com/click-101888675-17343710",
@@ -26,6 +26,18 @@ export const graboAffiliate = {
 	disclosure:
 		"Affiliate link: CalcForged may earn a commission if you purchase through this link.",
 };
+
+export const graboProBrushlessAffiliate = {
+	clickUrl: "https://www.tkqlhce.com/click-101888675-17343708",
+};
+
+export function getGraboAffiliateClickUrl(
+	modelCode?: string,
+): string | null {
+	if (modelCode === "GHF-V1") return graboAffiliate.clickUrl;
+	if (modelCode === "GPB-FB-FS") return graboProBrushlessAffiliate.clickUrl;
+	return null;
+}
 
 export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 	paint: [
@@ -1439,6 +1451,23 @@ const affiliateBottomAlternatives: Record<string, AffiliateProduct[]> = {
 			name: "Paver spacers",
 			blurb: "Keep consistent joints while laying out a paver surface.",
 			query: "patio paver spacers",
+		},
+	],
+	"stone-slabs": [
+		{
+			name: "Tile leveling clips",
+			blurb: "Keep joints aligned while laying large-format tile.",
+			query: "large format tile leveling clips",
+		},
+		{
+			name: "Slab moving straps",
+			blurb: "A manual carrying aid to consider alongside a planned slab move.",
+			query: "stone slab moving straps",
+		},
+		{
+			name: "Tile suction cup handles",
+			blurb: "A handheld option for carrying compatible tile and flat materials.",
+			query: "tile suction cup handles",
 		},
 	],
 	mortgage: [

@@ -38,12 +38,35 @@ describe("patio paver calculator", () => {
 	test("rounds a partial paver up to a whole piece", () => {
 		const result = pavers.calculate({
 			measureBy: "area",
-			knownArea: 10.1,
+		knownArea: 10.1,
+		paverLength: 12,
+		paverWidth: 12,
+		allowance: 0,
+	});
+		expect(result.pavers).toBe(11);
+		expect(result.order).toBe(11);
+	});
+
+	test("does not invent weight and totals only supplier-listed paver weight", () => {
+		const blank = pavers.calculate({
+			measureBy: "area",
+			knownArea: 10,
 			paverLength: 12,
 			paverWidth: 12,
 			allowance: 0,
 		});
-		expect(result.pavers).toBe(11);
-		expect(result.order).toBe(11);
+		expect(blank.weightPerPaver).toBe("");
+		expect(blank.totalWeight).toBe("");
+
+		const supplied = pavers.calculate({
+			measureBy: "area",
+			knownArea: 10,
+			paverLength: 12,
+			paverWidth: 12,
+			allowance: 0,
+			weightPerPaver: 18.5,
+		});
+		expect(supplied.weightPerPaver).toBe(18.5);
+		expect(supplied.totalWeight).toBe(185);
 	});
 });
