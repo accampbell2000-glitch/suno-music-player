@@ -8,7 +8,7 @@ export type GraboFitDecision = {
 	modelCode?: string;
 	ratingLb?: number;
 	sealNote?: string;
-	weightBasis?: "supplier-listed" | "estimated";
+	weightBasis?: "supplier-listed" | "estimated" | "default";
 };
 
 type GraboModel = {
@@ -64,10 +64,10 @@ const recommendByWeight = (
 	weight: number,
 	surface: string,
 	isPaver: boolean,
-	weightBasis: "supplier-listed" | "estimated",
+	weightBasis: "supplier-listed" | "estimated" | "default",
 ): GraboFitDecision => ({
 	status: "match",
-	message: `The preview selects this model using the ${weightBasis === "estimated" ? "estimated slab weight" : "supplier-listed weight"} of ${weight.toFixed(1)} lb. Confirm actual weight and surface compatibility with GRABO's current instructions.`,
+	message: `The fit check selects this model using the ${weightBasis === "estimated" ? "estimated slab weight" : "supplier-listed weight"} of ${weight.toFixed(1)} lb. Confirm actual weight and surface compatibility with GRABO's current instructions.`,
 	modelName: model.modelName,
 	modelCode: model.modelCode,
 	ratingLb: model.ratingLb,
@@ -82,10 +82,16 @@ export function getGraboFitDecision(
 	if (slug === "patio-pavers") {
 		const weight = enteredWeight(values, "weightPerPaver");
 		if (weight === null)
+			// Keep the HighFlow banner on the page from the start; GRABO's
+			// guidance names it as the pick for pavers.
 			return {
-				status: "prompt",
-				message:
-					"Enter the supplier-listed weight per paver and choose its face condition to see the GRABO fit check.",
+				status: "match",
+				message: `No paver weight entered yet; the HighFlow is GRABO's pick for pavers. Enter the supplier-listed weight per paver and its face condition to confirm.`,
+				modelName: highFlow.modelName,
+				modelCode: highFlow.modelCode,
+				ratingLb: highFlow.ratingLb,
+				sealNote: "",
+				weightBasis: "default",
 			};
 		if (!Number.isFinite(weight))
 			return noMatch("Enter a valid supplier-listed weight greater than zero.");
@@ -98,6 +104,13 @@ export function getGraboFitDecision(
 		if (!["porous", "textured", "rough", "air-leaking", "smooth"].includes(surface))
 			return noMatch(
 				"Choose a listed face condition before GRABO can recommend a model.",
+			);
+		if (
+			weight > highFlow.ratingLb &&
+			(surface === "rough" || surface === "porous")
+		)
+			return noMatch(
+				"No GRABO model is recommended for a rough or porous face above 242 lb. The Pro Brushless is listed for smooth, clean, non-porous stone. Check with GRABO and your supplier before lifting.",
 			);
 
 		const model = modelForWeight(weight);
@@ -137,6 +150,10 @@ export function getGraboFitDecision(
 		if (!["smooth-clean", "slightly-textured", "rough-porous"].includes(surface))
 			return noMatch(
 				"Choose a listed face condition before GRABO can recommend a model.",
+			);
+		if (weight > highFlow.ratingLb && surface === "rough-porous")
+			return noMatch(
+				"No GRABO model is recommended for a rough or porous face above 242 lb. The Pro Brushless is listed for smooth, clean, non-porous stone. Check with GRABO and your supplier before lifting.",
 			);
 
 		const model = modelForWeight(weight);

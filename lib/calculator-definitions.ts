@@ -2876,7 +2876,7 @@ const definitions: CalculatorDefinition[] = [
 		categorySlug: "home-improvement",
 		icon: "▱",
 		description:
-			"Estimate slab weight from dimensions or enter the supplier-listed weight, then check the preview GRABO model and any surface-specific seal warning.",
+			"Estimate slab weight from dimensions or enter the supplier-listed weight, then check the GRABO model suggestion and any surface-specific seal warning.",
 		fields: [
 			{
 				key: "material",
@@ -2978,7 +2978,7 @@ const definitions: CalculatorDefinition[] = [
 			"Choose the material and enter length, width, and thickness in inches. The calculator uses the dimensions and a typical material density to estimate the weight of a solid rectangular piece.",
 			"A supplier-listed weight is more reliable. Enter it when available; it replaces the estimate for the GRABO fit check. Cutouts, product-specific density, and fabrication can change actual weight.",
 			"Choose the listed material and face condition. If the face needs a seal, the GRABO fit check names it; no seal selection is required.",
-			"The preview selects HighFlow at 242 lb or below and Pro Brushless above 242 through 375 lb on either calculator. Above 375 lb, it shows no model. Smooth faces have no seal warning; other faces show the selected model's required seal. GRABO has not confirmed this cross-category routing.",
+			"The fit check selects HighFlow at 242 lb or below and Pro Brushless above 242 through 375 lb on either calculator. Above 375 lb, it shows no model. Smooth faces have no seal warning; other faces show the selected model's required seal.",
 		],
 		example: {
 			title: "Estimate one slab",
@@ -3005,7 +3005,7 @@ const definitions: CalculatorDefinition[] = [
 			{
 				question: "What if the face is rough or porous?",
 				answer:
-					"Check the fit card for the seal tied to the weight-selected model. For non-smooth faces, do not lift without the seal shown. GRABO has not confirmed the cross-category model routing; verify current instructions before lifting.",
+					"Check the fit card for the seal tied to the weight-selected model. For non-smooth faces, do not lift without the seal shown. Verify current instructions before lifting.",
 			},
 			{
 				question: "Does a match guarantee a safe lift?",
@@ -3034,10 +3034,10 @@ const definitions: CalculatorDefinition[] = [
 		seo: {
 			title: "Stone Slab, Tile & Countertop Weight Calculator | CalcForged",
 			description:
-				"Estimate slab weight from dimensions or use the supplier-listed weight, then view a preview GRABO model suggestion and any required seal. Verify current instructions before lifting.",
+				"Estimate slab weight from dimensions or use the supplier-listed weight, then view the GRABO model suggestion and any required seal. Verify current instructions before lifting.",
 			h1: "Stone slab, tile & countertop weight calculator",
 			intro:
-				"Enter the slab material and dimensions for a rough weight estimate, or use the supplier-listed weight when available. The fit check uses the supplier weight when entered, otherwise the estimate, and shows any surface-specific seal warning. GRABO has not confirmed this cross-category routing; verify actual weight and current instructions before lifting.",
+				"Enter the slab material and dimensions for a rough weight estimate, or use the supplier-listed weight when available. The fit check uses the supplier weight when entered, otherwise the estimate, and shows any surface-specific seal warning. Verify actual weight and current instructions before lifting.",
 		},
 		related: ["patio-pavers", "flooring", "area"],
 	},

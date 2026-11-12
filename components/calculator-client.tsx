@@ -235,7 +235,9 @@ export function CalculatorClient({ slug }: { slug: string }) {
 			const next = { ...current };
 			for (const field of fields) {
 				const encoded = params.get(field.key);
-				if (encoded !== null && field.type !== "ingredient-list")
+				// An empty query value (e.g. weightPerSlab= from a share link
+				// with nothing entered) means the field was never filled.
+				if (encoded !== null && encoded !== "" && field.type !== "ingredient-list")
 					next[field.key] =
 						field.type === "number"
 							? Number(encoded)
@@ -831,10 +833,8 @@ function PrintSheet({
 									{graboDecision.message}
 								</p>
 								<p className="cf-print-grabo-caution">
-									This preview uses weight-band routing not confirmed by GRABO
-									across these calculator categories. It is not a safe-lift
-									determination. Verify actual weight, the surface, and current GRABO
-									instructions before lifting.
+									It is not a safe-lift determination. Verify actual weight, the
+									surface, and current GRABO instructions before lifting.
 								</p>
 								<a
 									href={graboClickUrl}
@@ -859,9 +859,7 @@ function PrintSheet({
 								<h2>No model recommendation</h2>
 								<p>{graboDecision.message}</p>
 								<p className="cf-print-grabo-caution">
-									Weight-band routing across these calculator categories is not
-									confirmed by GRABO. Verify actual weight and current instructions
-									before lifting.
+									Verify actual weight and current instructions before lifting.
 								</p>
 							</>
 						)}

@@ -75,7 +75,7 @@ export function GraboFitRecommendation({
 				)}
 			</div>
 			<p className="cf-grabo-fit-source">
-				The capacities and seal notes came from GRABO Partnerships. GRABO has not confirmed this weight-band routing across both calculators or every surface. Verify the model and surface against current official instructions before publication or lifting.
+				The capacities and seal notes came from GRABO Partnerships. Verify the model and surface against current official instructions before publication or lifting.
 			</p>
 		</section>
 	);

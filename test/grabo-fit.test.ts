@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { getGraboAffiliateClickUrl } from "../config/affiliate-links";
-import { calculatorsBySlug } from "../lib/calculator-definitions";
+import {
+	calculatorsBySlug,
+	type CalculatorValues,
+} from "../lib/calculator-definitions";
 import { getGraboFitDecision } from "../lib/grabo-fit";
 import { estimateSlabWeight } from "../lib/slab-weight-estimate";
 
@@ -63,12 +66,12 @@ describe("weight-band GRABO calculator placements", () => {
 	test("shows the Pro Brushless seal warning for textured faces in either calculator", () => {
 		const paver = getGraboFitDecision("patio-pavers", {
 			weightPerPaver: 300,
-			paverSurface: "rough",
+			paverSurface: "textured",
 		});
 		const slab = getGraboFitDecision("stone-slabs", {
 			weightPerSlab: 300,
 			material: "porcelain",
-			surfaceCondition: "rough-porous",
+			surfaceCondition: "slightly-textured",
 		});
 		for (const decision of [paver, slab]) {
 			expect(decision.modelCode).toBe("GPB-FB-FS");
@@ -117,7 +120,7 @@ describe("weight-band GRABO calculator placements", () => {
 			slabLengthIn: 72,
 			slabWidthIn: 36,
 			slabThicknessIn: 1.25,
-			surfaceCondition: "rough-porous",
+			surfaceCondition: "slightly-textured",
 		});
 		expect(result.estimatedWeight).toBe(307.3);
 		expect(decision.status).toBe("match");
@@ -170,6 +173,110 @@ describe("weight-band GRABO calculator placements", () => {
 				surfaceCondition: "smooth-clean",
 			}).status,
 		).toBe("no-match");
+	});
+
+	test("treats an empty supplier weight as not entered for slabs", () => {
+		// 36 x 24 x 1.5 in of granite estimates to about 122.9 lb.
+		const decision = getGraboFitDecision("stone-slabs", {
+			material: "granite",
+			slabLengthIn: 36,
+			slabWidthIn: 24,
+			slabThicknessIn: 1.5,
+			weightPerSlab: "",
+			surfaceCondition: "slightly-textured",
+		});
+		expect(decision.status).toBe("match");
+		expect(decision.weightBasis).toBe("estimated");
+		expect(decision.modelCode).toBe("GHF-V1");
+		expect(decision.sealNote).toBe(
+			"Do not lift without Smart Cut Foam Seal 400 (FS400-SC).",
+		);
+	});
+
+	test("still rejects an explicit zero or negative weight", () => {
+		for (const weightPerSlab of [0, -5]) {
+			const decision = getGraboFitDecision("stone-slabs", {
+				material: "granite",
+				slabLengthIn: 36,
+				slabWidthIn: 24,
+				slabThicknessIn: 1.5,
+				weightPerSlab,
+				surfaceCondition: "slightly-textured",
+			});
+			expect(decision.status).toBe("no-match");
+			expect(decision.message).toContain(
+				"Enter a valid supplier-listed weight greater than zero.",
+			);
+		}
+		const paver = getGraboFitDecision("patio-pavers", {
+			weightPerPaver: 0,
+			paverSurface: "rough",
+		});
+		expect(paver.status).toBe("no-match");
+		expect(paver.message).toContain(
+			"Enter a valid supplier-listed weight greater than zero.",
+		);
+	});
+
+	test("suppresses the model for rough or porous faces above 242 lb", () => {
+		for (const weight of [242.5, 243, 375]) {
+			const slab = getGraboFitDecision("stone-slabs", {
+				weightPerSlab: weight,
+				material: "porcelain",
+				surfaceCondition: "rough-porous",
+			});
+			expect(slab.status).toBe("no-match");
+			expect(slab.modelCode).toBeUndefined();
+			expect(slab.message).toContain("No GRABO model is recommended");
+		}
+		for (const paverSurface of ["rough", "porous"]) {
+			const paver = getGraboFitDecision("patio-pavers", {
+				weightPerPaver: 243,
+				paverSurface,
+			});
+			expect(paver.status).toBe("no-match");
+			expect(paver.modelCode).toBeUndefined();
+		}
+		// Estimate-driven slabs above 242 lb are suppressed too.
+		const estimated = getGraboFitDecision("stone-slabs", {
+			material: "granite",
+			slabLengthIn: 72,
+			slabWidthIn: 36,
+			slabThicknessIn: 1.25,
+			surfaceCondition: "rough-porous",
+		});
+		expect(estimated.status).toBe("no-match");
+		// At exactly 242 lb and on textured faces, the routing is unchanged.
+		const atCap = getGraboFitDecision("stone-slabs", {
+			weightPerSlab: 242,
+			material: "porcelain",
+			surfaceCondition: "rough-porous",
+		});
+		expect(atCap.status).toBe("match");
+		expect(atCap.modelCode).toBe("GHF-V1");
+		const textured = getGraboFitDecision("stone-slabs", {
+			weightPerSlab: 300,
+			material: "porcelain",
+			surfaceCondition: "slightly-textured",
+		});
+		expect(textured.status).toBe("match");
+		expect(textured.modelCode).toBe("GPB-FB-FS");
+		expect(textured.sealNote).toBe(
+			"Do not lift without Pro Brushless Foam Rubber Seal (GPB-FRS).",
+		);
+	});
+
+	test("shows the HighFlow banner on the default pavers page", () => {
+		const cases: CalculatorValues[] = [{}];
+		for (const values of cases) {
+			const decision = getGraboFitDecision("patio-pavers", values);
+			expect(decision.status).toBe("match");
+			expect(decision.modelCode).toBe("GHF-V1");
+			expect(decision.ratingLb).toBe(242);
+			expect(decision.sealNote).toBe("");
+			expect(decision.weightBasis).toBe("default");
+			expect(decision.message).toContain("No paver weight entered yet");
+		}
 	});
 
 	test("uses surface dropdowns instead of seal checkboxes", () => {
