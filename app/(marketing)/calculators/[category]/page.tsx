@@ -21,7 +21,7 @@ export async function generateMetadata({
 	const category = categoryBySlug[slug];
 	return category
 		? {
-				title: `${category.name} Calculators | CalcForged`,
+				title: category.seoTitle ?? `${category.name} Calculators | CalcForged`,
 				description:
 					category.seoDescription ??
 					`${category.description} Browse CalcForged tools in ${category.name}.`,
@@ -54,7 +54,14 @@ export default async function CategoryPage({
 				<div className="cf-page-intro cf-category-intro">
 					<p className="cf-kicker">Category</p>
 					<h1>{category.name}</h1>
-					<p>{category.description}</p>
+					<p>{category.intro ?? category.description}</p>
+					{category.introLink ? (
+						<p className="cf-category-cta">
+							<Link href={category.introLink.href}>
+								{category.introLink.label} <span>→</span>
+							</Link>
+						</p>
+					) : null}
 				</div>
 				{items.length ? (
 					<div className="cf-tools-grid">

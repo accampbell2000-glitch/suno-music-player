@@ -12796,6 +12796,310 @@ const definitions: CalculatorDefinition[] = [
 		},
 		related: ["board-feet", "deck-boards"],
 	},
+	{
+		slug: "car-idle-runtime",
+		name: "Car Idle Runtime Calculator",
+		category: "Automotive",
+		categorySlug: "automotive",
+		icon: "◑",
+		description:
+			"Estimate how long a car can idle on the fuel in its tank, with overnight cabin-heat and cost-per-hour outputs.",
+		fields: [
+			{
+				key: "tankSizeGal",
+				label: "Fuel tank size",
+				type: "number",
+				unit: "gal",
+				min: 1,
+				max: 40,
+				defaultValue: 14,
+				help: "Full tank capacity in gallons. A typical sedan holds 12 to 15 gallons; a pickup 20 to 30.",
+			},
+			{
+				key: "fuelPercent",
+				label: "Fuel in tank now",
+				type: "number",
+				unit: "%",
+				min: 0,
+				max: 100,
+				defaultValue: 100,
+				help: "How full is the tank right now? 100% means a full tank.",
+			},
+			{
+				key: "engineType",
+				label: "Engine type",
+				type: "select",
+				defaultValue: "v6",
+				options: [
+					{ label: "4-cylinder (0.2 gal/hr)", value: "four" },
+					{ label: "V6 (0.3 gal/hr)", value: "v6" },
+					{ label: "V8 (0.5 gal/hr)", value: "v8" },
+					{ label: "Diesel truck (0.9 gal/hr)", value: "diesel" },
+				],
+				help: "Typical idle burn rates from U.S. DOE idle-consumption data.",
+			},
+			{
+				key: "cabinDraw",
+				label: "AC or heat running?",
+				type: "select",
+				defaultValue: "off",
+				options: [
+					{ label: "Off", value: "off" },
+					{ label: "On (+0.1 gal/hr)", value: "on" },
+				],
+				help: "The air conditioning or heater adds about 0.1 gallon per hour while idling.",
+			},
+			{
+				key: "gasPrice",
+				label: "Price per gallon",
+				type: "number",
+				unit: "$",
+				min: 0,
+				max: 20,
+				defaultValue: 3.3,
+				help: "Your local price per gallon of gasoline.",
+			},
+		],
+		results: [
+			{ key: "idleHours", label: "Idle time on current fuel", unit: "hours", format: "number", estimate: true },
+			{ key: "heatNights", label: "Nights of 8-hour cabin heat", unit: "nights", format: "number", estimate: true },
+			{ key: "costPerHour", label: "Cost per idle hour", format: "currency" },
+			{ key: "fuelLeftCost", label: "Cost of fuel on board", format: "currency" },
+			{ key: "validation", label: "Assumptions", format: "text" },
+		],
+		calculate: (v) => {
+			const tank = Math.max(0, n(v, "tankSizeGal"));
+			const pct = Math.min(100, Math.max(0, n(v, "fuelPercent")));
+			const rates: Record<string, number> = { four: 0.2, v6: 0.3, v8: 0.5, diesel: 0.9 };
+			const base = rates[option(v, "engineType", "v6")] ?? 0.3;
+			const bump = option(v, "cabinDraw", "off") === "on" ? 0.1 : 0;
+			const rate = base + bump;
+			const fuel = (tank * pct) / 100;
+			const price = Math.max(0, n(v, "gasPrice"));
+			const hours = rate > 0 ? fuel / rate : 0;
+			return {
+				idleHours: round(hours, 1),
+				heatNights: Math.floor(hours / 8),
+				costPerHour: round(rate * price, 2),
+				fuelLeftCost: round(fuel * price, 2),
+				validation: `Assumes a ${rate.toFixed(1)} gal/hr idle burn${bump ? " including the AC/heat bump" : ""} and ${fuel.toFixed(1)} of ${tank} gallons on board. Actual rates vary by engine, altitude, and accessory load.`,
+			};
+		},
+		howItWorks: [
+			"Fuel on board is the tank size times the fuel percentage.",
+			"Idle burn is the engine-class rate (4-cylinder 0.2, V6 0.3, V8 0.5, diesel truck 0.9 gallons per hour) plus 0.1 gal/hr when the AC or heat runs, from U.S. DOE idle-consumption data.",
+			"Idle hours equal fuel on board divided by burn rate. Cost per hour is the burn rate times your fuel price.",
+			"Never idle in a closed garage or with snow blocking the exhaust. Carbon monoxide can build up inside the cabin.",
+		],
+		example: {
+			title: "A 14-gallon sedan tank, V6, heat on",
+			inputs: "Full tank, V6, AC or heat on, $3.30 per gallon",
+			result: "About 35 hours of idle time, roughly 4 nights of 8-hour cabin heat, at about $1.32 an idle hour.",
+		},
+		faqs: [
+			{
+				question: "How long can a car idle on a full tank?",
+				answer: "Most gasoline cars idle 30 to 70 hours on a full tank. A 14-gallon tank with a 0.3 gal/hr V6 burn lasts about 47 hours; a V8 at 0.5 gal/hr lasts about 28.",
+			},
+			{
+				question: "Does the AC or heater use more gas while idling?",
+				answer: "Yes. Running the air conditioning or heat at idle adds roughly 0.1 gallon per hour on top of the engine's base burn, which can cut a night of heater runtime by a fifth.",
+			},
+			{
+				question: "Is it safe to sleep in a car with the engine running?",
+				answer: "Only with ventilation. Never idle in a closed garage or with snow, leaves, or bags blocking the exhaust: a small exhaust leak can fill the cabin with carbon monoxide. Crack a window, face the exhaust away from the cabin, and set a timer.",
+			},
+			{
+				question: "Does idling warm up the engine faster?",
+				answer: "No. Modern fuel-injected engines need only about 30 seconds of idle before driving, and the engine, transmission, and tires all warm up faster once the car is moving.",
+			},
+		],
+		sources: [
+			{
+				label: "U.S. DOE idle-consumption data, as compiled by mycarcalc",
+				url: "https://mycarcalc.com/fuel-and-mpg/idling-fuel-cost-calculator",
+			},
+		],
+		seo: {
+			title: "Car Idle Runtime Calculator: Hours on a Tank of Gas | CalcForged",
+			description:
+				"How long can a car idle on a full tank? Enter tank size, fuel remaining, and engine type to estimate idle hours, overnight cabin heat, and cost per idle hour.",
+			h1: "Car idle runtime calculator",
+			intro:
+				"A car at idle still burns roughly 0.2 to 0.9 gallons an hour depending on engine size, so a full tank buys you days of heat, not a week. Enter your tank size, how much fuel is in it, and the engine type, and the calculator shows the idle hours left, how many 8-hour nights of cabin heat that covers, and what each idle hour costs.",
+		},
+		related: ["fuel-mileage", "battery-runtime", "towing-capacity"],
+	},
+	{
+		slug: "chicken-coop-bedding",
+		name: "Chicken Coop Bedding Calculator",
+		category: "Hobbies",
+		categorySlug: "hobbies",
+		icon: "◈",
+		description:
+			"Turn coop floor area and bedding depth into cubic feet, farm bales, and pet-store bags, with a yearly cost comparison.",
+		fields: [
+			{
+				key: "coopLengthFt",
+				label: "Coop length",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				max: 60,
+				defaultValue: 8,
+				help: "Interior floor length of the coop in feet.",
+			},
+			{
+				key: "coopWidthFt",
+				label: "Coop width",
+				type: "number",
+				unit: "ft",
+				min: 1,
+				max: 60,
+				defaultValue: 6,
+				help: "Interior floor width of the coop in feet.",
+			},
+			{
+				key: "depthIn",
+				label: "Bedding depth",
+				type: "number",
+				unit: "in",
+				min: 1,
+				max: 12,
+				defaultValue: 5,
+				help: "Winter deep litter runs 4 to 6 inches; 2 to 3 inches is typical for a dry coop.",
+			},
+			{
+				key: "baleExpandedCuFt",
+				label: "Expanded volume per farm bale",
+				type: "number",
+				unit: "cu ft",
+				min: 0.5,
+				max: 40,
+				defaultValue: 8,
+				help: "A typical compressed pine-shaving bale expands to about 8 cubic feet. Check your bale's label.",
+			},
+			{
+				key: "balePrice",
+				label: "Price per farm bale",
+				type: "number",
+				unit: "$",
+				min: 0,
+				defaultValue: 18,
+				help: "What you pay for one compressed farm bale.",
+			},
+			{
+				key: "bagExpandedCuFt",
+				label: "Expanded volume per pet-store bag",
+				type: "number",
+				unit: "cu ft",
+				min: 0.5,
+				max: 40,
+				defaultValue: 6,
+				help: "Most compressed shaving bags expand to roughly 5 to 6 cubic feet. Check your bag's label.",
+			},
+			{
+				key: "bagPrice",
+				label: "Price per pet-store bag",
+				type: "number",
+				unit: "$",
+				min: 0,
+				defaultValue: 10,
+				help: "What you pay for one pet-store bag of shavings.",
+			},
+			{
+				key: "fillsPerYear",
+				label: "Fresh fills per year",
+				type: "number",
+				min: 0,
+				max: 12,
+				defaultValue: 2,
+				help: "How many times you dump and refill bedding in a year. Deep-litter coops often fill once and turn it instead.",
+			},
+		],
+		results: [
+			{ key: "beddingCuFt", label: "Bedding per fill", unit: "cu ft", format: "number", estimate: true },
+			{ key: "balesNeeded", label: "Farm bales per fill", unit: "bales", format: "number", estimate: true },
+			{ key: "bagsNeeded", label: "Pet-store bags per fill", unit: "bags", format: "number", estimate: true },
+			{ key: "baleYearCost", label: "Yearly cost, farm bales", format: "currency" },
+			{ key: "bagYearCost", label: "Yearly cost, pet-store bags", format: "currency" },
+			{ key: "cheaperOption", label: "Cheaper per year", format: "text" },
+			{ key: "validation", label: "Assumptions", format: "text" },
+		],
+		calculate: (v) => {
+			const length = Math.max(0, n(v, "coopLengthFt"));
+			const width = Math.max(0, n(v, "coopWidthFt"));
+			const depth = Math.min(12, Math.max(0, n(v, "depthIn")));
+			const cuFt = ((length * width) * depth) / 12;
+			const baleVol = Math.max(0.1, n(v, "baleExpandedCuFt"));
+			const bagVol = Math.max(0.1, n(v, "bagExpandedCuFt"));
+			const balePrice = Math.max(0, n(v, "balePrice"));
+			const bagPrice = Math.max(0, n(v, "bagPrice"));
+			const fills = Math.max(0, n(v, "fillsPerYear"));
+			const bales = ceil(cuFt / baleVol);
+			const bags = ceil(cuFt / bagVol);
+			const baleYear = round(bales * balePrice * fills, 2);
+			const bagYear = round(bags * bagPrice * fills, 2);
+			const cheaper =
+				fills <= 0
+					? "Enter fresh fills per year to compare yearly cost."
+					: baleYear <= bagYear
+						? "Compressed farm bales"
+						: "Pet-store bags";
+			return {
+				beddingCuFt: round(cuFt, 1),
+				balesNeeded: bales,
+				bagsNeeded: bags,
+				baleYearCost: baleYear,
+				bagYearCost: bagYear,
+				cheaperOption: cheaper,
+				validation: `Assumes a level ${length} by ${width} foot floor and pack volumes of ${baleVol} and ${bagVol} cubic feet expanded. Rounded up to whole bales and bags; actual pack volumes vary by brand.`,
+			};
+		},
+		howItWorks: [
+			"Bedding volume is coop length times width times depth, with depth converted from inches to feet to give cubic feet per fill.",
+			"Bales and bags are rounded up to whole packs using each pack's expanded volume; check your label because pack volumes vary.",
+			"Yearly cost is packs per fill times price per pack times fills per year. The cheaper option is whichever costs less per year.",
+		],
+		example: {
+			title: "An 8 by 6 foot coop at 5 inches",
+			inputs: "8 x 6 ft floor, 5 in deep, 2 fresh fills a year",
+			result: "About 20 cubic feet of bedding per fill: 3 farm bales or 4 pet-store bags, roughly $108 a year in bales versus $80 in bags at the default prices.",
+		},
+		faqs: [
+			{
+				question: "How much bedding does a chicken coop need?",
+				answer: "About 8 to 10 cubic feet per 40 square feet of floor at 2 to 3 inches deep. This calculator turns your exact floor size and depth into cubic feet, then into bales and bags.",
+			},
+			{
+				question: "How deep should bedding be?",
+				answer: "2 to 3 inches works for a dry coop. In winter, deep litter at 4 to 6 inches builds compost heat and handles more moisture before it needs replacing.",
+			},
+			{
+				question: "Pine shavings or straw?",
+				answer: "Pine shavings absorb moisture and compost well; straw is cheaper per bale but mats down and holds less. The math here works for either, using each pack's expanded volume.",
+			},
+			{
+				question: "Bales or bags - which is cheaper?",
+				answer: "Farm bales usually win per expanded cubic foot, but pet-store bags can win once you count the pack sizes you actually buy. This calculator compares both per year so you can see it for your prices.",
+			},
+		],
+		sources: [
+			{
+				label: "Farmstand App bedding guide (8 cu ft bales; 8-10 cu ft per 40 sq ft)",
+				url: "https://www.farmstandapp.com/115646/4-best-kiln-dried-pine-shavings-for-absorbing-chicken-droppings/",
+			},
+		],
+		seo: {
+			title: "Chicken Coop Bedding Calculator: Bales & Yearly Cost | CalcForged",
+			description:
+				"How much bedding does a chicken coop need? Enter coop size and depth to get cubic feet, farm bales, and pet-store bags, plus a yearly cost comparison.",
+			h1: "Chicken coop bedding calculator",
+			intro:
+				"Bedding starts with the coop floor: length times width times depth gives the cubic feet you need every fill. The calculator turns that into compressed farm bales and pet-store bags, then projects a year of spending for each, because the cheapest-looking bag is not always the cheapest bedding.",
+		},
+		related: ["firewood", "aquarium-volume", "board-feet"],
+	},
 ];
 
 function parseRecipeAmount(raw: string): number | null {
@@ -13008,14 +13312,24 @@ export const categories: {
 	name: Category;
 	slug: string;
 	description: string;
+	seoTitle?: string;
 	seoDescription?: string;
+	intro?: string;
+	introLink?: { label: string; href: string };
 }[] = [
 	{
 		name: "Food & Catering",
 		slug: "food-catering",
 		description: "Plan portions, menus, and recipes with less guesswork.",
+		seoTitle: "Catering Food & Portion Calculators | CalcForged",
 		seoDescription:
 			"Plan portions for catered meals, BBQ, taco bars, appetizers, pizza, wings, sandwiches, and charcuterie. Scale recipes or convert cups to grams in one place.",
+		intro:
+			"Planning a catered meal starts with one number: how much food each guest will eat. The Catering Food Quantity Calculator turns a guest count into total food, protein, sides, salads, dessert, and drinks, so start there. Below you will also find portion calculators for taco bars, BBQ, appetizers, pizza, wings, and sandwiches, plus recipe scaling and cup-to-gram conversions.",
+		introLink: {
+			label: "Catering Food Quantity Calculator",
+			href: "/calculators/food-catering/catering-food-quantity",
+		},
 	},
 	{
 		name: "Home Improvement",

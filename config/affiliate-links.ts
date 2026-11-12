@@ -928,6 +928,40 @@ export const affiliatePicks: Record<string, AffiliateProduct[]> = {
 			query: "manual grease gun tractor equipment",
 		},
 	],
+	"car-idle-runtime": [
+		{
+			name: "12V tire inflator",
+			blurb: "Cold snaps and low tires arrive together; cheap insurance before a long idle.",
+			query: "12v portable tire inflator",
+		},
+		{
+			name: "Car winter emergency kit",
+			blurb: "If the tank runs dry overnight, you want the blanket already in the trunk.",
+			query: "car winter emergency kit blanket",
+		},
+		{
+			name: "Insulated windshield cover",
+			blurb: "Cuts the heat the engine has to make on frosty mornings.",
+			query: "windshield snow cover insulated",
+		},
+	],
+	"chicken-coop-bedding": [
+		{
+			name: "Straw bedding bale",
+			blurb: "Cheaper per bale for deep litter; absorbs less and mats more than shavings.",
+			query: "straw bedding bale chickens",
+		},
+		{
+			name: "Pine shavings bag",
+			blurb: "Pet-store bags for small coops and spot top-ups between fills.",
+			query: "pine shavings bag pet store",
+		},
+		{
+			name: "Coop rake",
+			blurb: "Turn deep litter without dumping and refilling the whole coop.",
+			query: "chicken coop rake bedding",
+		},
+	],
 };
 
 // A compact partner pick shown inside selected calculators, under the results.
@@ -1340,6 +1374,16 @@ export const affiliateTopPicks: Record<string, AffiliateProduct> = {
 		name: "Splitting maul",
 		blurb: "A hand tool for splitting rounds after planning your stack size.",
 		query: "firewood splitting maul",
+	},
+	"car-idle-runtime": {
+		name: "Portable jump starter",
+		blurb: "Idle hours are nice until the battery gives up at 3 a.m. - the stranded-in-winter essential.",
+		query: "portable jump starter 2000a",
+	},
+	"chicken-coop-bedding": {
+		name: "Pine shavings bale",
+		blurb: "The farm-standard bedding; one bale covers most weekend fills.",
+		query: "pine shavings bale chicken coop",
 	},
 };
 
