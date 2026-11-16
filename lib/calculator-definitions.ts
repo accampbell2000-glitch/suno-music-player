@@ -97,6 +97,7 @@ export type CalculatorDefinition = {
 	photoScan?: boolean;
 	howItWorks: string[];
 	example: { title: string; inputs: string; result: string };
+	chart?: { title: string; intro: string; columns: string[]; rows: string[][] };
 	faqs: { question: string; answer: string }[];
 	sources?: { label: string; url: string }[];
 	seo: { title: string; description: string; h1: string; intro: string };
@@ -10005,6 +10006,35 @@ const definitions: CalculatorDefinition[] = [
 			result:
 				"In standard inch measurements, this tire is about 28.52 in in overall diameter, 8.86 in wide, with a 5.76 in sidewall and an estimated 707 revolutions per mile. These measurements help compare sizes; they do not confirm vehicle fitment.",
 		},
+		chart: {
+			title: "Metric Tire Sizes in Inches",
+			intro:
+				"Common metric tire sizes converted to standard inch measurements. Overall diameter is the rim diameter plus twice the sidewall height; the flotation rows (33x12.50, 35x12.50) are already named in inches. Nominal values - actual manufacturer sizes can differ slightly.",
+			columns: ["Metric size", "Overall diameter (in)", "Width (in)", "Sidewall (in)"],
+			rows: [
+				["205/55R16", "24.9", "8.1", "4.4"],
+				["215/60R16", "26.2", "8.5", "5.1"],
+				["225/60R17", "27.6", "8.9", "5.3"],
+				["225/65R17", "28.5", "8.9", "5.8"],
+				["235/70R16", "29.0", "9.3", "6.5"],
+				["245/70R17", "30.5", "9.6", "6.8"],
+				["255/70R17", "31.1", "10.0", "7.0"],
+				["265/70R17", "31.6", "10.4", "7.3"],
+				["265/65R18", "31.6", "10.4", "6.8"],
+				["285/70R17", "32.7", "11.2", "7.9"],
+				["285/75R16", "32.8", "11.2", "8.4"],
+				["305/55R20", "33.2", "12.0", "6.6"],
+				["275/70R18", "33.2", "10.8", "7.6"],
+				["305/70R17", "33.8", "12.0", "8.4"],
+				["315/70R17", "34.4", "12.4", "8.7"],
+				["315/75R16", "34.6", "12.4", "9.3"],
+				["33x12.50R15", "33.0", "12.5", "9.0"],
+				["34x12.50R20", "34.0", "12.5", "7.0"],
+				["35x12.50R20", "35.0", "12.5", "7.5"],
+				["35x12.50R22", "35.0", "12.5", "6.5"],
+				["37x13.50R17", "37.0", "13.5", "10.0"],
+			],
+		},
 		faqs: [
 			{
 				question:
@@ -10036,6 +10066,16 @@ const definitions: CalculatorDefinition[] = [
 				question: "How does tire size affect my speedometer?",
 				answer:
 					"A taller tire covers more ground with each wheel rotation, so a speedometer calibrated for a shorter tire can read low. The difference is approximately proportional to the diameter change.",
+			},
+			{
+				question: "What is 35x12.50R20 in metric?",
+				answer:
+					"A 35x12.50R20 is 35 inches in overall diameter and 12.5 inches wide (about 315 mm). The closest common metric size is around 315/60R20, at about 34.9 inches overall. Use the Inches direction above to compare same-rim options in metric.",
+			},
+			{
+				question: "What is 34x12.50R20 in metric?",
+				answer:
+					"A 34x12.50R20 is 34 inches in overall diameter and 12.5 inches wide (about 315 mm). It falls between 315/55R20 (about 33.6 in) and 315/60R20 (about 34.9 in); the calculator lists matching same-rim sizes within 3%.",
 			},
 		],
 		seo: {

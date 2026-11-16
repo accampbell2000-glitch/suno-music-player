@@ -168,6 +168,35 @@ export default async function CalculatorPage({
 								</p>
 							</div>
 						</section>
+						{definition.chart ? (
+							<section className="cf-copy-section">
+								<p className="cf-kicker">Reference table</p>
+								<h2>{definition.chart.title}</h2>
+								<p>{definition.chart.intro}</p>
+								<div className="cf-chart-wrap">
+									<table className="cf-chart">
+										<thead>
+											<tr>
+												{definition.chart.columns.map((column) => (
+													<th key={column} scope="col">
+														{column}
+													</th>
+												))}
+											</tr>
+										</thead>
+										<tbody>
+											{definition.chart.rows.map((row) => (
+												<tr key={row.join("|")}>
+													{row.map((cell, index) => (
+														<td key={index}>{cell}</td>
+													))}
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							</section>
+						) : null}
 					</div>
 					<aside className="cf-faq">
 						<p className="cf-kicker">Questions, answered</p>

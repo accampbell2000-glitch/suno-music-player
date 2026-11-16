@@ -6,6 +6,7 @@ export const metadata: Metadata = {
 	description:
 		"Add CalcForged to your phone's Home Screen or install it as an app in Windows. No app-store download is required.",
 	alternates: { canonical: "/install" },
+	robots: { index: false, follow: true },
 };
 
 export default function InstallPage() {

@@ -842,3 +842,9 @@ html.cf-print-mode .cf-print-sheet * { visibility: visible; }
 .cf-category-cta a { color: var(--ember); text-decoration: none; border-bottom: 1px solid var(--ember); padding-bottom: 3px; }
 .cf-category-cta a:hover { color: var(--ink); border-bottom-color: var(--ink); }
 .cf-category-cta a span { font-size: .95rem; margin-left: 4px; }
+.cf-chart-wrap { overflow-x: auto; }
+.cf-chart { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.cf-chart caption { text-align: left; color: var(--muted-ink); font-size: .85rem; margin-bottom: 10px; }
+.cf-chart th, .cf-chart td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+.cf-chart thead th { font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-ink); background: var(--paper-2); }
+.cf-chart tbody tr:nth-child(even) { background: var(--paper); }

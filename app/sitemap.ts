@@ -17,7 +17,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			changeFrequency: "monthly",
 			priority: 0.5,
 		},
-		{ url: `${siteUrl}/install`, changeFrequency: "yearly", priority: 0.4 },
 		...categories.map((category) => ({
 			url: `${siteUrl}/calculators/${category.slug}`,
 			changeFrequency: "weekly" as const,
