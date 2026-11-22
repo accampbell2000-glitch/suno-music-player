@@ -12,6 +12,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const routes: MetadataRoute.Sitemap = [
 		{ url: `${siteUrl}/`, changeFrequency: "daily", priority: 1 },
 		{ url: `${siteUrl}/calculators`, changeFrequency: "daily", priority: 0.9 },
+		{ url: `${siteUrl}/converters`, changeFrequency: "daily", priority: 0.9 },
+		{
+			url: `${siteUrl}/converters/webp-to-jpg`,
+			changeFrequency: "monthly" as const,
+			priority: 0.85,
+		},
 		{
 			url: `${siteUrl}/calculator-requests`,
 			changeFrequency: "monthly",

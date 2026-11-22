@@ -23,6 +23,8 @@ export async function CalcForgedFooter() {
 					<div>
 						<p className="cf-footer-label">Browse</p>
 						<Link href="/calculators">All calculators</Link>
+						<Link href="/converters">All converters</Link>
+						<Link href="/converters/webp-to-jpg">WebP to JPG</Link>
 						{policies.length > 0 && (
 							<>
 								<p className="cf-footer-label">Policies</p>

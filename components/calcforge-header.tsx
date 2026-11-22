@@ -14,6 +14,7 @@ export async function CalcForgedHeader() {
 				</Link>
 				<nav className="cf-nav" aria-label="Main navigation">
 					<Link href="/calculators">All calculators</Link>
+					<Link href="/converters">Converters</Link>
 					<Link href="/#why">Why CalcForged</Link>
 				</nav>
 				<Link className="cf-header-cta hide-sm" href="/calculator-requests">
