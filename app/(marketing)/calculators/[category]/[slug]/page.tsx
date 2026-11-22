@@ -57,6 +57,19 @@ export default async function CalculatorPage({
 		.map((item) => calculatorsBySlug[item])
 		.filter(Boolean);
 	const isGigMileageTracker = definition.slug === "gig-driver-mileage-tracker";
+	const CONVERTER_SLUGS = new Set([
+		"currency-converter",
+		"length-converter",
+		"weight-converter",
+		"volume-converter",
+		"cups-to-grams",
+		"grams-to-cups",
+		"time-zone",
+		"px-to-rem",
+		"train-scale-converter",
+		"miniature-scale-converter",
+	]);
+	const isUnitConverter = CONVERTER_SLUGS.has(definition.slug);
 	const session = isGigMileageTracker ? await getSession() : null;
 	const trackerPath = `/calculators/${definition.categorySlug}/${definition.slug}`;
 	const trackerSignInUrl =
@@ -123,6 +136,11 @@ export default async function CalculatorPage({
 					<h1>{definition.seo.h1}</h1>
 					<p>{definition.seo.intro}</p>
 				</div>
+				{isUnitConverter && (
+					<p className="cf-converter-crosslink">
+						Also in Converters: <Link href="/converters">Browse all converters</Link> · <Link href="/converters/webp-to-jpg">WebP ⇄ JPG</Link>
+					</p>
+				)}
 				{definition.slug === "function-graphing" ? (
 					<FunctionGraphingCalculator idPrefix="calculator-function-graph" />
 				) : definition.slug === "fuel-mileage" ? (
