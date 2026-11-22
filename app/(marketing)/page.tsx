@@ -14,7 +14,7 @@ import { getSession, signInUrl } from "@/lib/session";
 export const metadata: Metadata = {
 	title: "CalcForged: Practical calculators. Straight answers.",
 	description:
-		"Fast, free calculators for food planning, home improvement, construction, events, and business decisions.",
+		"Fast, free calculators and converters for food planning, home improvement, construction, events, and business decisions.",
 	alternates: { canonical: "/" },
 };
 
@@ -56,8 +56,8 @@ export default async function Home() {
 							<em>Straight answers.</em>
 						</h1>
 						<p className="cf-hero-copy">
-							Useful, transparent calculators for everyday decisions. See the
-							math, get your number, move on.
+							Useful, transparent calculators and converters for everyday
+							decisions. See the math, get your number, move on.
 						</p>
 						<div className="cf-hero-actions">
 							<Link href="/calculators" className="cf-button cf-button-dark">
