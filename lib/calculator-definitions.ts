@@ -1,6 +1,6 @@
 import { estimateSlabWeight } from "./slab-weight-estimate";
 import { calculateAspectRatio } from "./aspect-ratio";
-import { calculateBusinessDays } from "./business-days";
+import { calculateBusinessDays, calculateBusinessDaysFrom, laterOfDates, toIso } from "./business-days";
 import { calculatePxRem } from "./px-rem";
 import { simplifyRatio } from "./ratio-simplifier";
 import {
@@ -7458,8 +7458,18 @@ const definitions: CalculatorDefinition[] = [
 		categorySlug: "everyday-life",
 		icon: "◫",
 		description:
-			"Count weekdays between two dates, excluding Saturdays and Sundays. Public holidays are not excluded.",
+			"Count business days between two dates, or add and subtract business days from a date. Weekends are excluded.",
 		fields: [
+			{
+				key: "mode",
+				label: "What do you need?",
+				type: "select",
+				defaultValue: "between",
+				options: [
+					{ label: "Count business days between dates", value: "between" },
+					{ label: "Add or subtract business days from a date", value: "from" },
+				],
+			},
 			{
 				key: "startDate",
 				label: "Start date",
@@ -7471,36 +7481,83 @@ const definitions: CalculatorDefinition[] = [
 				key: "endDate",
 				label: "End date",
 				type: "text",
-				defaultToday: true,
+				visibleWhen: { key: "mode", values: ["between"] },
 				help: "Enter a date as YYYY-MM-DD.",
+			},
+			{
+				key: "direction",
+				label: "Add or subtract",
+				type: "select",
+				defaultValue: "add",
+				visibleWhen: { key: "mode", values: ["from"] },
+				options: [
+					{ label: "Add", value: "add" },
+					{ label: "Subtract", value: "subtract" },
+				],
+			},
+			{
+				key: "amount",
+				label: "How many business days",
+				type: "number",
+				min: 0,
+				max: 250000,
+				step: 1,
+				defaultValue: 10,
+				visibleWhen: { key: "mode", values: ["from"] },
+				help: "Saturdays and Sundays are skipped automatically.",
 			},
 		],
 		results: [
 			{ key: "businessDays", label: "Business days", unit: "days", format: "number" },
 			{ key: "calendarDays", label: "Elapsed calendar days", unit: "days", format: "number" },
-			{ key: "weekendDays", label: "Weekend days excluded", unit: "days", format: "number" },
+			{ key: "weekendDays", label: "Weekend days in span", unit: "days", format: "number" },
+			{ key: "resultDate", label: "Result date", format: "text" },
+			{ key: "weekday", label: "Falls on", format: "text" },
 			{ key: "countingRule", label: "Counting rule", format: "text" },
 			{ key: "validation", label: "Input check", format: "text" },
 		],
-		calculate: (v) =>
-			calculateBusinessDays(
+		calculate: (v) => {
+			if (String(v.mode ?? "between") === "from")
+				return calculateBusinessDaysFrom(
+					String(v.startDate ?? ""),
+					String(v.direction ?? "add"),
+					String(v.amount ?? ""),
+				);
+			const base = calculateBusinessDays(
 				String(v.startDate ?? ""),
 				String(v.endDate ?? ""),
-			),
+			);
+			const later = laterOfDates(
+				String(v.startDate ?? ""),
+				String(v.endDate ?? ""),
+			);
+			return {
+				...base,
+				resultDate: later ? toIso(later) : "",
+				weekday: later
+					? later.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" })
+					: "",
+			};
+		},
 		howItWorks: [
-			"The calculator counts Monday through Friday after the earlier date and through the later date. The earlier date is not counted; the later date is counted if it is a weekday.",
-			"Saturdays and Sundays are excluded. Public holidays are not removed, so check local holidays separately when they matter.",
-			"Enter dates in either order; the calculator returns the absolute count between them.",
+			"In count mode, the calculator counts Monday through Friday after the earlier date and through the later date. The earlier date is not counted; the later date is counted if it is a weekday.",
+			"Saturdays and Sundays are excluded in both modes. Public holidays are not removed, so check local holidays separately when they matter.",
+			"Switch the mode to add or subtract business days from a date: the calculator steps forward (or backward) one weekday at a time, skipping weekends. Friday plus one business day lands on Monday.",
+			"Dates can be entered in either order in count mode; the calculator returns the absolute count between them.",
 		],
 		example: {
-			title: "Count weekdays across one workweek",
-			inputs: "Monday, March 2, 2026 through Monday, March 9, 2026",
-			result: "5 business days across 7 elapsed calendar days, with 2 weekend days excluded.",
+			title: "Find the date 10 business days after a Friday",
+			inputs: "Add 10 business days to Friday, March 6, 2026",
+			result: "Friday, March 20, 2026 — 10 business days across 14 elapsed calendar days, with 4 weekend days skipped.",
 		},
 		faqs: [
 			{
+				question: "How do I find the date 10 business days from today?",
+				answer: "Switch the mode to 'Add or subtract business days from a date'. The start date defaults to today; enter 10 as the number of business days and the calculator returns the resulting date, its weekday, and the elapsed calendar span.",
+			},
+			{
 				question: "Does the count include the start date?",
-				answer: "No. The earlier date is day zero; the later date is counted if it falls Monday through Friday. This matches elapsed-date counting. If your use case counts both endpoints, add one when the earlier date is a weekday.",
+				answer: "No. In count mode, the earlier date is day zero; the later date is counted if it falls Monday through Friday. In add mode, the start date is not counted either: the first business day after a Friday is Monday. If your use case counts both endpoints, add one when the earlier date is a weekday.",
 			},
 			{
 				question: "Are public holidays excluded?",
@@ -7512,14 +7569,14 @@ const definitions: CalculatorDefinition[] = [
 			},
 			{
 				question: "Can I enter the dates in reverse order?",
-				answer: "Yes. The calculator returns the same absolute count whichever date you enter first.",
+				answer: "Yes. In count mode, the calculator returns the same absolute count whichever date you enter first.",
 			},
 		],
 		seo: {
-			title: "Business Days Calculator: Count Weekdays Between Dates | CalcForged",
-			description: "Count weekdays between two dates, excluding Saturdays and Sundays. Public holidays are not excluded, and the counting rule is shown with the result.",
+			title: "Business Days Calculator: Days From Today or Between Dates | CalcForged",
+			description: "Count business days between two dates, or find the date that lands N business days from today. Saturdays and Sundays are excluded; public holidays are not.",
 			h1: "Business days calculator",
-			intro: "Enter two dates to count weekdays between them. Saturdays and Sundays are excluded; public holidays are not. The earlier date is day zero, and the later date is counted if it falls Monday through Friday.",
+			intro: "Count weekdays between two dates, or switch modes to find the date a number of business days lands on. Saturdays and Sundays are excluded; public holidays are not. In count mode, the earlier date is day zero, and the later date is counted if it falls Monday through Friday.",
 		},
 		related: ["date", "time", "age"],
 	},
